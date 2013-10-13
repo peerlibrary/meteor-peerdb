@@ -136,16 +136,20 @@ testAsyncMulti 'meteor-peerdb - queries', [
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
+    # We inserted the document only with ids - subdocuments should be
+    # automatically populated with additional fields as defined in @Reference
     test.equal @post,
       _id: @postId
       author:
         _id: @person1._id
         username: @person1.username
+      # subscribers have only ids
       subscribers: [
         _id: @person2._id
       ,
         _id: @person3._id
       ]
+      # But reviewers have usernames as well
       reviewers: [
         _id: @person2._id
         username: @person2.username
@@ -200,6 +204,8 @@ testAsyncMulti 'meteor-peerdb - queries', [
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
+    # All persons had usernames changed, they should
+    # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
       author:
@@ -230,6 +236,7 @@ testAsyncMulti 'meteor-peerdb - queries', [
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
+    # person3 was removed, references should be removed as well, automatically
     test.equal @post,
       _id: @postId
       author:
@@ -254,6 +261,8 @@ testAsyncMulti 'meteor-peerdb - queries', [
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
+    # person2 was removed, references should be removed as well, automatically,
+    # but lists should be kept as empty lists
     test.equal @post,
       _id: @postId
       author:
@@ -274,5 +283,18 @@ testAsyncMulti 'meteor-peerdb - queries', [
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
+    # If directly referenced document is removed, dependency is removed as well
     test.isFalse @post
 ]
+
+Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
+  test.throws ->
+    class BadPost extends Document
+      @Meta
+        collection: Posts
+        fields:
+          reviewers: [@Reference Person, ['username'], false]
+  , /Only non-array values can be optional/
+
+  # Invalid document should not be added to the list
+  test.equal Document.Meta.list, [Person, Post]

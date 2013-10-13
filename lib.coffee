@@ -14,12 +14,15 @@ class Document
     new @_Reference args...
 
   @Meta: (meta) ->
-    # First we register the current document into a global list (Document.Meta.list)
-    @Meta.list.push @
+    # First we store away the global list
+    list = @Meta.list
 
     # Then we override Meta for the current document
     @Meta = meta
     @_initialize()
+
+    # If initialization was successful, we register the current document into the global list (Document.Meta.list)
+    list.push @
 
   @Meta.list = []
 
