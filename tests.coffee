@@ -35,7 +35,7 @@ sleep = (ms) ->
   , ms
   Fiber.yield()
 
-testAsyncMulti 'meteor-peerdb - queries', [
+testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
     test.equal Person.Meta.collection, Persons
     test.equal Person.Meta.fields, {}
@@ -298,3 +298,57 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
 
   # Invalid document should not be added to the list
   test.equal Document.Meta.list, [Person, Post]
+
+if Meteor.isServer
+  Tinytest.add 'meteor-peerdb - warnings', (test) ->
+    Log._intercept 1
+
+    postId = Posts.insert
+      author:
+        _id: 'nonexistent'
+
+    # Sleep so that observers have time to update the document
+    Meteor._sleepForMs(500)
+
+    intercepted = Log._intercepted()
+
+    test.equal intercepted.length, 1
+
+    intercepted = EJSON.parse intercepted[0]
+
+    test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing nonexistent document 'nonexistent'"
+    test.equal intercepted.level, 'warn'
+
+    Log._intercept 1
+
+    postId = Posts.insert
+      subscribers: 'foobar'
+
+    # Sleep so that observers have time to update the document
+    Meteor._sleepForMs(500)
+
+    intercepted = Log._intercepted()
+
+    test.equal intercepted.length, 1
+
+    intercepted = EJSON.parse intercepted[0]
+
+    test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with non-array value: 'foobar'"
+    test.equal intercepted.level, 'warn'
+
+    Log._intercept 1
+
+    postId = Posts.insert
+      author: null
+
+    # Sleep so that observers have time to update the document
+    Meteor._sleepForMs(500)
+
+    intercepted = Log._intercepted()
+
+    test.equal intercepted.length, 1
+
+    intercepted = EJSON.parse intercepted[0]
+
+    test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with invalid value: null"
+    test.equal intercepted.level, 'warn'

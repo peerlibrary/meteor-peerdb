@@ -64,6 +64,7 @@ Document._Reference = class extends Document._Reference
 
 Document = class extends Document
   @sourceFieldUpdatedWithValue: (id, reference, value) ->
+
     unless _.isObject(value) and _.isString(value._id)
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
       return if _.isNull(value) and reference.isArray
@@ -71,7 +72,7 @@ Document = class extends Document
       # Optional field
       return if _.isNull(value) and not reference.required
 
-      Meteor._debug "Document's '#{ id }' field '#{ reference.sourceField }' was updated with invalid value", value
+      Log.warn "Document's '#{ id }' field '#{ reference.sourceField }' was updated with invalid value: #{ util.inspect value }"
       return
 
     # Only _id is requested, we do not have to do anything
@@ -86,7 +87,7 @@ Document = class extends Document
       transform: null
 
     unless target
-      Meteor._debug "Document's '#{ id }' field '#{ reference.sourceField }' is referencing nonexistent document '#{ value._id }'"
+      Log.warn "Document's '#{ id }' field '#{ reference.sourceField }' is referencing nonexistent document '#{ value._id }'"
       # TODO: Should we call reference.removeSource here?
       return
 
@@ -98,7 +99,7 @@ Document = class extends Document
     reference = @Meta.fields[field]
     if reference.isArray
       unless _.isArray value
-        Meteor._debug "Document's '#{ id }' field '#{ field }' was updated with non-array value", value
+        Log.warn "Document's '#{ id }' field '#{ field }' was updated with non-array value: #{ util.inspect value }"
         return
     else
       value = [value]

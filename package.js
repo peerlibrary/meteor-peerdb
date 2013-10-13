@@ -3,7 +3,7 @@ Package.describe({
 });
 
 Package.on_use(function (api) {
-  api.use(['coffeescript', 'underscore'], ['client', 'server']);
+  api.use(['coffeescript', 'underscore', 'logging', 'util'], ['client', 'server']);
 
   api.export('Document');
 
