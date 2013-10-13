@@ -68,6 +68,9 @@ Document = class extends Document
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
       return if _.isNull(value) and reference.isArray
 
+      # Optional field
+      return if _.isNull(value) and not reference.required
+
       Meteor._debug "Document's '#{ id }' field '#{ reference.sourceField }' was updated with invalid value", value
       return
 
