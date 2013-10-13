@@ -6,7 +6,7 @@ class Document
     constructor: (@targetCollection, @fields) ->
       @fields ?= []
 
-    contributeToClass: (@sourceCollection, @sourceField, @isList) =>
+    contributeToClass: (@sourceCollection, @sourceField, @isArray) =>
 
   @Reference: (args...) ->
     new @_Reference args...
@@ -24,9 +24,9 @@ class Document
   @_initialize: ->
     fields = {}
     for field, reference of @Meta.fields or {}
-      isList = _.isArray reference
-      reference = reference[0] if isList
-      reference.contributeToClass @Meta.collection, field, isList
+      isArray = _.isArray reference
+      reference = reference[0] if isArray
+      reference.contributeToClass @Meta.collection, field, isArray
       fields[field] = reference
     @Meta.fields = fields
 

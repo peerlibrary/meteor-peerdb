@@ -20,23 +20,32 @@ class Post extends Document
       subscribers: [@Reference Persons]
       reviewers: [@Reference Persons, ['username']]
 
+# sleep function from fibers docs
+sleep = (ms) ->
+  Fiber = Npm.require 'fibers'
+  fiber = Fiber.current
+  setTimeout ->
+    fiber.run()
+  , ms
+  Fiber.yield()
+
 Tinytest.add 'meteor-peerdb - server', (test) ->
   test.equal Person.Meta.collection, Persons
   test.equal Person.Meta.fields, {}
   test.equal Post.Meta.collection, Posts
   test.instanceOf Post.Meta.fields.author, Person._Reference
-  test.isFalse Post.Meta.fields.author.isList
+  test.isFalse Post.Meta.fields.author.isArray
   test.equal Post.Meta.fields.author.sourceField, 'author'
   test.equal Post.Meta.fields.author.sourceCollection, Posts
   test.equal Post.Meta.fields.author.targetCollection, Persons
   test.equal Post.Meta.fields.author.fields, ['username']
   test.instanceOf Post.Meta.fields.subscribers, Person._Reference
-  test.isTrue Post.Meta.fields.subscribers.isList
+  test.isTrue Post.Meta.fields.subscribers.isArray
   test.equal Post.Meta.fields.subscribers.sourceField, 'subscribers'
   test.equal Post.Meta.fields.subscribers.sourceCollection, Posts
   test.equal Post.Meta.fields.subscribers.targetCollection, Persons
   test.equal Post.Meta.fields.subscribers.fields, []
-  test.isTrue Post.Meta.fields.reviewers.isList
+  test.isTrue Post.Meta.fields.reviewers.isArray
   test.equal Post.Meta.fields.reviewers.sourceField, 'reviewers'
   test.equal Post.Meta.fields.reviewers.sourceCollection, Posts
   test.equal Post.Meta.fields.reviewers.targetCollection, Persons
@@ -81,9 +90,32 @@ Tinytest.add 'meteor-peerdb - server', (test) ->
     ,
       _id: person3._id
     ]
+    body: 'FooBar'
 
-  # TODO: Wait and test auto-population of all fields
-  # TODO: Test that only specified field were auto-populated
+  # Sleep so that observers have time to update the document
+  sleep 500
+
+  post = Posts.findOne postId,
+    transform: null # So that we can use test.equal
+
+  test.equal post,
+    _id: postId
+    author:
+      _id: person1._id
+      username: person1.username
+    subscribers: [
+      _id: person2._id
+    ,
+      _id: person3._id
+    ]
+    reviewers: [
+      _id: person2._id
+      username: person2.username
+    ,
+      _id: person3._id
+      username: person3.username
+    ]
+    body: 'FooBar'
 
   Persons.update person1Id,
     $set:
@@ -109,9 +141,76 @@ Tinytest.add 'meteor-peerdb - server', (test) ->
   test.equal person3.username, 'person3a'
   test.equal person3.displayName, 'Person 3'
 
-  # TODO: Wait and test that usernames changed
-  # TODO: Test that only usernames changed
+  # Sleep so that observers have time to update the document
+  sleep 500
 
-  # TODO: Test removal of the field
-  # TODO: Test removal of the object referenced from the list
-  # TODO: Test removal of the object referenced directly
+  post = Posts.findOne postId,
+    transform: null # So that we can use test.equal
+
+  test.equal post,
+    _id: postId
+    author:
+      _id: person1._id
+      username: person1.username
+    subscribers: [
+      _id: person2._id
+    ,
+      _id: person3._id
+    ]
+    reviewers: [
+      _id: person2._id
+      username: person2.username
+    ,
+      _id: person3._id
+      username: person3.username
+    ]
+    body: 'FooBar'
+
+  Persons.remove person3Id
+
+  # Sleep so that observers have time to update the document
+  sleep 500
+
+  post = Posts.findOne postId,
+    transform: null # So that we can use test.equal
+
+  test.equal post,
+    _id: postId
+    author:
+      _id: person1._id
+      username: person1.username
+    subscribers: [
+      _id: person2._id
+    ]
+    reviewers: [
+      _id: person2._id
+      username: person2.username
+    ]
+    body: 'FooBar'
+
+  Persons.remove person2Id
+
+  # Sleep so that observers have time to update the document
+  sleep 500
+
+  post = Posts.findOne postId,
+    transform: null # So that we can use test.equal
+
+  test.equal post,
+    _id: postId
+    author:
+      _id: person1._id
+      username: person1.username
+    subscribers: []
+    reviewers: []
+    body: 'FooBar'
+
+  Persons.remove person1Id
+
+  # Sleep so that observers have time to update the document
+  sleep 500
+
+  post = Posts.findOne postId,
+    transform: null # So that we can use test.equal
+
+  test.isFalse post
