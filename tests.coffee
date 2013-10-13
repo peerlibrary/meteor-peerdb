@@ -3,24 +3,24 @@ Posts = new Meteor.Collection 'Posts', transform: (doc) => new Post doc
 UserLinks = new Meteor.Collection 'UserLinks', transform: (doc) => new UserLink doc
 
 if Meteor.isServer
+  # Initialize the database
+  Persons.remove {}
+  Posts.remove {}
+  UserLinks.remove {}
+  Meteor.users.remove {}
+
   Meteor.publish null, ->
     Persons.find()
   Meteor.publish null, ->
     Posts.find()
 
-class Person extends Document
-  # Other fields:
-  #   username
-  #   displayName
-
-  @Meta
-    collection: Persons
+# The order of documents here tests delayed definitions
 
 class Post extends Document
   # Other fields:
   #   body
 
-  @Meta
+  @Meta =>
     collection: Posts
     fields:
       # We can reference other document
@@ -35,6 +35,16 @@ class UserLink extends Document
     fields:
       # We can reference just a collection
       user: @Reference Meteor.users, ['username'], false
+
+class Person extends Document
+  # Other fields:
+  #   username
+  #   displayName
+
+  @Meta
+    collection: Persons
+
+Document.retryDelayed()
 
 # sleep function from fibers docs
 sleep = (ms) ->
@@ -92,7 +102,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
     test.equal UserLink.Meta.fields.user.fields, ['username']
 
-    test.equal Document.Meta.list, [Person, Post, UserLink]
+    test.equal Document.Meta.list, [UserLink, Person, Post]
 
     Persons.insert
       username: 'person1'
@@ -285,7 +295,8 @@ testAsyncMulti 'meteor-peerdb - references', [
     pollUntil expect, ->
       false
     , 500, 100, true
-, (test, expect) ->
+,
+  (test, expect) ->
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -325,7 +336,38 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Only non-array values can be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [Person, Post, UserLink]
+  test.equal Document.Meta.list, [UserLink, Person, Post]
+
+testAsyncMulti 'meteor-peerdb - delayed defintion', [
+  (test, expect) ->
+    class BadPost extends Document
+      @Meta =>
+        collection: Posts
+        fields:
+          author: @Reference undefined, ['username']
+
+    Log._intercept 1
+
+    # Sleep so that error is shown
+    pollUntil expect, ->
+      false
+    , 1100, 100, true
+,
+  (test, expect) ->
+    intercepted = Log._intercepted()
+
+    test.equal intercepted.length, 1, intercepted
+
+    intercepted = EJSON.parse intercepted[0]
+
+    test.equal intercepted.message, "Not all delayed document definitions were successfully retried"
+    test.equal intercepted.level, 'error'
+
+    test.equal Document.Meta.list, [UserLink, Person, Post]
+    test.equal Document.Meta.delayed.length, 1
+
+    Document.Meta.delayed = []
+]
 
 if Meteor.isServer
   Tinytest.add 'meteor-peerdb - warnings', (test) ->
@@ -340,7 +382,7 @@ if Meteor.isServer
 
     intercepted = Log._intercepted()
 
-    test.equal intercepted.length, 1
+    test.equal intercepted.length, 1, intercepted
 
     intercepted = EJSON.parse intercepted[0]
 
@@ -357,7 +399,7 @@ if Meteor.isServer
 
     intercepted = Log._intercepted()
 
-    test.equal intercepted.length, 1
+    test.equal intercepted.length, 1, intercepted
 
     intercepted = EJSON.parse intercepted[0]
 
@@ -374,7 +416,7 @@ if Meteor.isServer
 
     intercepted = Log._intercepted()
 
-    test.equal intercepted.length, 1
+    test.equal intercepted.length, 1, intercepted
 
     intercepted = EJSON.parse intercepted[0]
 
@@ -392,4 +434,4 @@ if Meteor.isServer
     intercepted = Log._intercepted()
 
     # There should be no warning because user is optional
-    test.equal intercepted.length, 0
+    test.equal intercepted.length, 0, intercepted

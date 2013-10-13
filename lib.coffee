@@ -1,3 +1,5 @@
+INVALID_TARGET = "Invalid target document or collection"
+
 class Document
   constructor: (doc) ->
     _.extend @, doc
@@ -10,9 +12,11 @@ class Document
       if _.isFunction(targetDocumentOrCollection) and new targetDocumentOrCollection instanceof Document
         @targetDocument = targetDocumentOrCollection
         @targetCollection = targetDocumentOrCollection.Meta.collection
-      else
+      else if targetDocumentOrCollection
         @targetDocument = null
         @targetCollection = targetDocumentOrCollection
+      else
+        throw new Error INVALID_TARGET
 
     contributeToClass: (@sourceDocument, @sourceField, @isArray) =>
       throw new Meteor.Error 500, "Only non-array values can be optional" if @isArray and not @required
@@ -23,17 +27,27 @@ class Document
     new @_Reference args...
 
   @Meta: (meta) ->
-    # First we store away the global list
-    list = @Meta.list
-
-    # Then we override Meta for the current document
-    @Meta = meta
+    if _.isFunction meta
+      try
+        @Meta = meta()
+      catch e
+        if e.message == INVALID_TARGET or e instanceof ReferenceError
+          @_addDelayed @, meta
+          return
+        else
+          throw e
+    else
+      @Meta = meta
     @_initialize()
 
     # If initialization was successful, we register the current document into the global list (Document.Meta.list)
-    list.push @
+    Document.Meta.list.push @
+
+    @retryDelayed()
 
   @Meta.list = []
+  @Meta.delayed = []
+  @Meta._delayedCheckTimeout = null
 
   @_initialize: ->
     fields = {}
@@ -43,5 +57,24 @@ class Document
       reference.contributeToClass @, field, isArray
       fields[field] = reference
     @Meta.fields = fields
+
+  @_addDelayed: (document, meta) ->
+    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+
+    Document.Meta.delayed.push [document, meta]
+
+    Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
+      Log.error "Not all delayed document definitions were successfully retried" if Document.Meta.delayed.length
+    , 1000 # ms
+
+  @retryDelayed: ->
+    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+
+    # We store the delayed list away, so that we can iterate over it
+    delayed = Document.Meta.delayed
+    # And set it back to empty list, document.Meta will populate it again as necessary
+    Document.Meta.delayed = []
+    for [document, meta] in delayed
+      document.Meta meta
 
 @Document = Document
