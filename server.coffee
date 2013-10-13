@@ -16,7 +16,7 @@ Document._Reference = class extends Document._Reference
         update['$set'] ?= {}
         update['$set'][field] = value
 
-    @sourceCollection.update selector, update, multi: true
+    @sourceDocument.Meta.collection.update selector, update, multi: true
 
   removeSource: (id) =>
     selector = {}
@@ -30,7 +30,7 @@ Document._Reference = class extends Document._Reference
 
       # MongoDB supports removal of array elements only in two steps
       # First, we set all removed references to null
-      @sourceCollection.update selector, update, multi: true
+      @sourceDocument.Meta.collection.update selector, update, multi: true
 
       # Then we remove all null elements
       selector = {}
@@ -39,10 +39,10 @@ Document._Reference = class extends Document._Reference
         $pull: {}
       update['$pull'][@sourceField] = null
 
-      @sourceCollection.update selector, update, multi: true
+      @sourceDocument.Meta.collection.update selector, update, multi: true
 
     else
-      @sourceCollection.remove selector
+      @sourceDocument.Meta.collection.remove selector
 
   setupTargetObservers: =>
     referenceFields =
@@ -50,7 +50,7 @@ Document._Reference = class extends Document._Reference
     for field in @fields
       referenceFields[field] = 1
 
-    @targetCollection.find({}, fields: referenceFields).observeChanges
+    @targetDocument.Meta.collection.find({}, fields: referenceFields).observeChanges
       added: (id, fields) =>
         return if _.isEmpty fields
 
@@ -81,7 +81,7 @@ Document = class extends Document
     for field in reference.fields
       referenceFields[field] = 1
 
-    target = reference.targetCollection.findOne value._id,
+    target = reference.targetDocument.Meta.collection.findOne value._id,
       fields: referenceFields
       transform: null
 

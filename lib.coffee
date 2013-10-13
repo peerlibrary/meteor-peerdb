@@ -3,11 +3,11 @@ class Document
     _.extend @, doc
 
   @_Reference: class
-    constructor: (@targetCollection, @fields, @required) ->
+    constructor: (@targetDocument, @fields, @required) ->
       @fields ?= []
       @required ?= true
 
-    contributeToClass: (@sourceCollection, @sourceField, @isArray) =>
+    contributeToClass: (@sourceDocument, @sourceField, @isArray) =>
       throw new Meteor.Error 500, "Only non-array values can be optional" if @isArray and not @required
 
   @Reference: (args...) ->
@@ -28,7 +28,7 @@ class Document
     for field, reference of @Meta.fields or {}
       isArray = _.isArray reference
       reference = reference[0] if isArray
-      reference.contributeToClass @Meta.collection, field, isArray
+      reference.contributeToClass @, field, isArray
       fields[field] = reference
     @Meta.fields = fields
 

@@ -22,9 +22,9 @@ class Post extends Document
   @Meta
     collection: Posts
     fields:
-      author: @Reference Persons, ['username']
-      subscribers: [@Reference Persons]
-      reviewers: [@Reference Persons, ['username']]
+      author: @Reference Person, ['username']
+      subscribers: [@Reference Person]
+      reviewers: [@Reference Person, ['username']]
 
 # sleep function from fibers docs
 sleep = (ms) ->
@@ -43,19 +43,25 @@ testAsyncMulti 'meteor-peerdb - queries', [
     test.instanceOf Post.Meta.fields.author, Person._Reference
     test.isFalse Post.Meta.fields.author.isArray
     test.equal Post.Meta.fields.author.sourceField, 'author'
-    test.equal Post.Meta.fields.author.sourceCollection, Posts
-    test.equal Post.Meta.fields.author.targetCollection, Persons
+    test.equal Post.Meta.fields.author.sourceDocument, Post
+    test.equal Post.Meta.fields.author.targetDocument, Person
+    test.equal Post.Meta.fields.author.sourceDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.author.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.author.fields, ['username']
     test.instanceOf Post.Meta.fields.subscribers, Person._Reference
     test.isTrue Post.Meta.fields.subscribers.isArray
     test.equal Post.Meta.fields.subscribers.sourceField, 'subscribers'
-    test.equal Post.Meta.fields.subscribers.sourceCollection, Posts
-    test.equal Post.Meta.fields.subscribers.targetCollection, Persons
+    test.equal Post.Meta.fields.subscribers.sourceDocument, Post
+    test.equal Post.Meta.fields.subscribers.targetDocument, Person
+    test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.subscribers.fields, []
     test.isTrue Post.Meta.fields.reviewers.isArray
     test.equal Post.Meta.fields.reviewers.sourceField, 'reviewers'
-    test.equal Post.Meta.fields.reviewers.sourceCollection, Posts
-    test.equal Post.Meta.fields.reviewers.targetCollection, Persons
+    test.equal Post.Meta.fields.reviewers.sourceDocument, Post
+    test.equal Post.Meta.fields.reviewers.targetDocument, Person
+    test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.reviewers.fields, ['username']
 
     test.equal Document.Meta.list, [Person, Post]
