@@ -16,7 +16,7 @@ Document._Reference = class extends Document._Reference
         update['$set'] ?= {}
         update['$set'][field] = value
 
-    @sourceDocument.Meta.collection.update selector, update, multi: true
+    @sourceCollection.update selector, update, multi: true
 
   removeSource: (id) =>
     selector = {}
@@ -30,7 +30,7 @@ Document._Reference = class extends Document._Reference
 
       # MongoDB supports removal of array elements only in two steps
       # First, we set all removed references to null
-      @sourceDocument.Meta.collection.update selector, update, multi: true
+      @sourceCollection.update selector, update, multi: true
 
       # Then we remove all null elements
       selector = {}
@@ -39,10 +39,10 @@ Document._Reference = class extends Document._Reference
         $pull: {}
       update['$pull'][@sourceField] = null
 
-      @sourceDocument.Meta.collection.update selector, update, multi: true
+      @sourceCollection.update selector, update, multi: true
 
     else
-      @sourceDocument.Meta.collection.remove selector
+      @sourceCollection.remove selector
 
   setupTargetObservers: =>
     referenceFields =
@@ -50,7 +50,7 @@ Document._Reference = class extends Document._Reference
     for field in @fields
       referenceFields[field] = 1
 
-    @targetDocument.Meta.collection.find({}, fields: referenceFields).observeChanges
+    @targetCollection.find({}, fields: referenceFields).observeChanges
       added: (id, fields) =>
         return if _.isEmpty fields
 
@@ -82,7 +82,7 @@ Document = class extends Document
     for field in reference.fields
       referenceFields[field] = 1
 
-    target = reference.targetDocument.Meta.collection.findOne value._id,
+    target = reference.targetCollection.findOne value._id,
       fields: referenceFields
       transform: null
 
@@ -94,6 +94,7 @@ Document = class extends Document
     reference.updateSource target._id, _.pick target, reference.fields
 
   @sourceFieldUpdated: (id, field, value) ->
+    # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     return if _.isUndefined value
 
     reference = @Meta.fields[field]

@@ -1,5 +1,6 @@
 Persons = new Meteor.Collection 'Persons', transform: (doc) => new Person doc
 Posts = new Meteor.Collection 'Posts', transform: (doc) => new Post doc
+UserLinks = new Meteor.Collection 'UserLinks', transform: (doc) => new UserLink doc
 
 if Meteor.isServer
   Meteor.publish null, ->
@@ -22,9 +23,18 @@ class Post extends Document
   @Meta
     collection: Posts
     fields:
+      # We can reference other document
       author: @Reference Person, ['username']
+      # Or an array of documents
       subscribers: [@Reference Person]
       reviewers: [@Reference Person, ['username']]
+
+class UserLink extends Document
+  @Meta
+    collection: UserLinks
+    fields:
+      # We can reference just a collection
+      user: @Reference Meteor.users, ['username'], false
 
 # sleep function from fibers docs
 sleep = (ms) ->
@@ -39,12 +49,15 @@ testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
     test.equal Person.Meta.collection, Persons
     test.equal Person.Meta.fields, {}
+
     test.equal Post.Meta.collection, Posts
     test.instanceOf Post.Meta.fields.author, Person._Reference
     test.isFalse Post.Meta.fields.author.isArray
     test.equal Post.Meta.fields.author.sourceField, 'author'
     test.equal Post.Meta.fields.author.sourceDocument, Post
     test.equal Post.Meta.fields.author.targetDocument, Person
+    test.equal Post.Meta.fields.author.sourceCollection, Posts
+    test.equal Post.Meta.fields.author.targetCollection, Persons
     test.equal Post.Meta.fields.author.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.author.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.author.fields, ['username']
@@ -53,6 +66,8 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.subscribers.sourceField, 'subscribers'
     test.equal Post.Meta.fields.subscribers.sourceDocument, Post
     test.equal Post.Meta.fields.subscribers.targetDocument, Person
+    test.equal Post.Meta.fields.subscribers.sourceCollection, Posts
+    test.equal Post.Meta.fields.subscribers.targetCollection, Persons
     test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.subscribers.fields, []
@@ -60,11 +75,24 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.reviewers.sourceField, 'reviewers'
     test.equal Post.Meta.fields.reviewers.sourceDocument, Post
     test.equal Post.Meta.fields.reviewers.targetDocument, Person
+    test.equal Post.Meta.fields.reviewers.sourceCollection, Posts
+    test.equal Post.Meta.fields.reviewers.targetCollection, Persons
     test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.reviewers.fields, ['username']
 
-    test.equal Document.Meta.list, [Person, Post]
+    test.equal UserLink.Meta.collection, UserLinks
+    test.instanceOf UserLink.Meta.fields.user, UserLink._Reference
+    test.isFalse UserLink.Meta.fields.user.isArray
+    test.equal UserLink.Meta.fields.user.sourceField, 'user'
+    test.equal UserLink.Meta.fields.user.sourceDocument, UserLink
+    test.equal UserLink.Meta.fields.user.targetDocument, null # We are referencing just a collection
+    test.equal UserLink.Meta.fields.user.sourceCollection, UserLinks
+    test.equal UserLink.Meta.fields.user.targetCollection, Meteor.users
+    test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
+    test.equal UserLink.Meta.fields.user.fields, ['username']
+
+    test.equal Document.Meta.list, [Person, Post, UserLink]
 
     Persons.insert
       username: 'person1'
@@ -297,7 +325,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Only non-array values can be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [Person, Post]
+  test.equal Document.Meta.list, [Person, Post, UserLink]
 
 if Meteor.isServer
   Tinytest.add 'meteor-peerdb - warnings', (test) ->
@@ -352,3 +380,16 @@ if Meteor.isServer
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with invalid value: null"
     test.equal intercepted.level, 'warn'
+
+    Log._intercept 1
+
+    userLinkId = UserLinks.insert
+      user: null
+
+    # Sleep so that observers have time to update the document
+    Meteor._sleepForMs(500)
+
+    intercepted = Log._intercepted()
+
+    # There should be no warning because user is optional
+    test.equal intercepted.length, 0
