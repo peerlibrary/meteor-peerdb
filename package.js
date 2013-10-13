@@ -17,5 +17,5 @@ Package.on_use(function (api) {
 
 Package.on_test(function (api) {
   api.use(['peerdb', 'tinytest', 'test-helpers', 'coffeescript', 'insecure'], ['client', 'server']);
-  api.add_files(['tests.js', 'tests_queries.coffee'], ['client', 'server']);
+  api.add_files(['tests_defined.js', 'tests.coffee'], ['client', 'server']);
 });
