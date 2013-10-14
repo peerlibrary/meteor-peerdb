@@ -74,7 +74,11 @@ class Document
     Document.Meta.delayed.push [document, meta]
 
     Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
-      Log.error "Not all delayed document definitions were successfully retried" if Document.Meta.delayed.length
+      if Document.Meta.delayed.length
+        delayed = []
+        for [document, meta] in Document.Meta.delayed
+          delayed.push document.name or document
+        Log.error "Not all delayed document definitions were successfully retried: #{ delayed }"
     , 1000 # ms
 
   @_retryDelayed: (throwErrors) ->

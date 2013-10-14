@@ -456,7 +456,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
 
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Not all delayed document definitions were successfully retried"
+    test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
     test.equal intercepted.level, 'error'
 
     test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
