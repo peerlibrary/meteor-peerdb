@@ -33,7 +33,7 @@ class Document
   @Reference: (args...) ->
     new @_Reference args...
 
-  @Meta: (meta, dontList) ->
+  @Meta: (meta, dontList, throwErrors) ->
     if _.isFunction meta
       originalMeta = @Meta
       try
@@ -41,7 +41,7 @@ class Document
         @Meta._meta = originalMeta
         @Meta._metaData = meta
       catch e
-        if e.message == INVALID_TARGET or e instanceof ReferenceError
+        if not throwErrors and (e.message == INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed @, meta
           return
         else
@@ -77,7 +77,7 @@ class Document
       Log.error "Not all delayed document definitions were successfully retried" if Document.Meta.delayed.length
     , 1000 # ms
 
-  @_retryDelayed: ->
+  @_retryDelayed: (throwErrors) ->
     Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
 
     # We store the delayed list away, so that we can iterate over it
@@ -85,10 +85,10 @@ class Document
     # And set it back to empty list, document.Meta will populate it again as necessary
     Document.Meta.delayed = []
     for [document, meta] in delayed
-      document.Meta meta
+      document.Meta meta, false, throwErrors
 
-  @redefineAll: ->
-    Document._retryDelayed()
+  @redefineAll: (throwErrors) ->
+    Document._retryDelayed throwErrors
 
     for document in Document.Meta.list when document.Meta._meta
       metadata = document.Meta._metaData

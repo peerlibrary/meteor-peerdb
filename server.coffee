@@ -145,4 +145,8 @@ setupObservers = ->
     document.setupSourceObservers()
 
 Meteor.startup ->
+  # To try delayed references one last time, this time we throw any exceptions
+  # (Otherwise setupObservers would trigger strange exceptions anyway)
+  Document._retryDelayed true
+
   setupObservers()
