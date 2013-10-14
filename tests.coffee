@@ -1,6 +1,8 @@
 Persons = new Meteor.Collection 'Persons', transform: (doc) => new Person doc
 Posts = new Meteor.Collection 'Posts', transform: (doc) => new Post doc
 UserLinks = new Meteor.Collection 'UserLinks', transform: (doc) => new UserLink doc
+CircularFirsts = new Meteor.Collection 'CircularFirsts', transform: (doc) => new CircularFirst doc
+CircularSeconds = new Meteor.Collection 'CircularSeconds', transform: (doc) => new CircularSecond doc
 
 if Meteor.isServer
   # Initialize the database
@@ -36,6 +38,20 @@ class UserLink extends Document
       # We can reference just a collection
       user: @Reference Meteor.users, ['username'], false
 
+class CircularFirst extends Document
+  @Meta =>
+    collection: CircularFirsts
+    fields:
+      # We can reference circular documents
+      second: @Reference CircularSecond
+
+class CircularSecond extends Document
+  @Meta =>
+    collection: CircularSeconds
+    fields:
+      # But of course one should not be required so that we can insert without warnings
+      first: @Reference CircularFirst, [], false
+
 class Person extends Document
   # Other fields:
   #   username
@@ -44,7 +60,7 @@ class Person extends Document
   @Meta
     collection: Persons
 
-Document.retryDelayed()
+Document.redefineAll()
 
 # sleep function from fibers docs
 sleep = (ms) ->
@@ -102,7 +118,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
     test.equal UserLink.Meta.fields.user.fields, ['username']
 
-    test.equal Document.Meta.list, [UserLink, Person, Post]
+    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Post]
 
     Persons.insert
       username: 'person1'
@@ -336,7 +352,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Only non-array values can be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, Person, Post]
+  test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Post]
 
 testAsyncMulti 'meteor-peerdb - delayed defintion', [
   (test, expect) ->
@@ -363,9 +379,10 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     test.equal intercepted.message, "Not all delayed document definitions were successfully retried"
     test.equal intercepted.level, 'error'
 
-    test.equal Document.Meta.list, [UserLink, Person, Post]
+    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Post]
     test.equal Document.Meta.delayed.length, 1
 
+    # Clear delayed so that we can retry tests without errors
     Document.Meta.delayed = []
 ]
 

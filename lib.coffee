@@ -26,10 +26,13 @@ class Document
   @Reference: (args...) ->
     new @_Reference args...
 
-  @Meta: (meta) ->
+  @Meta: (meta, dontList) ->
     if _.isFunction meta
+      originalMeta = @Meta
       try
         @Meta = meta()
+        @Meta._meta = originalMeta
+        @Meta._metaData = meta
       catch e
         if e.message == INVALID_TARGET or e instanceof ReferenceError
           @_addDelayed @, meta
@@ -41,9 +44,9 @@ class Document
     @_initialize()
 
     # If initialization was successful, we register the current document into the global list (Document.Meta.list)
-    Document.Meta.list.push @
+    Document.Meta.list.push @ unless dontList
 
-    @retryDelayed()
+    @_retryDelayed()
 
   @Meta.list = []
   @Meta.delayed = []
@@ -67,7 +70,7 @@ class Document
       Log.error "Not all delayed document definitions were successfully retried" if Document.Meta.delayed.length
     , 1000 # ms
 
-  @retryDelayed: ->
+  @_retryDelayed: ->
     Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
 
     # We store the delayed list away, so that we can iterate over it
@@ -76,5 +79,13 @@ class Document
     Document.Meta.delayed = []
     for [document, meta] in delayed
       document.Meta meta
+
+  @redefineAll: ->
+    Document._retryDelayed()
+
+    for document in Document.Meta.list when document.Meta._meta
+      metadata = document.Meta._metaData
+      document.Meta = document.Meta._meta
+      document.Meta metadata, true
 
 @Document = Document
