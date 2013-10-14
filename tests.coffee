@@ -9,12 +9,20 @@ if Meteor.isServer
   Persons.remove {}
   Posts.remove {}
   UserLinks.remove {}
+  CircularFirsts.remove {}
+  CircularSeconds.remove {}
   Meteor.users.remove {}
 
   Meteor.publish null, ->
     Persons.find()
   Meteor.publish null, ->
     Posts.find()
+  Meteor.publish null, ->
+    UserLinks.find()
+  Meteor.publish null, ->
+    CircularFirsts.find()
+  Meteor.publish null, ->
+    CircularSeconds.find()
 
 # The order of documents here tests delayed definitions
 
@@ -39,18 +47,24 @@ class UserLink extends Document
       user: @Reference Meteor.users, ['username'], false
 
 class CircularFirst extends Document
+  # Other fields:
+  #   content
+
   @Meta =>
     collection: CircularFirsts
     fields:
       # We can reference circular documents
-      second: @Reference CircularSecond
+      second: @Reference CircularSecond, ['content']
 
 class CircularSecond extends Document
+  # Other fields:
+  #   content
+
   @Meta =>
     collection: CircularSeconds
     fields:
       # But of course one should not be required so that we can insert without warnings
-      first: @Reference CircularFirst, [], false
+      first: @Reference CircularFirst, ['content'], false
 
 class Person extends Document
   # Other fields:
@@ -176,7 +190,8 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person3._id
       ]
       body: 'FooBar'
-    , expect (error, postId) =>
+    ,
+      expect (error, postId) =>
         test.isFalse error, error
         test.isTrue postId
         @postId = postId
@@ -216,21 +231,24 @@ testAsyncMulti 'meteor-peerdb - references', [
     Persons.update @person1Id,
       $set:
         username: 'person1a'
-    , expect (error, res) =>
+    ,
+      expect (error, res) =>
         test.isFalse error, error
         test.isTrue res
 
     Persons.update @person2Id,
       $set:
         username: 'person2a'
-    , expect (error, res) =>
+    ,
+      expect (error, res) =>
         test.isFalse error, error
         test.isTrue res
 
     Persons.update @person3Id,
       $set:
         username: 'person3a'
-    , expect (error, res) =>
+    ,
+      expect (error, res) =>
         test.isFalse error, error
         test.isTrue res
 ,
@@ -279,7 +297,9 @@ testAsyncMulti 'meteor-peerdb - references', [
       ]
       body: 'FooBar'
 
-    Persons.remove @person3Id
+    Persons.remove @person3Id,
+      expect (error) =>
+        test.isFalse error, error
 
     # Sleep so that observers have time to update the document
     pollUntil expect, ->
@@ -305,7 +325,9 @@ testAsyncMulti 'meteor-peerdb - references', [
       ]
       body: 'FooBar'
 
-    Persons.remove @person2Id
+    Persons.remove @person2Id,
+      expect (error) =>
+        test.isFalse error, error
 
     # Sleep so that observers have time to update the document
     pollUntil expect, ->
@@ -327,7 +349,9 @@ testAsyncMulti 'meteor-peerdb - references', [
       reviewers: []
       body: 'FooBar'
 
-    Persons.remove @person1Id
+    Persons.remove @person1Id,
+      expect (error) =>
+        test.isFalse error, error
 
     # Sleep so that observers have time to update the document
     pollUntil expect, ->
@@ -362,7 +386,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
         fields:
           author: @Reference undefined, ['username']
 
-    Log._intercept 1
+    Log._intercept 2 # Two to see if we catch more than expected
 
     # Sleep so that error is shown
     pollUntil expect, ->
@@ -386,9 +410,319 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     Document.Meta.delayed = []
 ]
 
+testAsyncMulti 'meteor-peerdb - circular changes', [
+  (test, expect) ->
+    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+
+    CircularFirsts.insert
+      second: null
+      content: 'FooBar 1'
+    ,
+      expect (error, circularFirstId) =>
+        test.isFalse error, error
+        test.isTrue circularFirstId
+        @circularFirstId = circularFirstId
+
+    CircularSeconds.insert
+      first: null
+      content: 'FooBar 2'
+    ,
+      expect (error, circularSecondId) =>
+        test.isFalse error, error
+        test.isTrue circularSecondId
+        @circularSecondId = circularSecondId
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      # One or two because it depends if the client tests are running at the same time
+      test.isTrue 1 <= intercepted.length <= 2, intercepted
+
+      # We are testing only the server one, so let's find it
+      for i in intercepted
+        break if i.indexOf @circularFirstId isnt -1
+      intercepted = EJSON.parse i
+
+      test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with invalid value: null"
+      test.equal intercepted.level, 'warn'
+
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second: null
+      content: 'FooBar 1'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first: null
+      content: 'FooBar 2'
+
+    CircularFirsts.update @circularFirstId,
+      $set:
+        second:
+          _id: @circularSecondId
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second:
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      content: 'FooBar 1'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first: null
+      content: 'FooBar 2'
+
+    CircularSeconds.update @circularSecondId,
+      $set:
+        first:
+          _id: @circularFirstId
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second:
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      content: 'FooBar 1'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first:
+        _id: @circularFirstId
+        content: 'FooBar 1'
+      content: 'FooBar 2'
+
+    CircularFirsts.update @circularFirstId,
+      $set:
+        content: 'FooBar 1a'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second:
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      content: 'FooBar 1a'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first:
+        _id: @circularFirstId
+        content: 'FooBar 1a'
+      content: 'FooBar 2'
+
+    CircularSeconds.update @circularSecondId,
+      $set:
+        content: 'FooBar 2a'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second:
+        _id: @circularSecondId
+        content: 'FooBar 2a'
+      content: 'FooBar 1a'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first:
+        _id: @circularFirstId
+        content: 'FooBar 1a'
+      content: 'FooBar 2a'
+
+    CircularSeconds.remove @circularSecondId,
+      expect (error) =>
+        test.isFalse error, error
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.isFalse @circularSecond
+
+    # If directly referenced document is removed, dependency is removed as well
+    test.isFalse @circularFirst
+
+    Log._intercept 1 if Meteor.isServer
+
+    CircularSeconds.insert
+      first: null
+      content: 'FooBar 2'
+    ,
+      expect (error, circularSecondId) =>
+        test.isFalse error, error
+        test.isTrue circularSecondId
+        @circularSecondId = circularSecondId
+,
+  (test, expect) ->
+    CircularFirsts.insert
+      second:
+        _id: @circularSecondId
+      content: 'FooBar 1'
+    ,
+      expect (error, circularFirstId) =>
+        test.isFalse error, error
+        test.isTrue circularFirstId
+        @circularFirstId = circularFirstId
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      test.equal intercepted.length, 0, intercepted
+
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second:
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      content: 'FooBar 1'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first: null
+      content: 'FooBar 2'
+
+    CircularSeconds.update @circularSecondId,
+      $set:
+        first:
+          _id: @circularFirstId
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.equal @circularFirst,
+      _id: @circularFirstId
+      second:
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      content: 'FooBar 1'
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first:
+        _id: @circularFirstId
+        content: 'FooBar 1'
+      content: 'FooBar 2'
+
+    CircularFirsts.remove @circularFirstId,
+      expect (error) =>
+        test.isFalse error, error
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @circularFirst = CircularFirsts.findOne @circularFirstId,
+      transform: null # So that we can use test.equal
+    @circularSecond = CircularSeconds.findOne @circularSecondId,
+      transform: null # So that we can use test.equal
+
+    test.isFalse @circularFirst
+
+    # If directly referenced but optional document is removed, dependency is not removed as well, but set to null
+    test.equal @circularSecond,
+      _id: @circularSecondId
+      first: null
+      content: 'FooBar 2'
+]
+
 if Meteor.isServer
   Tinytest.add 'meteor-peerdb - warnings', (test) ->
-    Log._intercept 1
+    Log._intercept 2 # Two to see if we catch more than expected
 
     postId = Posts.insert
       author:
@@ -406,7 +740,7 @@ if Meteor.isServer
     test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing nonexistent document 'nonexistent'"
     test.equal intercepted.level, 'warn'
 
-    Log._intercept 1
+    Log._intercept 2 # Two to see if we catch more than expected
 
     postId = Posts.insert
       subscribers: 'foobar'
@@ -423,7 +757,7 @@ if Meteor.isServer
     test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with non-array value: 'foobar'"
     test.equal intercepted.level, 'warn'
 
-    Log._intercept 1
+    Log._intercept 2 # Two to see if we catch more than expected
 
     postId = Posts.insert
       author: null

@@ -22,6 +22,7 @@ Document._Reference = class extends Document._Reference
     selector = {}
     selector["#{ @sourceField }._id"] = id
 
+    # If it is an array, we remove references
     if @isArray
       field = "#{ @sourceField }.$"
       update =
@@ -41,6 +42,15 @@ Document._Reference = class extends Document._Reference
 
       @sourceCollection.update selector, update, multi: true
 
+    # If it is an optional reference, we set it to null
+    else if not @required
+      update =
+        $set: {}
+      update['$set'][@sourceField] = null
+
+      @sourceCollection.update selector, update, multi: true
+
+    # Else, we remove the whole document
     else
       @sourceCollection.remove selector
 
@@ -72,6 +82,7 @@ Document = class extends Document
       # Optional field
       return if _.isNull(value) and not reference.required
 
+      # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
       Log.warn "Document's '#{ id }' field '#{ reference.sourceField }' was updated with invalid value: #{ util.inspect value }"
       return
 
@@ -106,7 +117,7 @@ Document = class extends Document
       value = [value]
 
     for v in value
-      @sourceFieldUpdatedWithValue(id, reference, v)
+      @sourceFieldUpdatedWithValue id, reference, v
 
   @sourceUpdated: (id, fields) ->
     for field, value of fields
