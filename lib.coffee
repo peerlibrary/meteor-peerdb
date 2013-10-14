@@ -9,7 +9,10 @@ class Document
       @fields ?= []
       @required ?= true
 
-      if _.isFunction(targetDocumentOrCollection) and new targetDocumentOrCollection instanceof Document
+      if targetDocumentOrCollection is 'self'
+        @targetDocument = 'self'
+        @targetCollection = null
+      else if _.isFunction(targetDocumentOrCollection) and new targetDocumentOrCollection instanceof Document
         @targetDocument = targetDocumentOrCollection
         @targetCollection = targetDocumentOrCollection.Meta.collection
       else if targetDocumentOrCollection
@@ -22,6 +25,10 @@ class Document
       throw new Meteor.Error 500, "Only non-array values can be optional" if @isArray and not @required
 
       @sourceCollection = @sourceDocument.Meta.collection
+
+      if @targetDocument is 'self'
+        @targetDocument = @sourceDocument
+        @targetCollection = @sourceCollection
 
   @Reference: (args...) ->
     new @_Reference args...

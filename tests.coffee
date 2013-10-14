@@ -3,6 +3,7 @@ Posts = new Meteor.Collection 'Posts', transform: (doc) => new Post doc
 UserLinks = new Meteor.Collection 'UserLinks', transform: (doc) => new UserLink doc
 CircularFirsts = new Meteor.Collection 'CircularFirsts', transform: (doc) => new CircularFirst doc
 CircularSeconds = new Meteor.Collection 'CircularSeconds', transform: (doc) => new CircularSecond doc
+Recursives = new Meteor.Collection 'Recursives', transform: (doc) => new Recursive doc
 
 if Meteor.isServer
   # Initialize the database
@@ -11,6 +12,7 @@ if Meteor.isServer
   UserLinks.remove {}
   CircularFirsts.remove {}
   CircularSeconds.remove {}
+  Recursives.remove {}
   Meteor.users.remove {}
 
   Meteor.publish null, ->
@@ -23,6 +25,8 @@ if Meteor.isServer
     CircularFirsts.find()
   Meteor.publish null, ->
     CircularSeconds.find()
+  Meteor.publish null, ->
+    Recursives.find()
 
 # The order of documents here tests delayed definitions
 
@@ -74,6 +78,15 @@ class Person extends Document
   @Meta
     collection: Persons
 
+class Recursive extends Document
+  # Other fields:
+  #   content
+
+  @Meta
+    collection: Recursives
+    fields:
+      other: @Reference 'self', ['content'], false
+
 Document.redefineAll()
 
 # sleep function from fibers docs
@@ -93,6 +106,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.collection, Posts
     test.instanceOf Post.Meta.fields.author, Person._Reference
     test.isFalse Post.Meta.fields.author.isArray
+    test.isTrue Post.Meta.fields.author.required
     test.equal Post.Meta.fields.author.sourceField, 'author'
     test.equal Post.Meta.fields.author.sourceDocument, Post
     test.equal Post.Meta.fields.author.targetDocument, Person
@@ -103,6 +117,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.author.fields, ['username']
     test.instanceOf Post.Meta.fields.subscribers, Person._Reference
     test.isTrue Post.Meta.fields.subscribers.isArray
+    test.isTrue Post.Meta.fields.subscribers.required
     test.equal Post.Meta.fields.subscribers.sourceField, 'subscribers'
     test.equal Post.Meta.fields.subscribers.sourceDocument, Post
     test.equal Post.Meta.fields.subscribers.targetDocument, Person
@@ -112,6 +127,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.subscribers.fields, []
     test.isTrue Post.Meta.fields.reviewers.isArray
+    test.isTrue Post.Meta.fields.reviewers.required
     test.equal Post.Meta.fields.reviewers.sourceField, 'reviewers'
     test.equal Post.Meta.fields.reviewers.sourceDocument, Post
     test.equal Post.Meta.fields.reviewers.targetDocument, Person
@@ -124,6 +140,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal UserLink.Meta.collection, UserLinks
     test.instanceOf UserLink.Meta.fields.user, UserLink._Reference
     test.isFalse UserLink.Meta.fields.user.isArray
+    test.isFalse UserLink.Meta.fields.user.required
     test.equal UserLink.Meta.fields.user.sourceField, 'user'
     test.equal UserLink.Meta.fields.user.sourceDocument, UserLink
     test.equal UserLink.Meta.fields.user.targetDocument, null # We are referencing just a collection
@@ -132,7 +149,46 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
     test.equal UserLink.Meta.fields.user.fields, ['username']
 
-    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Post]
+    test.equal CircularFirst.Meta.collection, CircularFirsts
+    test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._Reference
+    test.isFalse CircularFirst.Meta.fields.second.isArray
+    test.isTrue CircularFirst.Meta.fields.second.required
+    test.equal CircularFirst.Meta.fields.second.sourceField, 'second'
+    test.equal CircularFirst.Meta.fields.second.sourceDocument, CircularFirst
+    test.equal CircularFirst.Meta.fields.second.targetDocument, CircularSecond
+    test.equal CircularFirst.Meta.fields.second.sourceCollection, CircularFirsts
+    test.equal CircularFirst.Meta.fields.second.targetCollection, CircularSeconds
+    test.equal CircularFirst.Meta.fields.second.sourceDocument.Meta.collection, CircularFirsts
+    test.equal CircularFirst.Meta.fields.second.targetDocument.Meta.collection, CircularSeconds
+    test.equal CircularFirst.Meta.fields.second.fields, ['content']
+
+    test.equal CircularSecond.Meta.collection, CircularSeconds
+    test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._Reference
+    test.isFalse CircularSecond.Meta.fields.first.isArray
+    test.isFalse CircularSecond.Meta.fields.first.required
+    test.equal CircularSecond.Meta.fields.first.sourceField, 'first'
+    test.equal CircularSecond.Meta.fields.first.sourceDocument, CircularSecond
+    test.equal CircularSecond.Meta.fields.first.targetDocument, CircularFirst
+    test.equal CircularSecond.Meta.fields.first.sourceCollection, CircularSeconds
+    test.equal CircularSecond.Meta.fields.first.targetCollection, CircularFirsts
+    test.equal CircularSecond.Meta.fields.first.sourceDocument.Meta.collection, CircularSeconds
+    test.equal CircularSecond.Meta.fields.first.targetDocument.Meta.collection, CircularFirsts
+    test.equal CircularSecond.Meta.fields.first.fields, ['content']
+
+    test.equal Recursive.Meta.collection, Recursives
+    test.instanceOf Recursive.Meta.fields.other, Recursive._Reference
+    test.isFalse Recursive.Meta.fields.other.isArray
+    test.isFalse Recursive.Meta.fields.other.required
+    test.equal Recursive.Meta.fields.other.sourceField, 'other'
+    test.equal Recursive.Meta.fields.other.sourceDocument, Recursive
+    test.equal Recursive.Meta.fields.other.targetDocument, Recursive
+    test.equal Recursive.Meta.fields.other.sourceCollection, Recursives
+    test.equal Recursive.Meta.fields.other.targetCollection, Recursives
+    test.equal Recursive.Meta.fields.other.sourceDocument.Meta.collection, Recursives
+    test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection, Recursives
+    test.equal Recursive.Meta.fields.other.fields, ['content']
+
+    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
 
     Persons.insert
       username: 'person1'
@@ -376,7 +432,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Only non-array values can be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Post]
+  test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
 
 testAsyncMulti 'meteor-peerdb - delayed defintion', [
   (test, expect) ->
@@ -403,7 +459,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     test.equal intercepted.message, "Not all delayed document definitions were successfully retried"
     test.equal intercepted.level, 'error'
 
-    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Post]
+    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
     test.equal Document.Meta.delayed.length, 1
 
     # Clear delayed so that we can retry tests without errors
@@ -718,6 +774,287 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       _id: @circularSecondId
       first: null
       content: 'FooBar 2'
+]
+
+testAsyncMulti 'meteor-peerdb - recursive two', [
+  (test, expect) ->
+    Recursives.insert
+      other: null
+      content: 'FooBar 1'
+    ,
+      expect (error, recursive1Id) =>
+        test.isFalse error, error
+        test.isTrue recursive1Id
+        @recursive1Id = recursive1Id
+
+    Recursives.insert
+      other: null
+      content: 'FooBar 2'
+    ,
+      expect (error, recursive2Id) =>
+        test.isFalse error, error
+        test.isTrue recursive2Id
+        @recursive2Id = recursive2Id
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive1 = Recursives.findOne @recursive1Id,
+      transform: null # So that we can use test.equal
+    @recursive2 = Recursives.findOne @recursive2Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive1,
+      _id: @recursive1Id
+      other: null
+      content: 'FooBar 1'
+    test.equal @recursive2,
+      _id: @recursive2Id
+      other: null
+      content: 'FooBar 2'
+
+    Recursives.update @recursive1Id,
+      $set:
+        other:
+          _id: @recursive2Id
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive1 = Recursives.findOne @recursive1Id,
+      transform: null # So that we can use test.equal
+    @recursive2 = Recursives.findOne @recursive2Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive1,
+      _id: @recursive1Id
+      other:
+        _id: @recursive2Id
+        content: 'FooBar 2'
+      content: 'FooBar 1'
+    test.equal @recursive2,
+      _id: @recursive2Id
+      other: null
+      content: 'FooBar 2'
+
+    Recursives.update @recursive2Id,
+      $set:
+        other:
+          _id: @recursive1Id
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive1 = Recursives.findOne @recursive1Id,
+      transform: null # So that we can use test.equal
+    @recursive2 = Recursives.findOne @recursive2Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive1,
+      _id: @recursive1Id
+      other:
+        _id: @recursive2Id
+        content: 'FooBar 2'
+      content: 'FooBar 1'
+    test.equal @recursive2,
+      _id: @recursive2Id
+      other:
+        _id: @recursive1Id
+        content: 'FooBar 1'
+      content: 'FooBar 2'
+
+    Recursives.update @recursive1Id,
+      $set:
+        content: 'FooBar 1a'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive1 = Recursives.findOne @recursive1Id,
+      transform: null # So that we can use test.equal
+    @recursive2 = Recursives.findOne @recursive2Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive1,
+      _id: @recursive1Id
+      other:
+        _id: @recursive2Id
+        content: 'FooBar 2'
+      content: 'FooBar 1a'
+    test.equal @recursive2,
+      _id: @recursive2Id
+      other:
+        _id: @recursive1Id
+        content: 'FooBar 1a'
+      content: 'FooBar 2'
+
+    Recursives.update @recursive2Id,
+      $set:
+        content: 'FooBar 2a'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive1 = Recursives.findOne @recursive1Id,
+      transform: null # So that we can use test.equal
+    @recursive2 = Recursives.findOne @recursive2Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive1,
+      _id: @recursive1Id
+      other:
+        _id: @recursive2Id
+        content: 'FooBar 2a'
+      content: 'FooBar 1a'
+    test.equal @recursive2,
+      _id: @recursive2Id
+      other:
+        _id: @recursive1Id
+        content: 'FooBar 1a'
+      content: 'FooBar 2a'
+
+    Recursives.remove @recursive2Id,
+      expect (error) =>
+        test.isFalse error, error
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive1 = Recursives.findOne @recursive1Id,
+      transform: null # So that we can use test.equal
+    @recursive2 = Recursives.findOne @recursive2Id,
+      transform: null # So that we can use test.equal
+
+    test.isFalse @recursive2
+
+    test.equal @recursive1,
+      _id: @recursive1Id
+      other: null
+      content: 'FooBar 1a'
+]
+
+testAsyncMulti 'meteor-peerdb - recursive one', [
+  (test, expect) ->
+    Recursives.insert
+      other: null
+      content: 'FooBar'
+    ,
+      expect (error, recursiveId) =>
+        test.isFalse error, error
+        test.isTrue recursiveId
+        @recursiveId = recursiveId
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive = Recursives.findOne @recursiveId,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive,
+      _id: @recursiveId
+      other: null
+      content: 'FooBar'
+
+    Recursives.update @recursiveId,
+      $set:
+        other:
+          _id: @recursiveId
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive = Recursives.findOne @recursiveId,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive,
+      _id: @recursiveId
+      other:
+        _id: @recursiveId
+        content: 'FooBar'
+      content: 'FooBar'
+
+    Recursives.update @recursiveId,
+      $set:
+        content: 'FooBara'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive = Recursives.findOne @recursiveId,
+      transform: null # So that we can use test.equal
+
+    test.equal @recursive,
+      _id: @recursiveId
+      other:
+        _id: @recursiveId
+        content: 'FooBara'
+      content: 'FooBara'
+
+    Recursives.remove @recursiveId,
+      expect (error) =>
+        test.isFalse error, error
+
+    # Sleep so that observers have time to update the document
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
+    @recursive = Recursives.findOne @recursiveId,
+      transform: null # So that we can use test.equal
+
+    test.isFalse @recursive
 ]
 
 if Meteor.isServer

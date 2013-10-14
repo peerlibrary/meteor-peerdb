@@ -75,4 +75,6 @@ If the function throws an exception that a variable is not yet defined, PeerDB w
 also call `Document.redefineAll()` after all your definitions to assure all your delayed definitions are
 processed. You can call this function if you for some reason want to redo all metadata definitions
 (only those defined as functions). For example, if you overrode (or monkey patch) document definitions and
-would like metadata to use those new document defintions.
+would like metadata to use those new document definitions.
+
+If you want to reference the same document recursively, use string `'self'` as an argument to `@Reference`.
