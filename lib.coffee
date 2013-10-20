@@ -22,7 +22,7 @@ class Document
         throw new Error INVALID_TARGET
 
     contributeToClass: (@sourceDocument, @sourceField, @isArray) =>
-      throw new Meteor.Error 500, "Only non-array values can be optional" if @isArray and not @required
+      throw new Error "Only non-array values can be optional" if @isArray and not @required
 
       @sourceCollection = @sourceDocument.Meta.collection
 
