@@ -1,6 +1,7 @@
 Persons = new Meteor.Collection 'Persons', transform: (doc) => new Person doc
 Posts = new Meteor.Collection 'Posts', transform: (doc) => new Post doc
 UserLinks = new Meteor.Collection 'UserLinks', transform: (doc) => new UserLink doc
+PostLinks = new Meteor.Collection 'PostLinks', transform: (doc) => new PostLink doc
 CircularFirsts = new Meteor.Collection 'CircularFirsts', transform: (doc) => new CircularFirst doc
 CircularSeconds = new Meteor.Collection 'CircularSeconds', transform: (doc) => new CircularSecond doc
 Recursives = new Meteor.Collection 'Recursives', transform: (doc) => new Recursive doc
@@ -10,6 +11,7 @@ if Meteor.isServer
   Persons.remove {}
   Posts.remove {}
   UserLinks.remove {}
+  PostLinks.remove {}
   CircularFirsts.remove {}
   CircularSeconds.remove {}
   Recursives.remove {}
@@ -21,6 +23,8 @@ if Meteor.isServer
     Posts.find()
   Meteor.publish null, ->
     UserLinks.find()
+  Meteor.publish null, ->
+    PostLinks.find()
   Meteor.publish null, ->
     CircularFirsts.find()
   Meteor.publish null, ->
@@ -54,6 +58,12 @@ class UserLink extends Document
     fields:
       # We can reference just a collection
       user: @Reference Meteor.users, ['username'], false
+
+class PostLink extends Document
+  @Meta
+    collection: PostLinks
+    fields:
+      post: @Reference Posts, ['subdocument.person', 'subdocument.persons']
 
 class CircularFirst extends Document
   # Other fields:
@@ -167,6 +177,18 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
     test.equal UserLink.Meta.fields.user.fields, ['username']
 
+    test.equal PostLink.Meta.collection, PostLinks
+    test.instanceOf PostLink.Meta.fields.post, PostLink._Reference
+    test.isFalse PostLink.Meta.fields.post.isArray
+    test.isTrue PostLink.Meta.fields.post.required
+    test.equal PostLink.Meta.fields.post.sourcePath, 'post'
+    test.equal PostLink.Meta.fields.post.sourceDocument, PostLink
+    test.equal PostLink.Meta.fields.post.targetDocument, null # We are referencing just a collection
+    test.equal PostLink.Meta.fields.post.sourceCollection, PostLinks
+    test.equal PostLink.Meta.fields.post.targetCollection, Posts
+    test.equal PostLink.Meta.fields.post.sourceDocument.Meta.collection, PostLinks
+    test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
+
     test.equal CircularFirst.Meta.collection, CircularFirsts
     test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._Reference
     test.isFalse CircularFirst.Meta.fields.second.isArray
@@ -206,7 +228,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection, Recursives
     test.equal Recursive.Meta.fields.other.fields, ['content']
 
-    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+    test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
 
     Persons.insert
       username: 'person1'
@@ -500,7 +522,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Only non-array values can be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
 
 testAsyncMulti 'meteor-peerdb - circular changes', [
   (test, expect) ->
@@ -1145,9 +1167,225 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
     test.equal intercepted.level, 'error'
 
-    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+    test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
     test.equal Document.Meta.delayed.length, 1
 
     # Clear delayed so that we can retry tests without errors
     Document.Meta.delayed = []
+]
+
+testAsyncMulti 'meteor-peerdb - subdocument fields', [
+  (test, expect) ->
+    Persons.insert
+      username: 'person1'
+      displayName: 'Person 1'
+    ,
+      expect (error, person1Id) =>
+        test.isFalse error, error
+        test.isTrue person1Id
+        @person1Id = person1Id
+
+    Persons.insert
+      username: 'person2'
+      displayName: 'Person 2'
+    ,
+      expect (error, person2Id) =>
+        test.isFalse error, error
+        test.isTrue person2Id
+        @person2Id = person2Id
+
+    Persons.insert
+      username: 'person3'
+      displayName: 'Person 3'
+    ,
+      expect (error, person3Id) =>
+        test.isFalse error, error
+        test.isTrue person3Id
+        @person3Id = person3Id
+,
+  (test, expect) ->
+    @person1 = Persons.findOne @person1Id
+    @person2 = Persons.findOne @person2Id
+    @person3 = Persons.findOne @person3Id
+
+    test.instanceOf @person1, Person
+    test.equal @person1.username, 'person1'
+    test.equal @person1.displayName, 'Person 1'
+    test.instanceOf @person2, Person
+    test.equal @person2.username, 'person2'
+    test.equal @person2.displayName, 'Person 2'
+    test.instanceOf @person3, Person
+    test.equal @person3.username, 'person3'
+    test.equal @person3.displayName, 'Person 3'
+
+    Posts.insert
+      author:
+        _id: @person1._id
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+        persons: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        body: 'SubdocumentFooBar'
+      body: 'FooBar'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error
+        test.isTrue postId
+        @postId = postId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
+      body: 'FooBar'
+
+    PostLinks.insert
+      post:
+        _id: @post._id
+    ,
+      expect (error, postLinkId) =>
+        test.isFalse error, error
+        test.isTrue postLinkId
+        @postLinkId = postLinkId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @postLink = PostLinks.findOne @postLinkId,
+      transform: null # So that we can use test.equal
+
+    test.equal @postLink,
+      _id: @postLinkId
+      post:
+        _id: @post._id
+        subdocument:
+          person:
+            _id: @person2._id
+            username: @person2.username
+          persons: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+
+    Persons.update @person2Id,
+      $set:
+        username: 'person2a'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @person2 = Persons.findOne @person2Id
+
+    test.instanceOf @person2, Person
+    test.equal @person2.username, 'person2a'
+    test.equal @person2.displayName, 'Person 2'
+
+    @postLink = PostLinks.findOne @postLinkId,
+      transform: null # So that we can use test.equal
+
+    test.equal @postLink,
+      _id: @postLinkId
+      post:
+        _id: @post._id
+        subdocument:
+          person:
+            _id: @person2._id
+            username: @person2.username
+          persons: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+
+    Persons.remove @person2Id,
+      expect (error) =>
+        test.isFalse error, error
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @postLink = PostLinks.findOne @postLinkId,
+      transform: null # So that we can use test.equal
+
+    test.equal @postLink,
+      _id: @postLinkId
+      post:
+        _id: @post._id
+        subdocument:
+          person: null
+          persons: [
+            _id: @person3._id
+            username: @person3.username
+          ]
+
+    Posts.remove @post._id,
+      expect (error) =>
+        test.isFalse error, error
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @postLink = PostLinks.findOne @postLinkId,
+      transform: null # So that we can use test.equal
+
+    test.isFalse @postLink
 ]

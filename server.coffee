@@ -101,7 +101,8 @@ Document = class extends Document
       # TODO: Should we call reference.removeSource here?
       return
 
-    reference.updateSource target._id, _.pick target, reference.fields
+    # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
+    reference.updateSource target._id, _.omit target, '_id'
 
   @sourceFieldUpdated: (id, field, value, reference) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
