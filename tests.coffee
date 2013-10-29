@@ -1133,7 +1133,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     Log._intercept 2 # Two to see if we catch more than expected
 
     # Sleep so that error is shown
-    Meteor.setTimeout expect(), 1000
+    Meteor.setTimeout expect(), 1000 # We need 1000 here for some reason to have stable tests (500 is not enough)
 ,
   (test, expect) ->
     intercepted = Log._intercepted()
