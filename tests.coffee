@@ -94,15 +94,6 @@ class Recursive extends Document
 
 Document.redefineAll()
 
-# sleep function from fibers docs
-sleep = (ms) ->
-  Fiber = Npm.require 'fibers'
-  fiber = Fiber.current
-  setTimeout ->
-    fiber.run()
-  , ms
-  Fiber.yield()
-
 testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
     test.equal Person.Meta.collection, Persons
@@ -250,9 +241,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # (triggered by person inserts, but pending) run afterwards, then they can patch things which
     # should in fact be done by source observers (on post), like setting usernames in post's
     # references to persons
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @person1 = Persons.findOne @person1Id
@@ -299,9 +288,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         @postId = postId
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -361,9 +348,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # Sleep so that observers have time to update documents
     # so that persons updates are not merged togetger to better
     # test the code for multiple updates
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     Persons.update @person3Id,
@@ -390,9 +375,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal @person3.displayName, 'Person 3'
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -436,9 +419,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -473,9 +454,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -501,9 +480,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -524,38 +501,6 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
 
   # Invalid document should not be added to the list
   test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
-
-testAsyncMulti 'meteor-peerdb - delayed defintion', [
-  (test, expect) ->
-    class BadPost extends Document
-      @Meta =>
-        collection: Posts
-        fields:
-          author: @Reference undefined, ['username']
-
-    Log._intercept 2 # Two to see if we catch more than expected
-
-    # Sleep so that error is shown
-    pollUntil expect, ->
-      false
-    , 1100, 100, true
-,
-  (test, expect) ->
-    intercepted = Log._intercepted()
-
-    test.equal intercepted.length, 1, intercepted
-
-    intercepted = EJSON.parse intercepted[0]
-
-    test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
-    test.equal intercepted.level, 'error'
-
-    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
-    test.equal Document.Meta.delayed.length, 1
-
-    # Clear delayed so that we can retry tests without errors
-    Document.Meta.delayed = []
-]
 
 testAsyncMulti 'meteor-peerdb - circular changes', [
   (test, expect) ->
@@ -580,9 +525,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         @circularSecondId = circularSecondId
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     if Meteor.isServer
@@ -623,9 +566,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -654,9 +595,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -686,9 +625,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -718,9 +655,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -746,9 +681,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -784,9 +717,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         @circularFirstId = circularFirstId
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     if Meteor.isServer
@@ -820,9 +751,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -848,9 +777,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update document
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -888,9 +815,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         @recursive2Id = recursive2Id
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -917,9 +842,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -948,9 +871,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -980,9 +901,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1012,9 +931,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1040,9 +957,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1070,9 +985,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         @recursiveId = recursiveId
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1093,9 +1006,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1117,9 +1028,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1137,9 +1046,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isFalse error, error
 
     # Sleep so that observers have time to update documents
-    pollUntil expect, ->
-      false
-    , 500, 100, true
+    Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1214,3 +1121,33 @@ if Meteor.isServer
 
     # There should be no warning because user is optional
     test.equal intercepted.length, 0, intercepted
+
+testAsyncMulti 'meteor-peerdb - delayed defintion', [
+  (test, expect) ->
+    class BadPost extends Document
+      @Meta =>
+        collection: Posts
+        fields:
+          author: @Reference undefined, ['username']
+
+    Log._intercept 2 # Two to see if we catch more than expected
+
+    # Sleep so that error is shown
+    Meteor.setTimeout expect(), 1000
+,
+  (test, expect) ->
+    intercepted = Log._intercepted()
+
+    test.equal intercepted.length, 1, intercepted
+
+    intercepted = EJSON.parse intercepted[0]
+
+    test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
+    test.equal intercepted.level, 'error'
+
+    test.equal Document.Meta.list, [UserLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+    test.equal Document.Meta.delayed.length, 1
+
+    # Clear delayed so that we can retry tests without errors
+    Document.Meta.delayed = []
+]
