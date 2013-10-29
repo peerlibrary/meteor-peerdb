@@ -21,7 +21,7 @@ class Document
       else
         throw new Error INVALID_TARGET
 
-    contributeToClass: (@sourceDocument, @sourceField, @isArray) =>
+    contributeToClass: (@sourceDocument, @sourcePath, @isArray) =>
       throw new Error "Only non-array values can be optional" if @isArray and not @required
 
       @sourceCollection = @sourceDocument.Meta.collection
@@ -59,14 +59,23 @@ class Document
   @Meta.delayed = []
   @Meta._delayedCheckTimeout = null
 
-  @_initialize: ->
-    fields = {}
-    for field, reference of @Meta.fields or {}
+  @_processFields: (fields, parent) ->
+    res = {}
+    for field, reference of fields or {}
+      throw new Error "Field names cannot contain '.': #{ field }" if field.indexOf('.') isnt -1
+
+      path = if parent then "#{ parent }.#{ field }" else field
       isArray = _.isArray reference
-      reference = reference[0] if isArray
-      reference.contributeToClass @, field, isArray
-      fields[field] = reference
-    @Meta.fields = fields
+      if not isArray and _.isObject(reference) and not (reference instanceof @_Reference)
+        res[field] = @_processFields reference, path
+      else
+        reference = reference[0] if isArray
+        reference.contributeToClass @, path, isArray
+        res[field] = reference
+    res
+
+  @_initialize: ->
+    @Meta.fields = @_processFields @Meta.fields
 
   @_addDelayed: (document, meta) ->
     Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout

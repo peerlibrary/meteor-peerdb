@@ -33,6 +33,8 @@ if Meteor.isServer
 class Post extends Document
   # Other fields:
   #   body
+  #   subdocument
+  #     body
 
   @Meta =>
     collection: Posts
@@ -42,6 +44,9 @@ class Post extends Document
       # Or an array of documents
       subscribers: [@Reference Person]
       reviewers: [@Reference Person, ['username']]
+      subdocument:
+        person: @Reference Person, ['username'], false
+        persons: [@Reference Person, ['username']]
 
 class UserLink extends Document
   @Meta
@@ -104,10 +109,11 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Person.Meta.fields, {}
 
     test.equal Post.Meta.collection, Posts
+    test.equal _.size(Post.Meta.fields), 4
     test.instanceOf Post.Meta.fields.author, Person._Reference
     test.isFalse Post.Meta.fields.author.isArray
     test.isTrue Post.Meta.fields.author.required
-    test.equal Post.Meta.fields.author.sourceField, 'author'
+    test.equal Post.Meta.fields.author.sourcePath, 'author'
     test.equal Post.Meta.fields.author.sourceDocument, Post
     test.equal Post.Meta.fields.author.targetDocument, Person
     test.equal Post.Meta.fields.author.sourceCollection, Posts
@@ -118,7 +124,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.instanceOf Post.Meta.fields.subscribers, Person._Reference
     test.isTrue Post.Meta.fields.subscribers.isArray
     test.isTrue Post.Meta.fields.subscribers.required
-    test.equal Post.Meta.fields.subscribers.sourceField, 'subscribers'
+    test.equal Post.Meta.fields.subscribers.sourcePath, 'subscribers'
     test.equal Post.Meta.fields.subscribers.sourceDocument, Post
     test.equal Post.Meta.fields.subscribers.targetDocument, Person
     test.equal Post.Meta.fields.subscribers.sourceCollection, Posts
@@ -128,7 +134,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.subscribers.fields, []
     test.isTrue Post.Meta.fields.reviewers.isArray
     test.isTrue Post.Meta.fields.reviewers.required
-    test.equal Post.Meta.fields.reviewers.sourceField, 'reviewers'
+    test.equal Post.Meta.fields.reviewers.sourcePath, 'reviewers'
     test.equal Post.Meta.fields.reviewers.sourceDocument, Post
     test.equal Post.Meta.fields.reviewers.targetDocument, Person
     test.equal Post.Meta.fields.reviewers.sourceCollection, Posts
@@ -136,12 +142,33 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.reviewers.fields, ['username']
+    test.equal _.size(Post.Meta.fields.subdocument), 2
+    test.isFalse Post.Meta.fields.subdocument.person.isArray
+    test.isFalse Post.Meta.fields.subdocument.person.required
+    test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
+    test.equal Post.Meta.fields.subdocument.person.sourceDocument, Post
+    test.equal Post.Meta.fields.subdocument.person.targetDocument, Person
+    test.equal Post.Meta.fields.subdocument.person.sourceCollection, Posts
+    test.equal Post.Meta.fields.subdocument.person.targetCollection, Persons
+    test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection, Persons
+    test.equal Post.Meta.fields.subdocument.person.fields, ['username']
+    test.isTrue Post.Meta.fields.subdocument.persons.isArray
+    test.isTrue Post.Meta.fields.subdocument.persons.required
+    test.equal Post.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
+    test.equal Post.Meta.fields.subdocument.persons.sourceDocument, Post
+    test.equal Post.Meta.fields.subdocument.persons.targetDocument, Person
+    test.equal Post.Meta.fields.subdocument.persons.sourceCollection, Posts
+    test.equal Post.Meta.fields.subdocument.persons.targetCollection, Persons
+    test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
+    test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
 
     test.equal UserLink.Meta.collection, UserLinks
     test.instanceOf UserLink.Meta.fields.user, UserLink._Reference
     test.isFalse UserLink.Meta.fields.user.isArray
     test.isFalse UserLink.Meta.fields.user.required
-    test.equal UserLink.Meta.fields.user.sourceField, 'user'
+    test.equal UserLink.Meta.fields.user.sourcePath, 'user'
     test.equal UserLink.Meta.fields.user.sourceDocument, UserLink
     test.equal UserLink.Meta.fields.user.targetDocument, null # We are referencing just a collection
     test.equal UserLink.Meta.fields.user.sourceCollection, UserLinks
@@ -153,7 +180,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._Reference
     test.isFalse CircularFirst.Meta.fields.second.isArray
     test.isTrue CircularFirst.Meta.fields.second.required
-    test.equal CircularFirst.Meta.fields.second.sourceField, 'second'
+    test.equal CircularFirst.Meta.fields.second.sourcePath, 'second'
     test.equal CircularFirst.Meta.fields.second.sourceDocument, CircularFirst
     test.equal CircularFirst.Meta.fields.second.targetDocument, CircularSecond
     test.equal CircularFirst.Meta.fields.second.sourceCollection, CircularFirsts
@@ -166,7 +193,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._Reference
     test.isFalse CircularSecond.Meta.fields.first.isArray
     test.isFalse CircularSecond.Meta.fields.first.required
-    test.equal CircularSecond.Meta.fields.first.sourceField, 'first'
+    test.equal CircularSecond.Meta.fields.first.sourcePath, 'first'
     test.equal CircularSecond.Meta.fields.first.sourceDocument, CircularSecond
     test.equal CircularSecond.Meta.fields.first.targetDocument, CircularFirst
     test.equal CircularSecond.Meta.fields.first.sourceCollection, CircularSeconds
@@ -179,7 +206,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.instanceOf Recursive.Meta.fields.other, Recursive._Reference
     test.isFalse Recursive.Meta.fields.other.isArray
     test.isFalse Recursive.Meta.fields.other.required
-    test.equal Recursive.Meta.fields.other.sourceField, 'other'
+    test.equal Recursive.Meta.fields.other.sourcePath, 'other'
     test.equal Recursive.Meta.fields.other.sourceDocument, Recursive
     test.equal Recursive.Meta.fields.other.targetDocument, Recursive
     test.equal Recursive.Meta.fields.other.sourceCollection, Recursives
@@ -216,6 +243,16 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error
         test.isTrue person3Id
         @person3Id = person3Id
+
+    # Sleep so that observers have time to run (but no post is yet made, so nothing really happens)
+    # We want to wait here so that we catch possible errors in source observers, otherwise target
+    # observers can patch things up, for example, if we create a post first and target observers
+    # (triggered by person inserts, but pending) run afterwards, then they can patch things which
+    # should in fact be done by source observers (on post), like setting usernames in post's
+    # references to persons
+    pollUntil expect, ->
+      false
+    , 500, 100, true
 ,
   (test, expect) ->
     @person1 = Persons.findOne @person1Id
@@ -245,6 +282,15 @@ testAsyncMulti 'meteor-peerdb - references', [
       ,
         _id: @person3._id
       ]
+      subdocument:
+        person:
+          _id: @person2._id
+        persons: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        body: 'SubdocumentFooBar'
       body: 'FooBar'
     ,
       expect (error, postId) =>
@@ -252,7 +298,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -282,6 +328,18 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person3._id
         username: @person3.username
       ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
       body: 'FooBar'
 
     Persons.update @person1Id,
@@ -300,6 +358,14 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error
         test.isTrue res
 
+    # Sleep so that observers have time to update documents
+    # so that persons updates are not merged togetger to better
+    # test the code for multiple updates
+    pollUntil expect, ->
+      false
+    , 500, 100, true
+,
+  (test, expect) ->
     Persons.update @person3Id,
       $set:
         username: 'person3a'
@@ -323,7 +389,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal @person3.username, 'person3a'
     test.equal @person3.displayName, 'Person 3'
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -351,13 +417,25 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person3._id
         username: @person3.username
       ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
       body: 'FooBar'
 
     Persons.remove @person3Id,
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -379,13 +457,22 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person2._id
         username: @person2.username
       ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ]
+        body: 'SubdocumentFooBar'
       body: 'FooBar'
 
     Persons.remove @person2Id,
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -403,13 +490,17 @@ testAsyncMulti 'meteor-peerdb - references', [
         username: @person1.username
       subscribers: []
       reviewers: []
+      subdocument:
+        person: null
+        persons: []
+        body: 'SubdocumentFooBar'
       body: 'FooBar'
 
     Persons.remove @person1Id,
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -488,7 +579,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue circularSecondId
         @circularSecondId = circularSecondId
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -502,7 +593,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
       # We are testing only the server one, so let's find it
       for i in intercepted
-        break if i.indexOf @circularFirstId isnt -1
+        break if i.indexOf(@circularFirstId) isnt -1
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with invalid value: null"
@@ -531,7 +622,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -562,7 +653,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -594,7 +685,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -626,7 +717,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -654,7 +745,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -692,7 +783,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue circularFirstId
         @circularFirstId = circularFirstId
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -728,7 +819,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -756,7 +847,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update document
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -796,7 +887,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue recursive2Id
         @recursive2Id = recursive2Id
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -825,7 +916,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -856,7 +947,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -888,7 +979,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -920,7 +1011,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -948,7 +1039,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -978,7 +1069,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isTrue recursiveId
         @recursiveId = recursiveId
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -1001,7 +1092,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -1025,7 +1116,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isFalse error, error
         test.isTrue res
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -1045,7 +1136,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
       expect (error) =>
         test.isFalse error, error
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     pollUntil expect, ->
       false
     , 500, 100, true
@@ -1065,7 +1156,7 @@ if Meteor.isServer
       author:
         _id: 'nonexistent'
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     Meteor._sleepForMs(500)
 
     intercepted = Log._intercepted()
@@ -1082,7 +1173,7 @@ if Meteor.isServer
     postId = Posts.insert
       subscribers: 'foobar'
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     Meteor._sleepForMs(500)
 
     intercepted = Log._intercepted()
@@ -1099,7 +1190,7 @@ if Meteor.isServer
     postId = Posts.insert
       author: null
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     Meteor._sleepForMs(500)
 
     intercepted = Log._intercepted()
@@ -1116,7 +1207,7 @@ if Meteor.isServer
     userLinkId = UserLinks.insert
       user: null
 
-    # Sleep so that observers have time to update the document
+    # Sleep so that observers have time to update documents
     Meteor._sleepForMs(500)
 
     intercepted = Log._intercepted()

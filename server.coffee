@@ -1,33 +1,33 @@
 Document._Reference = class extends Document._Reference
   updateSource: (id, fields) =>
     selector = {}
-    selector["#{ @sourceField }._id"] = id
+    selector["#{ @sourcePath }._id"] = id
 
     update = {}
     for field, value of fields
       if @isArray
-        field = "#{ @sourceField }.$.#{ field }"
+        path = "#{ @sourcePath }.$.#{ field }"
       else
-        field = "#{ @sourceField }.#{ field }"
+        path = "#{ @sourcePath }.#{ field }"
       if _.isUndefined value
         update['$unset'] ?= {}
-        update['$unset'][field] = ''
+        update['$unset'][path] = ''
       else
         update['$set'] ?= {}
-        update['$set'][field] = value
+        update['$set'][path] = value
 
     @sourceCollection.update selector, update, multi: true
 
   removeSource: (id) =>
     selector = {}
-    selector["#{ @sourceField }._id"] = id
+    selector["#{ @sourcePath }._id"] = id
 
     # If it is an array, we remove references
     if @isArray
-      field = "#{ @sourceField }.$"
+      path = "#{ @sourcePath }.$"
       update =
         $unset: {}
-      update['$unset'][field] = ''
+      update['$unset'][path] = ''
 
       # MongoDB supports removal of array elements only in two steps
       # First, we set all removed references to null
@@ -35,10 +35,10 @@ Document._Reference = class extends Document._Reference
 
       # Then we remove all null elements
       selector = {}
-      selector[@sourceField] = null
+      selector[@sourcePath] = null
       update =
         $pull: {}
-      update['$pull'][@sourceField] = null
+      update['$pull'][@sourcePath] = null
 
       @sourceCollection.update selector, update, multi: true
 
@@ -46,7 +46,7 @@ Document._Reference = class extends Document._Reference
     else if not @required
       update =
         $set: {}
-      update['$set'][@sourceField] = null
+      update['$set'][@sourcePath] = null
 
       @sourceCollection.update selector, update, multi: true
 
@@ -74,7 +74,6 @@ Document._Reference = class extends Document._Reference
 
 Document = class extends Document
   @sourceFieldUpdatedWithValue: (id, reference, value) ->
-
     unless _.isObject(value) and _.isString(value._id)
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
       return if _.isNull(value) and reference.isArray
@@ -83,7 +82,7 @@ Document = class extends Document
       return if _.isNull(value) and not reference.required
 
       # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
-      Log.warn "Document's '#{ id }' field '#{ reference.sourceField }' was updated with invalid value: #{ util.inspect value }"
+      Log.warn "Document's '#{ id }' field '#{ reference.sourcePath }' was updated with invalid value: #{ util.inspect value }"
       return
 
     # Only _id is requested, we do not have to do anything
@@ -98,26 +97,34 @@ Document = class extends Document
       transform: null
 
     unless target
-      Log.warn "Document's '#{ id }' field '#{ reference.sourceField }' is referencing nonexistent document '#{ value._id }'"
+      Log.warn "Document's '#{ id }' field '#{ reference.sourcePath }' is referencing nonexistent document '#{ value._id }'"
       # TODO: Should we call reference.removeSource here?
       return
 
     reference.updateSource target._id, _.pick target, reference.fields
 
-  @sourceFieldUpdated: (id, field, value) ->
+  @sourceFieldUpdated: (id, field, value, reference) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     return if _.isUndefined value
 
-    reference = @Meta.fields[field]
-    if reference.isArray
-      unless _.isArray value
-        Log.warn "Document's '#{ id }' field '#{ field }' was updated with non-array value: #{ util.inspect value }"
-        return
-    else
-      value = [value]
+    reference = reference or @Meta.fields[field]
 
-    for v in value
-      @sourceFieldUpdatedWithValue id, reference, v
+    # We should be subscribed only to those updates which are defined in @Meta.fields
+    assert reference
+
+    if reference instanceof Document._Reference
+      if reference.isArray
+        unless _.isArray value
+          Log.warn "Document's '#{ id }' field '#{ field }' was updated with non-array value: #{ util.inspect value }"
+          return
+      else
+        value = [value]
+
+      for v in value
+        @sourceFieldUpdatedWithValue id, reference, v
+    else
+      for f, r of reference
+        @sourceFieldUpdated id, "#{ field }.#{ f }", value[f], r
 
   @sourceUpdated: (id, fields) ->
     for field, value of fields
@@ -127,8 +134,15 @@ Document = class extends Document
     return if _.isEmpty @Meta.fields
 
     sourceFields = {}
-    for field, reference of @Meta.fields
-      sourceFields[reference.sourceField] = 1
+
+    sourceFieldsWalker = (obj) ->
+      for field, reference of obj
+        if reference instanceof Document._Reference
+          sourceFields[reference.sourcePath] = 1
+        else
+          sourceFieldsWalker reference
+
+    sourceFieldsWalker @Meta.fields
 
     @Meta.collection.find({}, fields: sourceFields).observeChanges
       added: (id, fields) =>
@@ -138,10 +152,16 @@ Document = class extends Document
         @sourceUpdated id, fields
 
 setupObservers = ->
-  for document in Document.Meta.list
-    for field, reference of document.Meta.fields
-      reference.setupTargetObservers()
+  setupTargetObservers = (fields) ->
+    for field, reference of fields
+      # There are no arrays anymore here, just objects (for subdocuments) or references
+      if reference instanceof Document._Reference
+        reference.setupTargetObservers()
+      else
+        setupTargetObservers reference
 
+  for document in Document.Meta.list
+    setupTargetObservers document.Meta.fields
     document.setupSourceObservers()
 
 Meteor.startup ->
