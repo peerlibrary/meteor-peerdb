@@ -1,5 +1,5 @@
 Document._Reference = class extends Document._Reference
-  updateSource: (id, fields) =>
+  _updateSource: (id, fields) =>
     selector = {}
     selector["#{ @sourcePath }._id"] = id
 
@@ -18,7 +18,7 @@ Document._Reference = class extends Document._Reference
 
     @sourceCollection.update selector, update, multi: true
 
-  removeSource: (id) =>
+  _removeSource: (id) =>
     selector = {}
     selector["#{ @sourcePath }._id"] = id
 
@@ -64,13 +64,13 @@ Document._Reference = class extends Document._Reference
       added: (id, fields) =>
         return if _.isEmpty fields
 
-        @updateSource id, fields
+        @_updateSource id, fields
 
       changed: (id, fields) =>
-        @updateSource id, fields
+        @_updateSource id, fields
 
       removed: (id) =>
-        @removeSource id
+        @_removeSource id
 
   updatedWithValue: (id, value) =>
     unless _.isObject(value) and _.isString(value._id)
@@ -101,10 +101,10 @@ Document._Reference = class extends Document._Reference
       return
 
     # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
-    @updateSource target._id, _.omit target, '_id'
+    @_updateSource target._id, _.omit target, '_id'
 
 Document = class extends Document
-  @sourceFieldUpdated: (id, name, value, field) ->
+  @_sourceFieldUpdated: (id, name, value, field) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     return if _.isUndefined value
 
@@ -126,11 +126,11 @@ Document = class extends Document
 
     else if field not instanceof Document._Field
       for n, f of field
-        @sourceFieldUpdated id, "#{ name }.#{ n }", value[n], f
+        @_sourceFieldUpdated id, "#{ name }.#{ n }", value[n], f
 
-  @sourceUpdated: (id, fields) ->
+  @_sourceUpdated: (id, fields) ->
     for name, value of fields
-      @sourceFieldUpdated id, name, value
+      @_sourceFieldUpdated id, name, value
 
   @setupSourceObservers: ->
     return if _.isEmpty @Meta.fields
@@ -148,10 +148,10 @@ Document = class extends Document
 
     @Meta.collection.find({}, fields: sourceFields).observeChanges
       added: (id, fields) =>
-        @sourceUpdated id, fields
+        @_sourceUpdated id, fields
 
       changed: (id, fields) =>
-        @sourceUpdated id, fields
+        @_sourceUpdated id, fields
 
 setupObservers = ->
   setupTargetObservers = (fields) ->
