@@ -118,7 +118,8 @@ Document._GeneratedField = class extends Document._GeneratedField
   updateSource: (id, fields) =>
     if _.isEmpty fields
       fields._id = id
-    else
+    # TODO: Not completely correct when @fields contain multiple fields from same subdocument (they will be counted only once) - because Meteor always passed whole subdocuments we could count only top-level fields in @fields
+    else if _.size(fields) isnt @fields.length
       referenceFields =
         _id: 1 # To make sure we do not pass empty set of fields
       for f in @fields
@@ -132,6 +133,8 @@ Document._GeneratedField = class extends Document._GeneratedField
       unless fields
         fields =
           _id: id
+    else
+      fields._id = id
 
     [selector, sourceValue] = @generator fields
 
