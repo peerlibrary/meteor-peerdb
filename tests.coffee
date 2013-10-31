@@ -519,7 +519,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
         collection: Posts
         fields:
           reviewers: [@ReferenceField Person, ['username'], false]
-  , /Only non-array values can be optional/
+  , /Only non-array fields can be optional/
 
   # Invalid document should not be added to the list
   test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]

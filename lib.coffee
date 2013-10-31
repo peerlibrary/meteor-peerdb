@@ -10,12 +10,11 @@ class Document
 
   @_ObservingField: class extends @_Field
 
-  @_ReferenceField: class extends @_ObservingField
-    constructor: (targetDocumentOrCollection, @fields, @required) ->
-      super arguments...
+  @_TargetedFieldsObservingField: class extends @_ObservingField
+    constructor: (targetDocumentOrCollection, @fields) ->
+      super()
 
       @fields ?= []
-      @required ?= true
 
       if targetDocumentOrCollection is 'self'
         @targetDocument = 'self'
@@ -32,11 +31,20 @@ class Document
     contributeToClass: (sourceDocument, sourcePath, isArray) =>
       super sourceDocument, sourcePath, isArray
 
-      throw new Error "Only non-array values can be optional" if @isArray and not @required
-
       if @targetDocument is 'self'
         @targetDocument = @sourceDocument
         @targetCollection = @sourceCollection
+
+  @_ReferenceField: class extends @_TargetedFieldsObservingField
+    constructor: (targetDocumentOrCollection, fields, @required) ->
+      super targetDocumentOrCollection, fields
+
+      @required ?= true
+
+    contributeToClass: (sourceDocument, sourcePath, isArray) =>
+      super sourceDocument, sourcePath, isArray
+
+      throw new Error "Only non-array fields can be optional" if @isArray and not @required
 
   @ReferenceField: (args...) ->
     new @_ReferenceField args...
