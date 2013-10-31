@@ -1,10 +1,16 @@
+fieldsToProjection = (fields) ->
+  projection =
+    _id: 1 # In the case we want only id, that is, detect deletions
+  for field in fields
+    if _.isString field
+      projection[field] = 1
+    else
+      _.extend projection, field
+  projection
+
 Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
   setupTargetObservers: =>
-    referenceFields =
-      _id: 1 # In the case we want only id, that is, detect deletions
-    for field in @fields
-      referenceFields[field] = 1
-
+    referenceFields = fieldsToProjection @fields
     @targetCollection.find({}, fields: referenceFields).observeChanges
       added: (id, fields) =>
         @updateSource id, fields
@@ -97,11 +103,7 @@ Document._ReferenceField = class extends Document._ReferenceField
     # Only _id is requested, we do not have to do anything
     return if _.isEmpty @fields
 
-    referenceFields =
-      _id: 1 # To make sure we do not pass empty set of fields
-    for f in @fields
-      referenceFields[f] = 1
-
+    referenceFields = fieldsToProjection @fields
     target = @targetCollection.findOne value._id,
       fields: referenceFields
       transform: null
@@ -118,15 +120,11 @@ Document._GeneratedField = class extends Document._GeneratedField
   updateSource: (id, fields) =>
     if _.isEmpty fields
       fields._id = id
-    # TODO: Not completely correct when @fields contain multiple fields from same subdocument (they will be counted only once) - because Meteor always passed whole subdocuments we could count only top-level fields in @fields
+    # TODO: Not completely correct when @fields contain multiple fields from same subdocument or objects with projections (they will be counted only once) - because Meteor always passed whole subdocuments we could count only top-level fields in @fields, merged with objects?
     else if _.size(fields) isnt @fields.length
-      referenceFields =
-        _id: 1 # To make sure we do not pass empty set of fields
-      for f in @fields
-        referenceFields[f] = 1
-
+      targetFields = fieldsToProjection @fields
       fields = @targetCollection.findOne id,
-        fields: referenceFields
+        fields: targetFields
         transform: null
 
       # There is a slight race condition here, document could be deleted in meantime

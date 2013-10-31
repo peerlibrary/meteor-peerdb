@@ -47,7 +47,8 @@ class Post extends Document
       author: @ReferenceField Person, ['username']
       # Or an array of documents
       subscribers: [@ReferenceField Person]
-      reviewers: [@ReferenceField Person, ['username']]
+      # Fields can be arbitrary MongoDB projections
+      reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
         person: @ReferenceField Person, ['username'], false
         persons: [@ReferenceField Person, ['username']]
@@ -149,7 +150,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.reviewers.targetCollection, Persons
     test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
-    test.equal Post.Meta.fields.reviewers.fields, ['username']
+    test.equal Post.Meta.fields.reviewers.fields, [username: 1]
     test.equal _.size(Post.Meta.fields.subdocument), 2
     test.isFalse Post.Meta.fields.subdocument.person.isArray
     test.isFalse Post.Meta.fields.subdocument.person.required
