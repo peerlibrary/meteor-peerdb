@@ -97,7 +97,8 @@ Document._ReferenceField = class extends Document._ReferenceField
     # Only _id is requested, we do not have to do anything
     return if _.isEmpty @fields
 
-    referenceFields = {}
+    referenceFields =
+      _id: 1 # To make sure we do not pass empty set of fields
     for f in @fields
       referenceFields[f] = 1
 
@@ -115,7 +116,22 @@ Document._ReferenceField = class extends Document._ReferenceField
 
 Document._GeneratedField = class extends Document._GeneratedField
   updateSource: (id, fields) =>
-    fields._id = id
+    if _.isEmpty fields
+      fields._id = id
+    else
+      referenceFields =
+        _id: 1 # To make sure we do not pass empty set of fields
+      for f in @fields
+        referenceFields[f] = 1
+
+      fields = @targetCollection.findOne id,
+        fields: referenceFields
+        transform: null
+
+      # There is a slight race condition here, document could be deleted in meantime
+      unless fields
+        fields =
+          _id: id
 
     [sourceId, sourceValue] = @generator fields
 
@@ -169,7 +185,8 @@ Document = class extends Document
   @setupSourceObservers: ->
     return if _.isEmpty @Meta.fields
 
-    sourceFields = {}
+    sourceFields =
+      _id: 1 # To make sure we do not pass empty set of fields
 
     sourceFieldsWalker = (obj) ->
       for name, field of obj

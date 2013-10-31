@@ -52,7 +52,7 @@ class Post extends Document
         person: @ReferenceField Person, ['username'], false
         persons: [@ReferenceField Person, ['username']]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
-        if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument.body)
+        if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
           [fields._id, undefined]
         else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
           [fields._id, null]
@@ -1410,4 +1410,256 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       transform: null # So that we can use test.equal
 
     test.isFalse @postLink
+]
+
+testAsyncMulti 'meteor-peerdb - generated fields', [
+  (test, expect) ->
+    Persons.insert
+      username: 'person1'
+      displayName: 'Person 1'
+    ,
+      expect (error, person1Id) =>
+        test.isFalse error, error
+        test.isTrue person1Id
+        @person1Id = person1Id
+
+    Persons.insert
+      username: 'person2'
+      displayName: 'Person 2'
+    ,
+      expect (error, person2Id) =>
+        test.isFalse error, error
+        test.isTrue person2Id
+        @person2Id = person2Id
+
+    Persons.insert
+      username: 'person3'
+      displayName: 'Person 3'
+    ,
+      expect (error, person3Id) =>
+        test.isFalse error, error
+        test.isTrue person3Id
+        @person3Id = person3Id
+,
+  (test, expect) ->
+    @person1 = Persons.findOne @person1Id
+    @person2 = Persons.findOne @person2Id
+    @person3 = Persons.findOne @person3Id
+
+    test.instanceOf @person1, Person
+    test.equal @person1.username, 'person1'
+    test.equal @person1.displayName, 'Person 1'
+    test.instanceOf @person2, Person
+    test.equal @person2.username, 'person2'
+    test.equal @person2.displayName, 'Person 2'
+    test.instanceOf @person3, Person
+    test.equal @person3.username, 'person3'
+    test.equal @person3.displayName, 'Person 3'
+
+    Posts.insert
+      author:
+        _id: @person1._id
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+        persons: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        body: 'SubdocumentFooBar'
+      body: 'FooBar'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error
+        test.isTrue postId
+        @postId = postId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
+      body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
+
+    Posts.update @postId,
+      $set:
+        body: 'FooBarZ'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
+      body: 'FooBarZ'
+      slug: 'prefix-foobarz-subdocumentfoobar-suffix'
+
+    Posts.update @postId,
+      $set:
+        body: null
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
+      body: null
+      slug: null
+
+    Posts.update @postId,
+      $unset:
+        body: ''
+    ,
+      expect (error, res) =>
+        test.isFalse error, error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        body: 'SubdocumentFooBar'
 ]
