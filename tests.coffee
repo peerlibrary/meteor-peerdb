@@ -51,6 +51,13 @@ class Post extends Document
       subdocument:
         person: @ReferenceField Person, ['username'], false
         persons: [@ReferenceField Person, ['username']]
+      slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
+        if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument.body)
+          [fields._id, undefined]
+        else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+          [fields._id, null]
+        else
+          [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
 
 class UserLink extends Document
   @Meta
@@ -110,7 +117,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Person.Meta.fields, {}
 
     test.equal Post.Meta.collection, Posts
-    test.equal _.size(Post.Meta.fields), 4
+    test.equal _.size(Post.Meta.fields), 5
     test.instanceOf Post.Meta.fields.author, Person._ReferenceField
     test.isFalse Post.Meta.fields.author.isArray
     test.isTrue Post.Meta.fields.author.required
@@ -164,6 +171,16 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
+    test.isFalse Post.Meta.fields.slug.isArray
+    test.isTrue _.isFunction Post.Meta.fields.slug.generator
+    test.equal Post.Meta.fields.slug.sourcePath, 'slug'
+    test.equal Post.Meta.fields.slug.sourceDocument, Post
+    test.equal Post.Meta.fields.slug.targetDocument, Post
+    test.equal Post.Meta.fields.slug.sourceCollection, Posts
+    test.equal Post.Meta.fields.slug.targetCollection, Posts
+    test.equal Post.Meta.fields.slug.sourceDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.slug.targetDocument.Meta.collection, Posts
+    test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
 
     test.equal UserLink.Meta.collection, UserLinks
     test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
@@ -350,6 +367,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         ]
         body: 'SubdocumentFooBar'
       body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
     Persons.update @person1Id,
       $set:
@@ -435,6 +453,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         ]
         body: 'SubdocumentFooBar'
       body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
     Persons.remove @person3Id,
       expect (error) =>
@@ -470,6 +489,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         ]
         body: 'SubdocumentFooBar'
       body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
     Persons.remove @person2Id,
       expect (error) =>
@@ -496,6 +516,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         persons: []
         body: 'SubdocumentFooBar'
       body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
     Persons.remove @person1Id,
       expect (error) =>
@@ -1284,6 +1305,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         ]
         body: 'SubdocumentFooBar'
       body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
     PostLinks.insert
       post:

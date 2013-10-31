@@ -49,6 +49,18 @@ class Document
   @ReferenceField: (args...) ->
     new @_ReferenceField args...
 
+  @_GeneratedField: class extends @_TargetedFieldsObservingField
+    constructor: (targetDocumentOrCollection, fields, @generator) ->
+      super targetDocumentOrCollection, fields
+
+    contributeToClass: (sourceDocument, sourcePath, isArray) =>
+      super sourceDocument, sourcePath, isArray
+
+      throw new Error "Generated fields cannot be array fields" if @isArray
+
+  @GeneratedField: (args...) ->
+    new @_GeneratedField args...
+
   @Meta: (meta, dontList, throwErrors) ->
     if _.isFunction meta
       originalMeta = @Meta

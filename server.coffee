@@ -19,6 +19,9 @@ Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsO
 _.extend Document._ReferenceField.prototype,
   _.omit(Document._TargetedFieldsObservingField.prototype, 'constructor'),
   _.omit(Document._ReferenceField.prototype, 'constructor')
+_.extend Document._GeneratedField.prototype,
+  _.omit(Document._TargetedFieldsObservingField.prototype, 'constructor'),
+  _.omit(Document._GeneratedField.prototype, 'constructor')
 
 Document._ReferenceField = class extends Document._ReferenceField
   updateSource: (id, fields) =>
@@ -109,6 +112,30 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
     @updateSource target._id, _.omit target, '_id'
+
+Document._GeneratedField = class extends Document._GeneratedField
+  updateSource: (id, fields) =>
+    fields._id = id
+
+    [sourceId, sourceValue] = @generator fields
+
+    return unless sourceId
+
+    update = {}
+    if _.isUndefined sourceValue
+      update['$unset'] = {}
+      update['$unset'][@sourcePath] = ''
+    else
+      update['$set'] = {}
+      update['$set'][@sourcePath] = sourceValue
+
+    @sourceCollection.update sourceId, update
+
+  removeSource: (id) =>
+    @updateSource id, {}
+
+  updatedWithValue: (id, value) =>
+    # Do nothing. Code should not be updating generated field by itself anyway.
 
 Document = class extends Document
   @_sourceFieldUpdated: (id, name, value, field) ->
