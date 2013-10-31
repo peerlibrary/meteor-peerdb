@@ -133,9 +133,9 @@ Document._GeneratedField = class extends Document._GeneratedField
         fields =
           _id: id
 
-    [sourceId, sourceValue] = @generator fields
+    [selector, sourceValue] = @generator fields
 
-    return unless sourceId
+    return unless selector
 
     update = {}
     if _.isUndefined sourceValue
@@ -145,7 +145,7 @@ Document._GeneratedField = class extends Document._GeneratedField
       update['$set'] = {}
       update['$set'][@sourcePath] = sourceValue
 
-    @sourceCollection.update sourceId, update
+    @sourceCollection.update selector, update, multi: true
 
   removeSource: (id) =>
     @updateSource id, {}
