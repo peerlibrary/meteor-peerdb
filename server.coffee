@@ -1,4 +1,4 @@
-Document._Reference = class extends Document._Reference
+Document._ReferenceField = class extends Document._ReferenceField
   _updateSource: (id, fields) =>
     selector = {}
     selector["#{ @sourcePath }._id"] = id

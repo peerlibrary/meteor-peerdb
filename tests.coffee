@@ -44,26 +44,26 @@ class Post extends Document
     collection: Posts
     fields:
       # We can reference other document
-      author: @Reference Person, ['username']
+      author: @ReferenceField Person, ['username']
       # Or an array of documents
-      subscribers: [@Reference Person]
-      reviewers: [@Reference Person, ['username']]
+      subscribers: [@ReferenceField Person]
+      reviewers: [@ReferenceField Person, ['username']]
       subdocument:
-        person: @Reference Person, ['username'], false
-        persons: [@Reference Person, ['username']]
+        person: @ReferenceField Person, ['username'], false
+        persons: [@ReferenceField Person, ['username']]
 
 class UserLink extends Document
   @Meta
     collection: UserLinks
     fields:
       # We can reference just a collection
-      user: @Reference Meteor.users, ['username'], false
+      user: @ReferenceField Meteor.users, ['username'], false
 
 class PostLink extends Document
   @Meta
     collection: PostLinks
     fields:
-      post: @Reference Posts, ['subdocument.person', 'subdocument.persons']
+      post: @ReferenceField Posts, ['subdocument.person', 'subdocument.persons']
 
 class CircularFirst extends Document
   # Other fields:
@@ -73,7 +73,7 @@ class CircularFirst extends Document
     collection: CircularFirsts
     fields:
       # We can reference circular documents
-      second: @Reference CircularSecond, ['content']
+      second: @ReferenceField CircularSecond, ['content']
 
 class CircularSecond extends Document
   # Other fields:
@@ -83,7 +83,7 @@ class CircularSecond extends Document
     collection: CircularSeconds
     fields:
       # But of course one should not be required so that we can insert without warnings
-      first: @Reference CircularFirst, ['content'], false
+      first: @ReferenceField CircularFirst, ['content'], false
 
 class Person extends Document
   # Other fields:
@@ -100,7 +100,7 @@ class Recursive extends Document
   @Meta
     collection: Recursives
     fields:
-      other: @Reference 'self', ['content'], false
+      other: @ReferenceField 'self', ['content'], false
 
 Document.redefineAll()
 
@@ -111,7 +111,7 @@ testAsyncMulti 'meteor-peerdb - references', [
 
     test.equal Post.Meta.collection, Posts
     test.equal _.size(Post.Meta.fields), 4
-    test.instanceOf Post.Meta.fields.author, Person._Reference
+    test.instanceOf Post.Meta.fields.author, Person._ReferenceField
     test.isFalse Post.Meta.fields.author.isArray
     test.isTrue Post.Meta.fields.author.required
     test.equal Post.Meta.fields.author.sourcePath, 'author'
@@ -122,7 +122,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.author.sourceDocument.Meta.collection, Posts
     test.equal Post.Meta.fields.author.targetDocument.Meta.collection, Persons
     test.equal Post.Meta.fields.author.fields, ['username']
-    test.instanceOf Post.Meta.fields.subscribers, Person._Reference
+    test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
     test.isTrue Post.Meta.fields.subscribers.isArray
     test.isTrue Post.Meta.fields.subscribers.required
     test.equal Post.Meta.fields.subscribers.sourcePath, 'subscribers'
@@ -166,7 +166,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
 
     test.equal UserLink.Meta.collection, UserLinks
-    test.instanceOf UserLink.Meta.fields.user, UserLink._Reference
+    test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
     test.isFalse UserLink.Meta.fields.user.isArray
     test.isFalse UserLink.Meta.fields.user.required
     test.equal UserLink.Meta.fields.user.sourcePath, 'user'
@@ -178,7 +178,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal UserLink.Meta.fields.user.fields, ['username']
 
     test.equal PostLink.Meta.collection, PostLinks
-    test.instanceOf PostLink.Meta.fields.post, PostLink._Reference
+    test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
     test.isFalse PostLink.Meta.fields.post.isArray
     test.isTrue PostLink.Meta.fields.post.required
     test.equal PostLink.Meta.fields.post.sourcePath, 'post'
@@ -190,7 +190,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
 
     test.equal CircularFirst.Meta.collection, CircularFirsts
-    test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._Reference
+    test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
     test.isFalse CircularFirst.Meta.fields.second.isArray
     test.isTrue CircularFirst.Meta.fields.second.required
     test.equal CircularFirst.Meta.fields.second.sourcePath, 'second'
@@ -203,7 +203,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal CircularFirst.Meta.fields.second.fields, ['content']
 
     test.equal CircularSecond.Meta.collection, CircularSeconds
-    test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._Reference
+    test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
     test.isFalse CircularSecond.Meta.fields.first.isArray
     test.isFalse CircularSecond.Meta.fields.first.required
     test.equal CircularSecond.Meta.fields.first.sourcePath, 'first'
@@ -216,7 +216,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal CircularSecond.Meta.fields.first.fields, ['content']
 
     test.equal Recursive.Meta.collection, Recursives
-    test.instanceOf Recursive.Meta.fields.other, Recursive._Reference
+    test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
     test.isFalse Recursive.Meta.fields.other.isArray
     test.isFalse Recursive.Meta.fields.other.required
     test.equal Recursive.Meta.fields.other.sourcePath, 'other'
@@ -317,7 +317,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       transform: null # So that we can use test.equal
 
     # We inserted the document only with ids - subdocuments should be
-    # automatically populated with additional fields as defined in @Reference
+    # automatically populated with additional fields as defined in @ReferenceField
     test.equal @post,
       _id: @postId
       author:
@@ -518,7 +518,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
       @Meta
         collection: Posts
         fields:
-          reviewers: [@Reference Person, ['username'], false]
+          reviewers: [@ReferenceField Person, ['username'], false]
   , /Only non-array values can be optional/
 
   # Invalid document should not be added to the list
@@ -1150,7 +1150,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
       @Meta =>
         collection: Posts
         fields:
-          author: @Reference undefined, ['username']
+          author: @ReferenceField undefined, ['username']
 
     Log._intercept 2 # Two to see if we catch more than expected
 

@@ -10,7 +10,7 @@ class Document
 
   @_ObservingField: class extends @_Field
 
-  @_Reference: class extends @_ObservingField
+  @_ReferenceField: class extends @_ObservingField
     constructor: (targetDocumentOrCollection, @fields, @required) ->
       super arguments...
 
@@ -38,8 +38,8 @@ class Document
         @targetDocument = @sourceDocument
         @targetCollection = @sourceCollection
 
-  @Reference: (args...) ->
-    new @_Reference args...
+  @ReferenceField: (args...) ->
+    new @_ReferenceField args...
 
   @Meta: (meta, dontList, throwErrors) ->
     if _.isFunction meta

@@ -30,10 +30,10 @@ You can define two documents:
         collection: Posts
         fields:
           # We can reference other document
-          author: @Reference Person, ['username']
+          author: @ReferenceField Person, ['username']
           # Or an array of documents
-          subscribers: [@Reference Person]
-          reviewers: [@Reference Person, ['username']]
+          subscribers: [@ReferenceField Person]
+          reviewers: [@ReferenceField Person, ['username']]
 
 Using `@Meta` you define main collection for each document and possible fields which are referencing
 other documents. The idea is that a small subset of fields of referenced documents are kept synced
@@ -59,7 +59,7 @@ If your order of definitions cannot be controlled or if you have circular defini
         collection: CircularFirsts
         fields:
           # We can reference circular documents
-          second: @Reference CircularSecond, ['content']
+          second: @ReferenceField CircularSecond, ['content']
 
     class CircularSecond extends Document
       # Other fields:
@@ -69,7 +69,7 @@ If your order of definitions cannot be controlled or if you have circular defini
         collection: CircularSeconds
         fields:
           # But of course one should not be required so that we can insert without warnings
-          first: @Reference CircularFirst, ['content'], false
+          first: @ReferenceField CircularFirst, ['content'], false
 
 If the function throws an exception that a variable is not yet defined, PeerDB will retry later. You can
 also call `Document.redefineAll()` after all your definitions to assure all your delayed definitions are
@@ -77,7 +77,7 @@ processed. You can call this function if you for some reason want to redo all me
 (only those defined as functions). For example, if you overrode (or monkey patch) document definitions and
 would like metadata to use those new document definitions.
 
-If you want to reference the same document recursively, use string `'self'` as an argument to `@Reference`.
+If you want to reference the same document recursively, use string `'self'` as an argument to `@ReferenceField`.
 
     class Recursive extends Document
       # Other fields:
@@ -86,4 +86,4 @@ If you want to reference the same document recursively, use string `'self'` as a
       @Meta
         collection: Recursives
         fields:
-          other: @Reference 'self', ['content'], false
+          other: @ReferenceField 'self', ['content'], false
