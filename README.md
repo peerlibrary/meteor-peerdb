@@ -3,7 +3,9 @@ PeerDB
 
 Meteor smart package which provides database support for collaborative documents. Planned features are:
  * references between documents
+ * auto-generated fields from other fields
  * versioning of all changes to documents
+ * schema migrations
 
 Adding this package to your [Meteor](http://www.meteor.com/) application adds `Document` object into the global scope.
 
