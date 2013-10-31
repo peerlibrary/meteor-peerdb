@@ -72,64 +72,65 @@ Document._Reference = class extends Document._Reference
       removed: (id) =>
         @removeSource id
 
-Document = class extends Document
-  @sourceFieldUpdatedWithValue: (id, reference, value) ->
+  updatedWithValue: (id, value) =>
     unless _.isObject(value) and _.isString(value._id)
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
-      return if _.isNull(value) and reference.isArray
+      return if _.isNull(value) and @isArray
 
       # Optional field
-      return if _.isNull(value) and not reference.required
+      return if _.isNull(value) and not @required
 
       # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
-      Log.warn "Document's '#{ id }' field '#{ reference.sourcePath }' was updated with invalid value: #{ util.inspect value }"
+      Log.warn "Document's '#{ id }' field '#{ @sourcePath }' was updated with invalid value: #{ util.inspect value }"
       return
 
     # Only _id is requested, we do not have to do anything
-    return if _.isEmpty reference.fields
+    return if _.isEmpty @fields
 
     referenceFields = {}
-    for field in reference.fields
-      referenceFields[field] = 1
+    for f in @fields
+      referenceFields[f] = 1
 
-    target = reference.targetCollection.findOne value._id,
+    target = @targetCollection.findOne value._id,
       fields: referenceFields
       transform: null
 
     unless target
-      Log.warn "Document's '#{ id }' field '#{ reference.sourcePath }' is referencing nonexistent document '#{ value._id }'"
+      Log.warn "Document's '#{ id }' field '#{ @sourcePath }' is referencing nonexistent document '#{ value._id }'"
       # TODO: Should we call reference.removeSource here?
       return
 
     # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
-    reference.updateSource target._id, _.omit target, '_id'
+    @updateSource target._id, _.omit target, '_id'
 
-  @sourceFieldUpdated: (id, field, value, reference) ->
+Document = class extends Document
+  @sourceFieldUpdated: (id, name, value, field) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     return if _.isUndefined value
 
-    reference = reference or @Meta.fields[field]
+    field = field or @Meta.fields[name]
 
     # We should be subscribed only to those updates which are defined in @Meta.fields
-    assert reference
+    assert field
 
-    if reference instanceof Document._Reference
-      if reference.isArray
+    if field instanceof Document._ObservingField
+      if field.isArray
         unless _.isArray value
-          Log.warn "Document's '#{ id }' field '#{ field }' was updated with non-array value: #{ util.inspect value }"
+          Log.warn "Document's '#{ id }' field '#{ name }' was updated with non-array value: #{ util.inspect value }"
           return
       else
         value = [value]
 
       for v in value
-        @sourceFieldUpdatedWithValue id, reference, v
-    else
-      for f, r of reference
-        @sourceFieldUpdated id, "#{ field }.#{ f }", value[f], r
+        field.updatedWithValue id, v
+
+    else if field not instanceof Document._Field
+      for n, f of field
+        @sourceFieldUpdated id, "#{ name }.#{ n }", value[n], f
 
   @sourceUpdated: (id, fields) ->
-    for field, value of fields
-      @sourceFieldUpdated id, field, value
+    for name, value of fields
+      @sourceFieldUpdated id, name, value
 
   @setupSourceObservers: ->
     return if _.isEmpty @Meta.fields
@@ -137,11 +138,11 @@ Document = class extends Document
     sourceFields = {}
 
     sourceFieldsWalker = (obj) ->
-      for field, reference of obj
-        if reference instanceof Document._Reference
-          sourceFields[reference.sourcePath] = 1
-        else
-          sourceFieldsWalker reference
+      for name, field of obj
+        if field instanceof Document._ObservingField
+          sourceFields[field.sourcePath] = 1
+        else if field not instanceof Document._Field
+          sourceFieldsWalker field
 
     sourceFieldsWalker @Meta.fields
 
@@ -154,12 +155,12 @@ Document = class extends Document
 
 setupObservers = ->
   setupTargetObservers = (fields) ->
-    for field, reference of fields
-      # There are no arrays anymore here, just objects (for subdocuments) or references
-      if reference instanceof Document._Reference
-        reference.setupTargetObservers()
-      else
-        setupTargetObservers reference
+    for name, field of fields
+      # There are no arrays anymore here, just objects (for subdocuments) or fields
+      if field instanceof Document._ObservingField
+        field.setupTargetObservers()
+      else if field not instanceof Document._Field
+        setupTargetObservers field
 
   for document in Document.Meta.list
     setupTargetObservers document.Meta.fields

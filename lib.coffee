@@ -4,8 +4,16 @@ class Document
   constructor: (doc) ->
     _.extend @, doc
 
-  @_Reference: class
+  @_Field: class
+    contributeToClass: (@sourceDocument, @sourcePath, @isArray) =>
+      @sourceCollection = @sourceDocument.Meta.collection
+
+  @_ObservingField: class extends @_Field
+
+  @_Reference: class extends @_ObservingField
     constructor: (targetDocumentOrCollection, @fields, @required) ->
+      super arguments...
+
       @fields ?= []
       @required ?= true
 
@@ -21,10 +29,10 @@ class Document
       else
         throw new Error INVALID_TARGET
 
-    contributeToClass: (@sourceDocument, @sourcePath, @isArray) =>
-      throw new Error "Only non-array values can be optional" if @isArray and not @required
+    contributeToClass: (sourceDocument, sourcePath, isArray) =>
+      super sourceDocument, sourcePath, isArray
 
-      @sourceCollection = @sourceDocument.Meta.collection
+      throw new Error "Only non-array values can be optional" if @isArray and not @required
 
       if @targetDocument is 'self'
         @targetDocument = @sourceDocument
@@ -61,17 +69,20 @@ class Document
 
   @_processFields: (fields, parent) ->
     res = {}
-    for field, reference of fields or {}
-      throw new Error "Field names cannot contain '.': #{ field }" if field.indexOf('.') isnt -1
+    for name, field of fields or {}
+      throw new Error "Field names cannot contain '.': #{ name }" if name.indexOf('.') isnt -1
 
-      path = if parent then "#{ parent }.#{ field }" else field
-      isArray = _.isArray reference
-      if not isArray and _.isObject(reference) and not (reference instanceof @_Reference)
-        res[field] = @_processFields reference, path
+      path = if parent then "#{ parent }.#{ name }" else name
+      isArray = _.isArray field
+      if not isArray and _.isObject(field) and not (field instanceof @_Field)
+        res[name] = @_processFields field, path
       else
-        reference = reference[0] if isArray
-        reference.contributeToClass @, path, isArray
-        res[field] = reference
+        if isArray
+          throw new Error "Array field has to contain exactly one element, not #{ field.length }" if field.length isnt 1
+          field = field[0]
+
+        field.contributeToClass @, path, isArray
+        res[name] = field
     res
 
   @_initialize: ->
