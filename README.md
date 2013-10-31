@@ -106,5 +106,11 @@ You can define auto-generated fields:
             else
               [fields._id, "prefix-#{ fields.title.toLowerCase() }-suffix"]
 
+Last argument of `GeneratedField` is a function which receives an object populated with values based on the list of
+fields you are interested in. In the example above, this is one field named `title` from the `Posts` collection. Field
+`_id` is always available in `fields`. Generator function receives or just `_id` (when document containing fields is being
+removed) or all fields requested. Generator function should return two values, a selector (often just ID of a document)
+and a new value. If value is undefined, auto-generated field is removed. If selector is undefined, nothing is done.
+
 Those fields are auto-generated and stored in the database. You should make sure not to override auto-generated
-fields with some other value.
+fields with some other value after they have been generated.
