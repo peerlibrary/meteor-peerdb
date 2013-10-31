@@ -1,5 +1,8 @@
 Document._ReferenceField = class extends Document._ReferenceField
   _updateSource: (id, fields) =>
+    # Just to be sure
+    return if _.isEmpty fields
+
     selector = {}
     selector["#{ @sourcePath }._id"] = id
 
@@ -62,8 +65,6 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     @targetCollection.find({}, fields: referenceFields).observeChanges
       added: (id, fields) =>
-        return if _.isEmpty fields
-
         @_updateSource id, fields
 
       changed: (id, fields) =>
