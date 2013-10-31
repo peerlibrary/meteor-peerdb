@@ -15,8 +15,10 @@ Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsO
       removed: (id) =>
         @removeSource id
 
-# Refresh ReferenceField.prototype with new TargetedFieldsObservingField
-_.extend Document._ReferenceField.prototype, Document._TargetedFieldsObservingField.prototype, Document._ReferenceField.prototype
+# Have to refresh with new methods from TargetedFieldsObservingField
+_.extend Document._ReferenceField.prototype,
+  _.omit(Document._TargetedFieldsObservingField.prototype, 'constructor'),
+  _.omit(Document._ReferenceField.prototype, 'constructor')
 
 Document._ReferenceField = class extends Document._ReferenceField
   updateSource: (id, fields) =>
