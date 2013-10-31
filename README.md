@@ -9,8 +9,8 @@ Meteor smart package which provides database support for collaborative documents
 
 Adding this package to your [Meteor](http://www.meteor.com/) application adds `Document` object into the global scope.
 
-Usage
------
+References
+----------
 
 You can define two documents:
 
@@ -87,3 +87,24 @@ If you want to reference the same document recursively, use string `'self'` as a
         collection: Recursives
         fields:
           other: @ReferenceField 'self', ['content'], false
+
+Auto-generated fields
+---------------------
+
+You can define auto-generated fields:
+
+    class Post extends Document
+      # Other fields:
+      #   title
+
+      @Meta =>
+        collection: Posts
+        fields:
+          slug: @GeneratedField 'self', ['title'], (fields) ->
+            unless fields.title
+              [fields._id, fields.title]
+            else
+              [fields._id, "prefix-#{ fields.title.toLowerCase() }-suffix"]
+
+Those fields are auto-generated and stored in the database. You should make sure not to override auto-generated
+fields with some other value.
