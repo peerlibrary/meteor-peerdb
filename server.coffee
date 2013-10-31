@@ -1,5 +1,25 @@
+Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
+  setupTargetObservers: =>
+    referenceFields =
+      _id: 1 # In the case we want only id, that is, detect deletions
+    for field in @fields
+      referenceFields[field] = 1
+
+    @targetCollection.find({}, fields: referenceFields).observeChanges
+      added: (id, fields) =>
+        @updateSource id, fields
+
+      changed: (id, fields) =>
+        @updateSource id, fields
+
+      removed: (id) =>
+        @removeSource id
+
+# Refresh ReferenceField.prototype with new TargetedFieldsObservingField
+_.extend Document._ReferenceField.prototype, Document._TargetedFieldsObservingField.prototype, Document._ReferenceField.prototype
+
 Document._ReferenceField = class extends Document._ReferenceField
-  _updateSource: (id, fields) =>
+  updateSource: (id, fields) =>
     # Just to be sure
     return if _.isEmpty fields
 
@@ -21,7 +41,7 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     @sourceCollection.update selector, update, multi: true
 
-  _removeSource: (id) =>
+  removeSource: (id) =>
     selector = {}
     selector["#{ @sourcePath }._id"] = id
 
@@ -57,22 +77,6 @@ Document._ReferenceField = class extends Document._ReferenceField
     else
       @sourceCollection.remove selector
 
-  setupTargetObservers: =>
-    referenceFields =
-      _id: 1 # In the case we want only id, that is, detect deletions
-    for field in @fields
-      referenceFields[field] = 1
-
-    @targetCollection.find({}, fields: referenceFields).observeChanges
-      added: (id, fields) =>
-        @_updateSource id, fields
-
-      changed: (id, fields) =>
-        @_updateSource id, fields
-
-      removed: (id) =>
-        @_removeSource id
-
   updatedWithValue: (id, value) =>
     unless _.isObject(value) and _.isString(value._id)
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
@@ -102,7 +106,7 @@ Document._ReferenceField = class extends Document._ReferenceField
       return
 
     # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
-    @_updateSource target._id, _.omit target, '_id'
+    @updateSource target._id, _.omit target, '_id'
 
 Document = class extends Document
   @_sourceFieldUpdated: (id, name, value, field) ->
