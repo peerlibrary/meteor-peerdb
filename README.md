@@ -6,6 +6,7 @@ Meteor smart package which provides database support for collaborative documents
  * auto-generated fields from other fields
  * versioning of all changes to documents
  * schema migrations
+ * integration with [full-text search](http://www.elasticsearch.org/)
 
 Adding this package to your [Meteor](http://www.meteor.com/) application adds `Document` object into the global scope.
 
