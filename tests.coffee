@@ -51,7 +51,6 @@ class Post extends Document
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
         person: @ReferenceField Person, ['username'], false
-        persons: [@ReferenceField Person, ['username']]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
         if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
           [fields._id, undefined]
@@ -59,6 +58,12 @@ class Post extends Document
           [fields._id, null]
         else
           [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
+
+# To test ExtendMeta when initial Meta is delayed
+class Post extends Post
+  @ExtendMeta (meta) =>
+    meta.fields.subdocument.persons = [@ReferenceField Person, ['username']]
+    meta
 
 class UserLink extends Document
   @Meta
@@ -70,8 +75,13 @@ class UserLink extends Document
 class PostLink extends Document
   @Meta
     collection: PostLinks
-    fields:
-      post: @ReferenceField Posts, ['subdocument.person', 'subdocument.persons']
+
+# To test ExtendMeta when initial Meta is not a function
+class PostLink extends PostLink
+  @ExtendMeta (meta) =>
+    meta.fields ?= {}
+    meta.fields.post = @ReferenceField Posts, ['subdocument.person', 'subdocument.persons']
+    meta
 
 class CircularFirst extends Document
   # Other fields:
@@ -79,9 +89,14 @@ class CircularFirst extends Document
 
   @Meta =>
     collection: CircularFirsts
-    fields:
-      # We can reference circular documents
-      second: @ReferenceField CircularSecond, ['content']
+
+# To test ExtendMeta when initial Meta is a function
+class CircularFirst extends CircularFirst
+  @ExtendMeta (meta) =>
+    meta.fields ?= {}
+    # We can reference circular documents
+    meta.fields.second = @ReferenceField CircularSecond, ['content']
+    meta
 
 class CircularSecond extends Document
   # Other fields:
@@ -112,141 +127,157 @@ class Recursive extends Document
 
 Document.redefineAll()
 
+testDefinition = (test) ->
+  test.equal Person.Meta.collection, Persons
+  test.equal Person.Meta.fields, {}
+
+  test.equal Post.Meta.collection, Posts
+  test.equal _.size(Post.Meta.fields), 5
+  test.instanceOf Post.Meta.fields.author, Person._ReferenceField
+  test.isFalse Post.Meta.fields.author.isArray
+  test.isTrue Post.Meta.fields.author.required
+  test.equal Post.Meta.fields.author.sourcePath, 'author'
+  test.equal Post.Meta.fields.author.sourceDocument, Post
+  test.equal Post.Meta.fields.author.targetDocument, Person
+  test.equal Post.Meta.fields.author.sourceCollection, Posts
+  test.equal Post.Meta.fields.author.targetCollection, Persons
+  test.equal Post.Meta.fields.author.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.author.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.author.fields, ['username']
+  test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
+  test.isTrue Post.Meta.fields.subscribers.isArray
+  test.isTrue Post.Meta.fields.subscribers.required
+  test.equal Post.Meta.fields.subscribers.sourcePath, 'subscribers'
+  test.equal Post.Meta.fields.subscribers.sourceDocument, Post
+  test.equal Post.Meta.fields.subscribers.targetDocument, Person
+  test.equal Post.Meta.fields.subscribers.sourceCollection, Posts
+  test.equal Post.Meta.fields.subscribers.targetCollection, Persons
+  test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.subscribers.fields, []
+  test.isTrue Post.Meta.fields.reviewers.isArray
+  test.isTrue Post.Meta.fields.reviewers.required
+  test.equal Post.Meta.fields.reviewers.sourcePath, 'reviewers'
+  test.equal Post.Meta.fields.reviewers.sourceDocument, Post
+  test.equal Post.Meta.fields.reviewers.targetDocument, Person
+  test.equal Post.Meta.fields.reviewers.sourceCollection, Posts
+  test.equal Post.Meta.fields.reviewers.targetCollection, Persons
+  test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.reviewers.fields, [username: 1]
+  test.equal _.size(Post.Meta.fields.subdocument), 2
+  test.isFalse Post.Meta.fields.subdocument.person.isArray
+  test.isFalse Post.Meta.fields.subdocument.person.required
+  test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
+  test.equal Post.Meta.fields.subdocument.person.sourceDocument, Post
+  test.equal Post.Meta.fields.subdocument.person.targetDocument, Person
+  test.equal Post.Meta.fields.subdocument.person.sourceCollection, Posts
+  test.equal Post.Meta.fields.subdocument.person.targetCollection, Persons
+  test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.subdocument.person.fields, ['username']
+  test.isTrue Post.Meta.fields.subdocument.persons.isArray
+  test.isTrue Post.Meta.fields.subdocument.persons.required
+  test.equal Post.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
+  test.equal Post.Meta.fields.subdocument.persons.sourceDocument, Post
+  test.equal Post.Meta.fields.subdocument.persons.targetDocument, Person
+  test.equal Post.Meta.fields.subdocument.persons.sourceCollection, Posts
+  test.equal Post.Meta.fields.subdocument.persons.targetCollection, Persons
+  test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
+  test.isFalse Post.Meta.fields.slug.isArray
+  test.isTrue _.isFunction Post.Meta.fields.slug.generator
+  test.equal Post.Meta.fields.slug.sourcePath, 'slug'
+  test.equal Post.Meta.fields.slug.sourceDocument, Post
+  test.equal Post.Meta.fields.slug.targetDocument, Post
+  test.equal Post.Meta.fields.slug.sourceCollection, Posts
+  test.equal Post.Meta.fields.slug.targetCollection, Posts
+  test.equal Post.Meta.fields.slug.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.slug.targetDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
+
+  test.equal UserLink.Meta.collection, UserLinks
+  test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
+  test.isFalse UserLink.Meta.fields.user.isArray
+  test.isFalse UserLink.Meta.fields.user.required
+  test.equal UserLink.Meta.fields.user.sourcePath, 'user'
+  test.equal UserLink.Meta.fields.user.sourceDocument, UserLink
+  test.equal UserLink.Meta.fields.user.targetDocument, null # We are referencing just a collection
+  test.equal UserLink.Meta.fields.user.sourceCollection, UserLinks
+  test.equal UserLink.Meta.fields.user.targetCollection, Meteor.users
+  test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
+  test.equal UserLink.Meta.fields.user.fields, ['username']
+
+  test.equal PostLink.Meta.collection, PostLinks
+  test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
+  test.isFalse PostLink.Meta.fields.post.isArray
+  test.isTrue PostLink.Meta.fields.post.required
+  test.equal PostLink.Meta.fields.post.sourcePath, 'post'
+  test.equal PostLink.Meta.fields.post.sourceDocument, PostLink
+  test.equal PostLink.Meta.fields.post.targetDocument, null # We are referencing just a collection
+  test.equal PostLink.Meta.fields.post.sourceCollection, PostLinks
+  test.equal PostLink.Meta.fields.post.targetCollection, Posts
+  test.equal PostLink.Meta.fields.post.sourceDocument.Meta.collection, PostLinks
+  test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
+
+  test.equal CircularFirst.Meta.collection, CircularFirsts
+  test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
+  test.isFalse CircularFirst.Meta.fields.second.isArray
+  test.isTrue CircularFirst.Meta.fields.second.required
+  test.equal CircularFirst.Meta.fields.second.sourcePath, 'second'
+  test.equal CircularFirst.Meta.fields.second.sourceDocument, CircularFirst
+  test.equal CircularFirst.Meta.fields.second.targetDocument, CircularSecond
+  test.equal CircularFirst.Meta.fields.second.sourceCollection, CircularFirsts
+  test.equal CircularFirst.Meta.fields.second.targetCollection, CircularSeconds
+  test.equal CircularFirst.Meta.fields.second.sourceDocument.Meta.collection, CircularFirsts
+  test.equal CircularFirst.Meta.fields.second.targetDocument.Meta.collection, CircularSeconds
+  test.equal CircularFirst.Meta.fields.second.fields, ['content']
+
+  test.equal CircularSecond.Meta.collection, CircularSeconds
+  test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
+  test.isFalse CircularSecond.Meta.fields.first.isArray
+  test.isFalse CircularSecond.Meta.fields.first.required
+  test.equal CircularSecond.Meta.fields.first.sourcePath, 'first'
+  test.equal CircularSecond.Meta.fields.first.sourceDocument, CircularSecond
+  test.equal CircularSecond.Meta.fields.first.targetDocument, CircularFirst
+  test.equal CircularSecond.Meta.fields.first.sourceCollection, CircularSeconds
+  test.equal CircularSecond.Meta.fields.first.targetCollection, CircularFirsts
+  test.equal CircularSecond.Meta.fields.first.sourceDocument.Meta.collection, CircularSeconds
+  test.equal CircularSecond.Meta.fields.first.targetDocument.Meta.collection, CircularFirsts
+  test.equal CircularSecond.Meta.fields.first.fields, ['content']
+
+  test.equal Recursive.Meta.collection, Recursives
+  test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
+  test.isFalse Recursive.Meta.fields.other.isArray
+  test.isFalse Recursive.Meta.fields.other.required
+  test.equal Recursive.Meta.fields.other.sourcePath, 'other'
+  test.equal Recursive.Meta.fields.other.sourceDocument, Recursive
+  test.equal Recursive.Meta.fields.other.targetDocument, Recursive
+  test.equal Recursive.Meta.fields.other.sourceCollection, Recursives
+  test.equal Recursive.Meta.fields.other.targetCollection, Recursives
+  test.equal Recursive.Meta.fields.other.sourceDocument.Meta.collection, Recursives
+  test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection, Recursives
+  test.equal Recursive.Meta.fields.other.fields, ['content']
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+
+  test.equal UserLink.Meta._initialized, 0
+  test.equal PostLink.Meta._initialized, 1
+  test.equal CircularSecond.Meta._initialized, 2
+  test.equal Person.Meta._initialized, 3
+  test.equal CircularFirst.Meta._initialized, 4
+  test.equal Recursive.Meta._initialized, 5
+  test.equal Post.Meta._initialized, 6
+
 testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
-    test.equal Person.Meta.collection, Persons
-    test.equal Person.Meta.fields, {}
+    testDefinition test
 
-    test.equal Post.Meta.collection, Posts
-    test.equal _.size(Post.Meta.fields), 5
-    test.instanceOf Post.Meta.fields.author, Person._ReferenceField
-    test.isFalse Post.Meta.fields.author.isArray
-    test.isTrue Post.Meta.fields.author.required
-    test.equal Post.Meta.fields.author.sourcePath, 'author'
-    test.equal Post.Meta.fields.author.sourceDocument, Post
-    test.equal Post.Meta.fields.author.targetDocument, Person
-    test.equal Post.Meta.fields.author.sourceCollection, Posts
-    test.equal Post.Meta.fields.author.targetCollection, Persons
-    test.equal Post.Meta.fields.author.sourceDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.author.targetDocument.Meta.collection, Persons
-    test.equal Post.Meta.fields.author.fields, ['username']
-    test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
-    test.isTrue Post.Meta.fields.subscribers.isArray
-    test.isTrue Post.Meta.fields.subscribers.required
-    test.equal Post.Meta.fields.subscribers.sourcePath, 'subscribers'
-    test.equal Post.Meta.fields.subscribers.sourceDocument, Post
-    test.equal Post.Meta.fields.subscribers.targetDocument, Person
-    test.equal Post.Meta.fields.subscribers.sourceCollection, Posts
-    test.equal Post.Meta.fields.subscribers.targetCollection, Persons
-    test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
-    test.equal Post.Meta.fields.subscribers.fields, []
-    test.isTrue Post.Meta.fields.reviewers.isArray
-    test.isTrue Post.Meta.fields.reviewers.required
-    test.equal Post.Meta.fields.reviewers.sourcePath, 'reviewers'
-    test.equal Post.Meta.fields.reviewers.sourceDocument, Post
-    test.equal Post.Meta.fields.reviewers.targetDocument, Person
-    test.equal Post.Meta.fields.reviewers.sourceCollection, Posts
-    test.equal Post.Meta.fields.reviewers.targetCollection, Persons
-    test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
-    test.equal Post.Meta.fields.reviewers.fields, [username: 1]
-    test.equal _.size(Post.Meta.fields.subdocument), 2
-    test.isFalse Post.Meta.fields.subdocument.person.isArray
-    test.isFalse Post.Meta.fields.subdocument.person.required
-    test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
-    test.equal Post.Meta.fields.subdocument.person.sourceDocument, Post
-    test.equal Post.Meta.fields.subdocument.person.targetDocument, Person
-    test.equal Post.Meta.fields.subdocument.person.sourceCollection, Posts
-    test.equal Post.Meta.fields.subdocument.person.targetCollection, Persons
-    test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection, Persons
-    test.equal Post.Meta.fields.subdocument.person.fields, ['username']
-    test.isTrue Post.Meta.fields.subdocument.persons.isArray
-    test.isTrue Post.Meta.fields.subdocument.persons.required
-    test.equal Post.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
-    test.equal Post.Meta.fields.subdocument.persons.sourceDocument, Post
-    test.equal Post.Meta.fields.subdocument.persons.targetDocument, Person
-    test.equal Post.Meta.fields.subdocument.persons.sourceCollection, Posts
-    test.equal Post.Meta.fields.subdocument.persons.targetCollection, Persons
-    test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
-    test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
-    test.isFalse Post.Meta.fields.slug.isArray
-    test.isTrue _.isFunction Post.Meta.fields.slug.generator
-    test.equal Post.Meta.fields.slug.sourcePath, 'slug'
-    test.equal Post.Meta.fields.slug.sourceDocument, Post
-    test.equal Post.Meta.fields.slug.targetDocument, Post
-    test.equal Post.Meta.fields.slug.sourceCollection, Posts
-    test.equal Post.Meta.fields.slug.targetCollection, Posts
-    test.equal Post.Meta.fields.slug.sourceDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.slug.targetDocument.Meta.collection, Posts
-    test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
+    # We should be able to call redefineAll multiple times
+    Document.redefineAll()
 
-    test.equal UserLink.Meta.collection, UserLinks
-    test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
-    test.isFalse UserLink.Meta.fields.user.isArray
-    test.isFalse UserLink.Meta.fields.user.required
-    test.equal UserLink.Meta.fields.user.sourcePath, 'user'
-    test.equal UserLink.Meta.fields.user.sourceDocument, UserLink
-    test.equal UserLink.Meta.fields.user.targetDocument, null # We are referencing just a collection
-    test.equal UserLink.Meta.fields.user.sourceCollection, UserLinks
-    test.equal UserLink.Meta.fields.user.targetCollection, Meteor.users
-    test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection, UserLinks
-    test.equal UserLink.Meta.fields.user.fields, ['username']
-
-    test.equal PostLink.Meta.collection, PostLinks
-    test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
-    test.isFalse PostLink.Meta.fields.post.isArray
-    test.isTrue PostLink.Meta.fields.post.required
-    test.equal PostLink.Meta.fields.post.sourcePath, 'post'
-    test.equal PostLink.Meta.fields.post.sourceDocument, PostLink
-    test.equal PostLink.Meta.fields.post.targetDocument, null # We are referencing just a collection
-    test.equal PostLink.Meta.fields.post.sourceCollection, PostLinks
-    test.equal PostLink.Meta.fields.post.targetCollection, Posts
-    test.equal PostLink.Meta.fields.post.sourceDocument.Meta.collection, PostLinks
-    test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
-
-    test.equal CircularFirst.Meta.collection, CircularFirsts
-    test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
-    test.isFalse CircularFirst.Meta.fields.second.isArray
-    test.isTrue CircularFirst.Meta.fields.second.required
-    test.equal CircularFirst.Meta.fields.second.sourcePath, 'second'
-    test.equal CircularFirst.Meta.fields.second.sourceDocument, CircularFirst
-    test.equal CircularFirst.Meta.fields.second.targetDocument, CircularSecond
-    test.equal CircularFirst.Meta.fields.second.sourceCollection, CircularFirsts
-    test.equal CircularFirst.Meta.fields.second.targetCollection, CircularSeconds
-    test.equal CircularFirst.Meta.fields.second.sourceDocument.Meta.collection, CircularFirsts
-    test.equal CircularFirst.Meta.fields.second.targetDocument.Meta.collection, CircularSeconds
-    test.equal CircularFirst.Meta.fields.second.fields, ['content']
-
-    test.equal CircularSecond.Meta.collection, CircularSeconds
-    test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
-    test.isFalse CircularSecond.Meta.fields.first.isArray
-    test.isFalse CircularSecond.Meta.fields.first.required
-    test.equal CircularSecond.Meta.fields.first.sourcePath, 'first'
-    test.equal CircularSecond.Meta.fields.first.sourceDocument, CircularSecond
-    test.equal CircularSecond.Meta.fields.first.targetDocument, CircularFirst
-    test.equal CircularSecond.Meta.fields.first.sourceCollection, CircularSeconds
-    test.equal CircularSecond.Meta.fields.first.targetCollection, CircularFirsts
-    test.equal CircularSecond.Meta.fields.first.sourceDocument.Meta.collection, CircularSeconds
-    test.equal CircularSecond.Meta.fields.first.targetDocument.Meta.collection, CircularFirsts
-    test.equal CircularSecond.Meta.fields.first.fields, ['content']
-
-    test.equal Recursive.Meta.collection, Recursives
-    test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
-    test.isFalse Recursive.Meta.fields.other.isArray
-    test.isFalse Recursive.Meta.fields.other.required
-    test.equal Recursive.Meta.fields.other.sourcePath, 'other'
-    test.equal Recursive.Meta.fields.other.sourceDocument, Recursive
-    test.equal Recursive.Meta.fields.other.targetDocument, Recursive
-    test.equal Recursive.Meta.fields.other.sourceCollection, Recursives
-    test.equal Recursive.Meta.fields.other.targetCollection, Recursives
-    test.equal Recursive.Meta.fields.other.sourceDocument.Meta.collection, Recursives
-    test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection, Recursives
-    test.equal Recursive.Meta.fields.other.fields, ['content']
-
-    test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+    testDefinition test
 
     Persons.insert
       username: 'person1'

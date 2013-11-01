@@ -62,12 +62,11 @@ class Document
     new @_GeneratedField args...
 
   @Meta: (meta, dontList, throwErrors) ->
+    originalMeta = @Meta
+
     if _.isFunction meta
-      originalMeta = @Meta
       try
         @Meta = meta()
-        @Meta._meta = originalMeta
-        @Meta._metaData = meta
       catch e
         if not throwErrors and (e.message == INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed @, meta
@@ -76,16 +75,66 @@ class Document
           throw e
     else
       @Meta = meta
+
+    # Store original so othat we can rerun or extend
+    # We can assign directly, because we overrode @Meta at this point
+    @Meta._meta = originalMeta
+    @Meta._metaData = meta
+
     @_initialize()
 
     # If initialization was successful, we register the current document into the global list (Document.Meta.list)
-    Document.Meta.list.push @ unless dontList
+    unless dontList
+      Document.Meta.list.push @
+      # Store location in the list and that we have been successfully initialized
+      @Meta._initialized = Document.Meta.list.length - 1
 
     @_retryDelayed()
 
   @Meta.list = []
   @Meta.delayed = []
   @Meta._delayedCheckTimeout = null
+
+  @ExtendMeta = (additionalMeta) ->
+    unless _.isUndefined @Meta._delayed
+      # We have been delayed, let us just update the list
+      [document, meta] = Document.Meta.delayed[@Meta._delayed]
+
+      # Only functions can be delayed
+      assert _.isFunction meta
+
+      if _.isFunction additionalMeta
+        Document.Meta.delayed[@Meta._delayed] = [@, => additionalMeta meta()]
+      else
+        Document.Meta.delayed[@Meta._delayed] = [@, => _.extend meta(), additionalMeta]
+
+      # @_retryDelayed is called inside @Meta as well below
+      @_retryDelayed()
+
+    else if not _.isUndefined @Meta._initialized
+      # We have been already initialized
+      document = Document.Meta.list[@Meta._initialized]
+      # We remove it from the list because @Meta below will add it back
+      Document.Meta.list.splice @Meta._initialized, 1
+
+      @Meta = document.Meta._meta
+      metadata = document.Meta._metaData
+
+      if _.isFunction document.Meta._metaData
+        if _.isFunction additionalMeta
+          @Meta => additionalMeta metadata()
+        else
+          @Meta => _.extend metadata(), additionalMeta
+      else
+        # We do not want to override metadata if it maybe shared among classes
+        if _.isFunction additionalMeta
+          @Meta => additionalMeta _.clone metadata
+        else
+          @Meta => _.extend {}, metadata, additionalMeta
+
+    else
+      # Not delayed and not initialized - there was some exception when initializing somewhere so we should not really get here
+      assert false
 
   @_processFields: (fields, parent) ->
     res = {}
@@ -112,10 +161,18 @@ class Document
     Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
 
     Document.Meta.delayed.push [document, meta]
+    # TODO: What if there is a chain of extended classes which are all delayed, are we then overriding parent _delayed?
+    if Document.Meta is document.Meta # We subclass only once
+      # _delayed must be a subclass value, we do not want to change global Document.Meta
+      document.Meta = class extends document.Meta
+        @_delayed: Document.Meta.delayed.length - 1
+    else
+      # We have already subclassed, we can set _delayed directly
+      document.Meta._delayed = Document.Meta.delayed.length - 1
 
     Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
       if Document.Meta.delayed.length
-        delayed = []
+        delayed = [] # Display friendly list of delayed documents
         for [document, meta] in Document.Meta.delayed
           delayed.push document.name or document
         Log.error "Not all delayed document definitions were successfully retried: #{ delayed }"
@@ -129,14 +186,16 @@ class Document
     # And set it back to empty list, document.Meta will populate it again as necessary
     Document.Meta.delayed = []
     for [document, meta] in delayed
+      delete document.Meta._delayed if _.has document.Meta, '_delayed'
       document.Meta meta, false, throwErrors
 
   @redefineAll: (throwErrors) ->
     Document._retryDelayed throwErrors
 
-    for document in Document.Meta.list when document.Meta._meta
+    for document, i in Document.Meta.list when _.isFunction document.Meta._metaData
       metadata = document.Meta._metaData
       document.Meta = document.Meta._meta
       document.Meta metadata, true
+      document.Meta._initialized = i
 
 @Document = Document
