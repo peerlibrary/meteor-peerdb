@@ -1,5 +1,23 @@
 INVALID_TARGET = "Invalid target document or collection"
 
+isPlainObject = (obj) ->
+  if not _.isObject(obj) or _.isArray(obj) or _.isFunction(obj)
+    return false
+
+  if obj.constructor isnt Object
+    return false
+
+  return true
+
+deepExtend = (obj, args...) ->
+  _.each args, (source) ->
+    _.each source, (value, key) ->
+      if obj[key] and value and isPlainObject(obj[key]) and isPlainObject(value)
+        obj[key] = deepExtend obj[key], value
+      else
+        obj[key] = value
+  obj
+
 class Document
   constructor: (doc) ->
     _.extend @, doc
@@ -68,7 +86,7 @@ class Document
       try
         @Meta = meta()
       catch e
-        if not throwErrors and (e.message == INVALID_TARGET or e instanceof ReferenceError)
+        if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed @, meta
           return
         else
@@ -95,18 +113,27 @@ class Document
   @Meta.delayed = []
   @Meta._delayedCheckTimeout = null
 
-  @ExtendMeta = (additionalMeta) ->
+  @_ExtendMeta: (mixin, additionalMeta) ->
+    mergeMeta = (first, second) ->
+      deepExtend first, second
+
     unless _.isUndefined @Meta._delayed
-      # We have been delayed, let us just update the list
+      # We have been delayed
       [document, meta] = Document.Meta.delayed[@Meta._delayed]
 
       # Only functions can be delayed
       assert _.isFunction meta
 
       if _.isFunction additionalMeta
-        Document.Meta.delayed[@Meta._delayed] = [@, => additionalMeta meta()]
+        newMeta = => additionalMeta meta()
       else
-        Document.Meta.delayed[@Meta._delayed] = [@, => _.extend meta(), additionalMeta]
+        newMeta = => mergeMeta meta(), additionalMeta
+
+      if mixin
+        # Let us just update the list
+        Document.Meta.delayed[@Meta._delayed] = [@, newMeta]
+      else
+        @_addDelayed @, newMeta
 
       # @_retryDelayed is called inside @Meta as well below
       @_retryDelayed()
@@ -114,8 +141,9 @@ class Document
     else if not _.isUndefined @Meta._initialized
       # We have been already initialized
       document = Document.Meta.list[@Meta._initialized]
+
       # We remove it from the list because @Meta below will add it back
-      Document.Meta.list.splice @Meta._initialized, 1
+      Document.Meta.list.splice @Meta._initialized, 1 if mixin
 
       @Meta = document.Meta._meta
       metadata = document.Meta._metaData
@@ -124,17 +152,23 @@ class Document
         if _.isFunction additionalMeta
           @Meta => additionalMeta metadata()
         else
-          @Meta => _.extend metadata(), additionalMeta
+          @Meta => mergeMeta metadata(), additionalMeta
       else
         # We do not want to override metadata if it maybe shared among classes
         if _.isFunction additionalMeta
           @Meta => additionalMeta _.clone metadata
         else
-          @Meta => _.extend {}, metadata, additionalMeta
+          @Meta => mergeMeta _.clone(metadata), additionalMeta
 
     else
       # Not delayed and not initialized - there was some exception when initializing somewhere so we should not really get here
       assert false
+
+  @ExtendMeta: (additionalMeta) ->
+    @_ExtendMeta false, additionalMeta
+
+  @MixinMeta: (additionalMeta) ->
+    @_ExtendMeta true, additionalMeta
 
   @_processFields: (fields, parent) ->
     res = {}
@@ -161,14 +195,9 @@ class Document
     Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
 
     Document.Meta.delayed.push [document, meta]
-    # TODO: What if there is a chain of extended classes which are all delayed, are we then overriding parent _delayed?
-    if Document.Meta is document.Meta # We subclass only once
-      # _delayed must be a subclass value, we do not want to change global Document.Meta
-      document.Meta = class extends document.Meta
-        @_delayed: Document.Meta.delayed.length - 1
-    else
-      # We have already subclassed, we can set _delayed directly
-      document.Meta._delayed = Document.Meta.delayed.length - 1
+    # _delayed must be a subclass value, we do not want to change global Document.Meta
+    document.Meta = class extends document.Meta
+      @_delayed: Document.Meta.delayed.length - 1
 
     Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
       if Document.Meta.delayed.length

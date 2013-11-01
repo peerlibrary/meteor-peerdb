@@ -59,9 +59,9 @@ class Post extends Document
         else
           [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
 
-# To test ExtendMeta when initial Meta is delayed
+# To test MixinMeta when initial Meta is delayed
 class Post extends Post
-  @ExtendMeta (meta) =>
+  @MixinMeta (meta) =>
     meta.fields.subdocument.persons = [@ReferenceField Person, ['username']]
     meta
 
@@ -76,9 +76,9 @@ class PostLink extends Document
   @Meta
     collection: PostLinks
 
-# To test ExtendMeta when initial Meta is not a function
+# To test MixinMeta when initial Meta is not a function
 class PostLink extends PostLink
-  @ExtendMeta (meta) =>
+  @MixinMeta (meta) =>
     meta.fields ?= {}
     meta.fields.post = @ReferenceField Posts, ['subdocument.person', 'subdocument.persons']
     meta
@@ -90,9 +90,9 @@ class CircularFirst extends Document
   @Meta =>
     collection: CircularFirsts
 
-# To test ExtendMeta when initial Meta is a function
+# To test MixinMeta when initial Meta is a function
 class CircularFirst extends CircularFirst
-  @ExtendMeta (meta) =>
+  @MixinMeta (meta) =>
     meta.fields ?= {}
     # We can reference circular documents
     meta.fields.second = @ReferenceField CircularSecond, ['content']
@@ -198,6 +198,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
 
   test.equal UserLink.Meta.collection, UserLinks
+  test.equal _.size(UserLink.Meta.fields), 1
   test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
   test.isFalse UserLink.Meta.fields.user.isArray
   test.isFalse UserLink.Meta.fields.user.required
@@ -210,6 +211,7 @@ testDefinition = (test) ->
   test.equal UserLink.Meta.fields.user.fields, ['username']
 
   test.equal PostLink.Meta.collection, PostLinks
+  test.equal _.size(PostLink.Meta.fields), 1
   test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
   test.isFalse PostLink.Meta.fields.post.isArray
   test.isTrue PostLink.Meta.fields.post.required
@@ -222,6 +224,7 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
 
   test.equal CircularFirst.Meta.collection, CircularFirsts
+  test.equal _.size(CircularFirst.Meta.fields), 1
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
   test.isFalse CircularFirst.Meta.fields.second.isArray
   test.isTrue CircularFirst.Meta.fields.second.required
@@ -235,6 +238,7 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.fields.second.fields, ['content']
 
   test.equal CircularSecond.Meta.collection, CircularSeconds
+  test.equal _.size(CircularSecond.Meta.fields), 1
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
   test.isFalse CircularSecond.Meta.fields.first.isArray
   test.isFalse CircularSecond.Meta.fields.first.required
@@ -248,6 +252,7 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.fields.first.fields, ['content']
 
   test.equal Recursive.Meta.collection, Recursives
+  test.equal _.size(Recursive.Meta.fields), 1
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
   test.isFalse Recursive.Meta.fields.other.isArray
   test.isFalse Recursive.Meta.fields.other.required
@@ -269,6 +274,22 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta._initialized, 4
   test.equal Recursive.Meta._initialized, 5
   test.equal Post.Meta._initialized, 6
+
+  test.isUndefined UserLink.Meta._delayed
+  test.isUndefined PostLink.Meta._delayed
+  test.isUndefined CircularSecond.Meta._delayed
+  test.isUndefined Person.Meta._delayed
+  test.isUndefined CircularFirst.Meta._delayed
+  test.isUndefined Recursive.Meta._delayed
+  test.isUndefined Post.Meta._delayed
+
+  test.isUndefined UserLink.Meta._meta._delayed
+  test.isUndefined PostLink.Meta._meta._delayed
+  test.isUndefined CircularSecond.Meta._meta._delayed
+  test.isUndefined Person.Meta._meta._delayed
+  test.isUndefined CircularFirst.Meta._meta._delayed
+  test.isUndefined Recursive.Meta._meta._delayed
+  test.isUndefined Post.Meta._meta._delayed
 
 testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
@@ -1208,7 +1229,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     Log._intercept 2 # Two to see if we catch more than expected
 
     # Sleep so that error is shown
-    Meteor.setTimeout expect(), 1000 # We need 1000 here for some reason to have stable tests (500 is not enough)
+    Meteor.setTimeout expect(), 1000 # We need 1000 here because we have a check which runs after 1000 ms to check for delayed defintions
 ,
   (test, expect) ->
     intercepted = Log._intercepted()
@@ -1225,6 +1246,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
 
     # Clear delayed so that we can retry tests without errors
     Document.Meta.delayed = []
+    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
 ]
 
 testAsyncMulti 'meteor-peerdb - subdocument fields', [
@@ -1695,3 +1717,411 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         ]
         body: 'SubdocumentFooBar'
 ]
+
+Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
+  list = _.clone Document.Meta.list
+
+  firstReferenceA = undefined # To force delayed
+  secondReferenceA = undefined # To force delayed
+  firstReferenceB = undefined # To force delayed
+  secondReferenceB = undefined # To force delayed
+
+  class First extends Document
+    @Meta =>
+      collection: Posts
+      fields:
+        first: @ReferenceField firstReferenceA
+
+  class Second extends First
+    # We can return object as well and it be merged
+    @ExtendMeta
+      fields:
+        second: @ReferenceField Post # It cannot be undefined, but overall meta will still be delayed
+
+  class Third extends Second
+    @ExtendMeta (meta) =>
+      meta.fields.third = @ReferenceField secondReferenceA
+      meta
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.delayed.length, 3
+  test.equal Document.Meta.delayed[0][0], First
+  test.equal Document.Meta.delayed[1][0], Second
+  test.equal Document.Meta.delayed[2][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.equal First.Meta._delayed, 0
+  test.equal Second.Meta._delayed, 1
+  test.equal Third.Meta._delayed, 2
+
+  class First extends First
+    @MixinMeta (meta) =>
+      meta.fields.first = @ReferenceField firstReferenceB
+      meta
+
+  class Second extends Second
+    # We can return object as well and it will be merged
+    @MixinMeta
+      fields:
+        second: @ReferenceField Person # It cannot be undefined, but overall meta will still be delayed
+
+  class Third extends Third
+    @MixinMeta (meta) =>
+      meta.fields.third = @ReferenceField secondReferenceB
+      meta
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.delayed.length, 3
+  test.equal Document.Meta.delayed[0][0], First
+  test.equal Document.Meta.delayed[1][0], Second
+  test.equal Document.Meta.delayed[2][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.equal First.Meta._delayed, 0
+  test.equal Second.Meta._delayed, 1
+  test.equal Third.Meta._delayed, 2
+
+  class Third extends Third
+    @MixinMeta (meta) =>
+      meta.fields.third = @ReferenceField Person
+      meta
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.delayed.length, 3
+  test.equal Document.Meta.delayed[0][0], First
+  test.equal Document.Meta.delayed[1][0], Second
+  test.equal Document.Meta.delayed[2][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.equal First.Meta._delayed, 0
+  test.equal Second.Meta._delayed, 1
+  test.equal Third.Meta._delayed, 2
+
+  class First extends First
+    @MixinMeta (meta) =>
+      meta.fields.first = @ReferenceField Person
+      meta
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.delayed.length, 3
+  test.equal Document.Meta.delayed[0][0], First
+  test.equal Document.Meta.delayed[1][0], Second
+  test.equal Document.Meta.delayed[2][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.equal First.Meta._delayed, 0
+  test.equal Second.Meta._delayed, 1
+  test.equal Third.Meta._delayed, 2
+
+  firstReferenceA = First
+  Document._retryDelayed()
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second]
+  test.equal Document.Meta.delayed.length, 2
+  test.equal Document.Meta.delayed[0][0], First
+  test.equal Document.Meta.delayed[1][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.equal First.Meta._delayed, 0
+  test.isUndefined Second.Meta._delayed
+  test.equal Third.Meta._delayed, 1
+
+  test.equal Second.Meta.collection, Posts
+  test.equal _.size(Second.Meta.fields), 2
+  test.instanceOf Second.Meta.fields.first, Second._ReferenceField
+  test.isFalse Second.Meta.fields.first.isArray
+  test.isTrue Second.Meta.fields.first.required
+  test.equal Second.Meta.fields.first.sourcePath, 'first'
+  test.equal Second.Meta.fields.first.sourceDocument, Second
+  test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Second.Meta.fields.first.sourceCollection, Posts
+  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.isUndefined Second.Meta.fields.first.targetDocument.Meta.collection # Currently target collection is still undefined
+  test.equal Second.Meta.fields.first.fields, []
+  test.instanceOf Second.Meta.fields.second, Second._ReferenceField
+  test.isFalse Second.Meta.fields.second.isArray
+  test.isTrue Second.Meta.fields.second.required
+  test.equal Second.Meta.fields.second.sourcePath, 'second'
+  test.equal Second.Meta.fields.second.sourceDocument, Second
+  test.equal Second.Meta.fields.second.targetDocument, Person
+  test.equal Second.Meta.fields.second.sourceCollection, Posts
+  test.equal Second.Meta.fields.second.targetCollection, Persons
+  test.equal Second.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.second.targetDocument.Meta.collection, Persons
+  test.equal Second.Meta.fields.second.fields, []
+
+  firstReferenceB = Posts
+  Document._retryDelayed()
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First]
+  test.equal Document.Meta.delayed.length, 1
+  test.equal Document.Meta.delayed[0][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.isUndefined First.Meta._delayed
+  test.isUndefined Second.Meta._delayed
+  test.equal Third.Meta._delayed, 0
+
+  test.equal Second.Meta.collection, Posts
+  test.equal _.size(Second.Meta.fields), 2
+  test.instanceOf Second.Meta.fields.first, Second._ReferenceField
+  test.isFalse Second.Meta.fields.first.isArray
+  test.isTrue Second.Meta.fields.first.required
+  test.equal Second.Meta.fields.first.sourcePath, 'first'
+  test.equal Second.Meta.fields.first.sourceDocument, Second
+  test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Second.Meta.fields.first.sourceCollection, Posts
+  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  # TODO: Why this gets defined here?
+  test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts # Now it gets defined
+  test.equal Second.Meta.fields.first.fields, []
+  test.instanceOf Second.Meta.fields.second, Second._ReferenceField
+  test.isFalse Second.Meta.fields.second.isArray
+  test.isTrue Second.Meta.fields.second.required
+  test.equal Second.Meta.fields.second.sourcePath, 'second'
+  test.equal Second.Meta.fields.second.sourceDocument, Second
+  test.equal Second.Meta.fields.second.targetDocument, Person
+  test.equal Second.Meta.fields.second.sourceCollection, Posts
+  test.equal Second.Meta.fields.second.targetCollection, Persons
+  test.equal Second.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.second.targetDocument.Meta.collection, Persons
+  test.equal Second.Meta.fields.second.fields, []
+
+  test.equal First.Meta.collection, Posts
+  test.equal _.size(First.Meta.fields), 1
+  test.instanceOf First.Meta.fields.first, First._ReferenceField
+  test.isFalse First.Meta.fields.first.isArray
+  test.isTrue First.Meta.fields.first.required
+  test.equal First.Meta.fields.first.sourcePath, 'first'
+  test.equal First.Meta.fields.first.sourceDocument, First
+  test.equal First.Meta.fields.first.targetDocument, Person
+  test.equal First.Meta.fields.first.sourceCollection, Posts
+  test.equal First.Meta.fields.first.targetCollection, Persons
+  test.equal First.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal First.Meta.fields.first.targetDocument.Meta.collection, Persons
+  test.equal First.Meta.fields.first.fields, []
+
+  secondReferenceA = First
+  Document._retryDelayed()
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First]
+  test.equal Document.Meta.delayed.length, 1
+  test.equal Document.Meta.delayed[0][0], Third
+
+  test.isUndefined Document.Meta._delayed
+  test.isUndefined First.Meta._delayed
+  test.isUndefined Second.Meta._delayed
+  test.equal Third.Meta._delayed, 0
+
+  test.equal Second.Meta.collection, Posts
+  test.equal _.size(Second.Meta.fields), 2
+  test.instanceOf Second.Meta.fields.first, Second._ReferenceField
+  test.isFalse Second.Meta.fields.first.isArray
+  test.isTrue Second.Meta.fields.first.required
+  test.equal Second.Meta.fields.first.sourcePath, 'first'
+  test.equal Second.Meta.fields.first.sourceDocument, Second
+  test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Second.Meta.fields.first.sourceCollection, Posts
+  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.first.fields, []
+  test.instanceOf Second.Meta.fields.second, Second._ReferenceField
+  test.isFalse Second.Meta.fields.second.isArray
+  test.isTrue Second.Meta.fields.second.required
+  test.equal Second.Meta.fields.second.sourcePath, 'second'
+  test.equal Second.Meta.fields.second.sourceDocument, Second
+  test.equal Second.Meta.fields.second.targetDocument, Person
+  test.equal Second.Meta.fields.second.sourceCollection, Posts
+  test.equal Second.Meta.fields.second.targetCollection, Persons
+  test.equal Second.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.second.targetDocument.Meta.collection, Persons
+  test.equal Second.Meta.fields.second.fields, []
+
+  test.equal First.Meta.collection, Posts
+  test.equal _.size(First.Meta.fields), 1
+  test.instanceOf First.Meta.fields.first, First._ReferenceField
+  test.isFalse First.Meta.fields.first.isArray
+  test.isTrue First.Meta.fields.first.required
+  test.equal First.Meta.fields.first.sourcePath, 'first'
+  test.equal First.Meta.fields.first.sourceDocument, First
+  test.equal First.Meta.fields.first.targetDocument, Person
+  test.equal First.Meta.fields.first.sourceCollection, Posts
+  test.equal First.Meta.fields.first.targetCollection, Persons
+  test.equal First.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal First.Meta.fields.first.targetDocument.Meta.collection, Persons
+  test.equal First.Meta.fields.first.fields, []
+
+  secondReferenceB = Posts
+  Document._retryDelayed()
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First, Third]
+  test.equal Document.Meta.delayed.length, 0
+
+  test.isUndefined Document.Meta._delayed
+  test.isUndefined First.Meta._delayed
+  test.isUndefined Second.Meta._delayed
+  test.isUndefined Third.Meta._delayed
+
+  test.equal Second.Meta.collection, Posts
+  test.equal _.size(Second.Meta.fields), 2
+  test.instanceOf Second.Meta.fields.first, Second._ReferenceField
+  test.isFalse Second.Meta.fields.first.isArray
+  test.isTrue Second.Meta.fields.first.required
+  test.equal Second.Meta.fields.first.sourcePath, 'first'
+  test.equal Second.Meta.fields.first.sourceDocument, Second
+  test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Second.Meta.fields.first.sourceCollection, Posts
+  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.first.fields, []
+  test.instanceOf Second.Meta.fields.second, Second._ReferenceField
+  test.isFalse Second.Meta.fields.second.isArray
+  test.isTrue Second.Meta.fields.second.required
+  test.equal Second.Meta.fields.second.sourcePath, 'second'
+  test.equal Second.Meta.fields.second.sourceDocument, Second
+  test.equal Second.Meta.fields.second.targetDocument, Person
+  test.equal Second.Meta.fields.second.sourceCollection, Posts
+  test.equal Second.Meta.fields.second.targetCollection, Persons
+  test.equal Second.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.second.targetDocument.Meta.collection, Persons
+  test.equal Second.Meta.fields.second.fields, []
+
+  test.equal First.Meta.collection, Posts
+  test.equal _.size(First.Meta.fields), 1
+  test.instanceOf First.Meta.fields.first, First._ReferenceField
+  test.isFalse First.Meta.fields.first.isArray
+  test.isTrue First.Meta.fields.first.required
+  test.equal First.Meta.fields.first.sourcePath, 'first'
+  test.equal First.Meta.fields.first.sourceDocument, First
+  test.equal First.Meta.fields.first.targetDocument, Person
+  test.equal First.Meta.fields.first.sourceCollection, Posts
+  test.equal First.Meta.fields.first.targetCollection, Persons
+  test.equal First.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal First.Meta.fields.first.targetDocument.Meta.collection, Persons
+  test.equal First.Meta.fields.first.fields, []
+
+  test.equal Third.Meta.collection, Posts
+  test.equal _.size(Third.Meta.fields), 3
+  test.instanceOf Third.Meta.fields.first, Third._ReferenceField
+  test.isFalse Third.Meta.fields.first.isArray
+  test.isTrue Third.Meta.fields.first.required
+  test.equal Third.Meta.fields.first.sourcePath, 'first'
+  test.equal Third.Meta.fields.first.sourceDocument, Third
+  test.equal Third.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Third.Meta.fields.first.sourceCollection, Posts
+  # TODO: Why this gets defined here?
+  test.equal Third.Meta.fields.first.targetCollection, Posts # Now it gets defined
+  test.equal Third.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.first.fields, []
+  test.instanceOf Third.Meta.fields.second, Third._ReferenceField
+  test.isFalse Third.Meta.fields.second.isArray
+  test.isTrue Third.Meta.fields.second.required
+  test.equal Third.Meta.fields.second.sourcePath, 'second'
+  test.equal Third.Meta.fields.second.sourceDocument, Third
+  test.equal Third.Meta.fields.second.targetDocument, Post
+  test.equal Third.Meta.fields.second.sourceCollection, Posts
+  test.equal Third.Meta.fields.second.targetCollection, Posts
+  test.equal Third.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.second.targetDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.second.fields, []
+  test.instanceOf Third.Meta.fields.third, Third._ReferenceField
+  test.isFalse Third.Meta.fields.third.isArray
+  test.isTrue Third.Meta.fields.third.required
+  test.equal Third.Meta.fields.third.sourcePath, 'third'
+  test.equal Third.Meta.fields.third.sourceDocument, Third
+  test.equal Third.Meta.fields.third.targetDocument, Person
+  test.equal Third.Meta.fields.third.sourceCollection, Posts
+  test.equal Third.Meta.fields.third.targetCollection, Persons
+  test.equal Third.Meta.fields.third.sourceDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.third.targetDocument.Meta.collection, Persons
+  test.equal Third.Meta.fields.third.fields, []
+
+  Document.redefineAll()
+
+  test.equal Second.Meta.collection, Posts
+  test.equal _.size(Second.Meta.fields), 2
+  test.instanceOf Second.Meta.fields.first, Second._ReferenceField
+  test.isFalse Second.Meta.fields.first.isArray
+  test.isTrue Second.Meta.fields.first.required
+  test.equal Second.Meta.fields.first.sourcePath, 'first'
+  test.equal Second.Meta.fields.first.sourceDocument, Second
+  test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Second.Meta.fields.first.sourceCollection, Posts
+  test.equal Second.Meta.fields.first.targetCollection, Posts
+  test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.first.fields, []
+  test.instanceOf Second.Meta.fields.second, Second._ReferenceField
+  test.isFalse Second.Meta.fields.second.isArray
+  test.isTrue Second.Meta.fields.second.required
+  test.equal Second.Meta.fields.second.sourcePath, 'second'
+  test.equal Second.Meta.fields.second.sourceDocument, Second
+  test.equal Second.Meta.fields.second.targetDocument, Person
+  test.equal Second.Meta.fields.second.sourceCollection, Posts
+  test.equal Second.Meta.fields.second.targetCollection, Persons
+  test.equal Second.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Second.Meta.fields.second.targetDocument.Meta.collection, Persons
+  test.equal Second.Meta.fields.second.fields, []
+
+  test.equal First.Meta.collection, Posts
+  test.equal _.size(First.Meta.fields), 1
+  test.instanceOf First.Meta.fields.first, First._ReferenceField
+  test.isFalse First.Meta.fields.first.isArray
+  test.isTrue First.Meta.fields.first.required
+  test.equal First.Meta.fields.first.sourcePath, 'first'
+  test.equal First.Meta.fields.first.sourceDocument, First
+  test.equal First.Meta.fields.first.targetDocument, Person
+  test.equal First.Meta.fields.first.sourceCollection, Posts
+  test.equal First.Meta.fields.first.targetCollection, Persons
+  test.equal First.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal First.Meta.fields.first.targetDocument.Meta.collection, Persons
+  test.equal First.Meta.fields.first.fields, []
+
+  test.equal Third.Meta.collection, Posts
+  test.equal _.size(Third.Meta.fields), 3
+  test.instanceOf Third.Meta.fields.first, Third._ReferenceField
+  test.isFalse Third.Meta.fields.first.isArray
+  test.isTrue Third.Meta.fields.first.required
+  test.equal Third.Meta.fields.first.sourcePath, 'first'
+  test.equal Third.Meta.fields.first.sourceDocument, Third
+  test.equal Third.Meta.fields.first.targetDocument, firstReferenceA
+  test.equal Third.Meta.fields.first.sourceCollection, Posts
+  test.equal Third.Meta.fields.first.targetCollection, Posts
+  test.equal Third.Meta.fields.first.sourceDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.first.fields, []
+  test.instanceOf Third.Meta.fields.second, Third._ReferenceField
+  test.isFalse Third.Meta.fields.second.isArray
+  test.isTrue Third.Meta.fields.second.required
+  test.equal Third.Meta.fields.second.sourcePath, 'second'
+  test.equal Third.Meta.fields.second.sourceDocument, Third
+  test.equal Third.Meta.fields.second.targetDocument, Post
+  test.equal Third.Meta.fields.second.sourceCollection, Posts
+  test.equal Third.Meta.fields.second.targetCollection, Posts
+  test.equal Third.Meta.fields.second.sourceDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.second.targetDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.second.fields, []
+  test.instanceOf Third.Meta.fields.third, Third._ReferenceField
+  test.isFalse Third.Meta.fields.third.isArray
+  test.isTrue Third.Meta.fields.third.required
+  test.equal Third.Meta.fields.third.sourcePath, 'third'
+  test.equal Third.Meta.fields.third.sourceDocument, Third
+  test.equal Third.Meta.fields.third.targetDocument, Person
+  test.equal Third.Meta.fields.third.sourceCollection, Posts
+  test.equal Third.Meta.fields.third.targetCollection, Persons
+  test.equal Third.Meta.fields.third.sourceDocument.Meta.collection, Posts
+  test.equal Third.Meta.fields.third.targetDocument.Meta.collection, Persons
+  test.equal Third.Meta.fields.third.fields, []
+
+  # Restore
+  Document.Meta.list = list
+  Document.Meta.delayed = []
+  Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+
+  # Verify we are back to normal
+  testDefinition test
