@@ -51,6 +51,11 @@ class Post extends Document
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
         person: @ReferenceField Person, ['username'], false
+      nested: [
+        required: @ReferenceField Person, ['username']
+        optional: @ReferenceField Person, ['username'], false
+        many: [@ReferenceField Person, ['username']]
+      ]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
         if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
           [fields._id, undefined]
@@ -132,7 +137,7 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields, {}
 
   test.equal Post.Meta.collection, Posts
-  test.equal _.size(Post.Meta.fields), 5
+  test.equal _.size(Post.Meta.fields), 6
   test.instanceOf Post.Meta.fields.author, Person._ReferenceField
   test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
   test.isTrue Post.Meta.fields.author.required
@@ -186,6 +191,36 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
+  test.equal Post.Meta.fields.nested.required.ancestorArray, 'nested'
+  test.isTrue Post.Meta.fields.nested.required.required
+  test.equal Post.Meta.fields.nested.required.sourcePath, 'nested.required'
+  test.equal Post.Meta.fields.nested.required.sourceDocument, Post
+  test.equal Post.Meta.fields.nested.required.targetDocument, Person
+  test.equal Post.Meta.fields.nested.required.sourceCollection, Posts
+  test.equal Post.Meta.fields.nested.required.targetCollection, Persons
+  test.equal Post.Meta.fields.nested.required.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.nested.required.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.nested.required.fields, ['username']
+  test.equal Post.Meta.fields.nested.optional.ancestorArray, 'nested'
+  test.isFalse Post.Meta.fields.nested.optional.required
+  test.equal Post.Meta.fields.nested.optional.sourcePath, 'nested.optional'
+  test.equal Post.Meta.fields.nested.optional.sourceDocument, Post
+  test.equal Post.Meta.fields.nested.optional.targetDocument, Person
+  test.equal Post.Meta.fields.nested.optional.sourceCollection, Posts
+  test.equal Post.Meta.fields.nested.optional.targetCollection, Persons
+  test.equal Post.Meta.fields.nested.optional.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.nested.optional.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.nested.optional.fields, ['username']
+  test.equal Post.Meta.fields.nested.many.ancestorArray, 'nested.many'
+  test.isTrue Post.Meta.fields.nested.many.required
+  test.equal Post.Meta.fields.nested.many.sourcePath, 'nested.many'
+  test.equal Post.Meta.fields.nested.many.sourceDocument, Post
+  test.equal Post.Meta.fields.nested.many.targetDocument, Person
+  test.equal Post.Meta.fields.nested.many.sourceCollection, Posts
+  test.equal Post.Meta.fields.nested.many.targetCollection, Persons
+  test.equal Post.Meta.fields.nested.many.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.nested.many.targetDocument.Meta.collection, Persons
+  test.equal Post.Meta.fields.nested.many.fields, ['username']
   test.isNull Post.Meta.fields.slug.ancestorArray, Post.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.slug.generator
   test.equal Post.Meta.fields.slug.sourcePath, 'slug'

@@ -184,17 +184,20 @@ class Document
 
       path = if parent then "#{ parent }.#{ name }" else name
       array = ancestorArray
-      isArray = _.isArray field
-      if not isArray and _.isObject(field) and not (field instanceof @_Field)
-        res[name] = @_processFields field, path, array
-      else
-        if isArray
-          throw new Error "Array field has to contain exactly one element, not #{ field.length }" if field.length isnt 1
-          field = field[0]
-          array = path
 
+      if _.isArray field
+        throw new Error "Array field has to contain exactly one element, not #{ field.length }" if field.length isnt 1
+        field = field[0]
+        array = path
+
+      if field instanceof @_Field
         field.contributeToClass @, path, array
         res[name] = field
+      else if _.isObject field
+        res[name] = @_processFields field, path, array
+      else
+        throw new Error "Invalid value for field '#{ path }': #{ field }"
+
     res
 
   @_initialize: ->
