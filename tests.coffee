@@ -1874,8 +1874,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.sourceCollection, Posts
   test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
-  # TODO: Why this gets defined here?
-  test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts # Now it gets defined
+  test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts # Now it gets defined because First gets defined
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
   test.isFalse Second.Meta.fields.second.isArray
@@ -2013,8 +2012,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.sourceDocument, Third
   test.equal Third.Meta.fields.first.targetDocument, firstReferenceA
   test.equal Third.Meta.fields.first.sourceCollection, Posts
-  # TODO: Why this gets defined here?
-  test.equal Third.Meta.fields.first.targetCollection, Posts # Now it gets defined
+  test.equal Third.Meta.fields.first.targetCollection, Posts # Here it is already defined because First was defined at the time when Third got defined (after a delay)
   test.equal Third.Meta.fields.first.sourceDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.first.fields, []
