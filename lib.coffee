@@ -239,6 +239,10 @@ class Document
       else
         @_validateFields field
 
+  @validateAll: ->
+    for document in Document.Meta.list
+      @_validateFields document.Meta.fields
+
   @redefineAll: (throwErrors) ->
     Document._retryDelayed throwErrors
 
@@ -248,6 +252,6 @@ class Document
       document.Meta metadata, true
       document.Meta._initialized = i
 
-      @_validateFields document.Meta.fields
+    Document.validateAll()
 
 @Document = Document
