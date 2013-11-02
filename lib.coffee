@@ -23,7 +23,7 @@ class Document
     _.extend @, doc
 
   @_Field: class
-    contributeToClass: (@sourceDocument, @sourcePath, @isArray) =>
+    contributeToClass: (@sourceDocument, @sourcePath, @ancestorArray) =>
       @sourceCollection = @sourceDocument.Meta.collection
 
     validate: =>
@@ -50,8 +50,8 @@ class Document
       else
         throw new Error INVALID_TARGET
 
-    contributeToClass: (sourceDocument, sourcePath, isArray) =>
-      super sourceDocument, sourcePath, isArray
+    contributeToClass: (sourceDocument, sourcePath, ancestorArray) =>
+      super sourceDocument, sourcePath, ancestorArray
 
       if @targetDocument is 'self'
         @targetDocument = @sourceDocument
@@ -69,10 +69,10 @@ class Document
 
       @required ?= true
 
-    contributeToClass: (sourceDocument, sourcePath, isArray) =>
-      super sourceDocument, sourcePath, isArray
+    contributeToClass: (sourceDocument, sourcePath, ancestorArray) =>
+      super sourceDocument, sourcePath, ancestorArray
 
-      throw new Error "Only non-array fields can be optional" if @isArray and not @required
+      throw new Error "Reference field directly in an array cannot be optional" if @ancestorArray and @sourcePath is @ancestorArray and not @required
 
   @ReferenceField: (args...) ->
     new @_ReferenceField args...
@@ -80,11 +80,6 @@ class Document
   @_GeneratedField: class extends @_TargetedFieldsObservingField
     constructor: (targetDocumentOrCollection, fields, @generator) ->
       super targetDocumentOrCollection, fields
-
-    contributeToClass: (sourceDocument, sourcePath, isArray) =>
-      super sourceDocument, sourcePath, isArray
-
-      throw new Error "Generated fields cannot be array fields" if @isArray
 
   @GeneratedField: (args...) ->
     new @_GeneratedField args...
@@ -180,21 +175,25 @@ class Document
   @MixinMeta: (additionalMeta) ->
     @_ExtendMeta true, additionalMeta
 
-  @_processFields: (fields, parent) ->
+  @_processFields: (fields, parent, ancestorArray) ->
+    ancestorArray = ancestorArray or null
+
     res = {}
     for name, field of fields or {}
       throw new Error "Field names cannot contain '.': #{ name }" if name.indexOf('.') isnt -1
 
       path = if parent then "#{ parent }.#{ name }" else name
+      array = ancestorArray
       isArray = _.isArray field
       if not isArray and _.isObject(field) and not (field instanceof @_Field)
-        res[name] = @_processFields field, path
+        res[name] = @_processFields field, path, array
       else
         if isArray
           throw new Error "Array field has to contain exactly one element, not #{ field.length }" if field.length isnt 1
           field = field[0]
+          array = path
 
-        field.contributeToClass @, path, isArray
+        field.contributeToClass @, path, array
         res[name] = field
     res
 

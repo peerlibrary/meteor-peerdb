@@ -134,7 +134,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.collection, Posts
   test.equal _.size(Post.Meta.fields), 5
   test.instanceOf Post.Meta.fields.author, Person._ReferenceField
-  test.isFalse Post.Meta.fields.author.isArray
+  test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
   test.isTrue Post.Meta.fields.author.required
   test.equal Post.Meta.fields.author.sourcePath, 'author'
   test.equal Post.Meta.fields.author.sourceDocument, Post
@@ -145,7 +145,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.author.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.author.fields, ['username']
   test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
-  test.isTrue Post.Meta.fields.subscribers.isArray
+  test.equal Post.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue Post.Meta.fields.subscribers.required
   test.equal Post.Meta.fields.subscribers.sourcePath, 'subscribers'
   test.equal Post.Meta.fields.subscribers.sourceDocument, Post
@@ -155,7 +155,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subscribers.fields, []
-  test.isTrue Post.Meta.fields.reviewers.isArray
+  test.equal Post.Meta.fields.reviewers.ancestorArray, 'reviewers'
   test.isTrue Post.Meta.fields.reviewers.required
   test.equal Post.Meta.fields.reviewers.sourcePath, 'reviewers'
   test.equal Post.Meta.fields.reviewers.sourceDocument, Post
@@ -166,7 +166,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.reviewers.fields, [username: 1]
   test.equal _.size(Post.Meta.fields.subdocument), 2
-  test.isFalse Post.Meta.fields.subdocument.person.isArray
+  test.isNull Post.Meta.fields.subdocument.person.ancestorArray, Post.Meta.fields.subdocument.person.ancestorArray
   test.isFalse Post.Meta.fields.subdocument.person.required
   test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
   test.equal Post.Meta.fields.subdocument.person.sourceDocument, Post
@@ -176,7 +176,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subdocument.person.fields, ['username']
-  test.isTrue Post.Meta.fields.subdocument.persons.isArray
+  test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue Post.Meta.fields.subdocument.persons.required
   test.equal Post.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument, Post
@@ -186,7 +186,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
-  test.isFalse Post.Meta.fields.slug.isArray
+  test.isNull Post.Meta.fields.slug.ancestorArray, Post.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.slug.generator
   test.equal Post.Meta.fields.slug.sourcePath, 'slug'
   test.equal Post.Meta.fields.slug.sourceDocument, Post
@@ -200,7 +200,7 @@ testDefinition = (test) ->
   test.equal UserLink.Meta.collection, UserLinks
   test.equal _.size(UserLink.Meta.fields), 1
   test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
-  test.isFalse UserLink.Meta.fields.user.isArray
+  test.isNull UserLink.Meta.fields.user.ancestorArray, UserLink.Meta.fields.user.ancestorArray
   test.isFalse UserLink.Meta.fields.user.required
   test.equal UserLink.Meta.fields.user.sourcePath, 'user'
   test.equal UserLink.Meta.fields.user.sourceDocument, UserLink
@@ -213,7 +213,7 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.collection, PostLinks
   test.equal _.size(PostLink.Meta.fields), 1
   test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
-  test.isFalse PostLink.Meta.fields.post.isArray
+  test.isNull PostLink.Meta.fields.post.ancestorArray, PostLink.Meta.fields.post.ancestorArray
   test.isTrue PostLink.Meta.fields.post.required
   test.equal PostLink.Meta.fields.post.sourcePath, 'post'
   test.equal PostLink.Meta.fields.post.sourceDocument, PostLink
@@ -226,7 +226,7 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.collection, CircularFirsts
   test.equal _.size(CircularFirst.Meta.fields), 1
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
-  test.isFalse CircularFirst.Meta.fields.second.isArray
+  test.isNull CircularFirst.Meta.fields.second.ancestorArray, CircularFirst.Meta.fields.second.ancestorArray
   test.isTrue CircularFirst.Meta.fields.second.required
   test.equal CircularFirst.Meta.fields.second.sourcePath, 'second'
   test.equal CircularFirst.Meta.fields.second.sourceDocument, CircularFirst
@@ -240,7 +240,7 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.collection, CircularSeconds
   test.equal _.size(CircularSecond.Meta.fields), 1
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
-  test.isFalse CircularSecond.Meta.fields.first.isArray
+  test.isNull CircularSecond.Meta.fields.first.ancestorArray, CircularSecond.Meta.fields.first.ancestorArray
   test.isFalse CircularSecond.Meta.fields.first.required
   test.equal CircularSecond.Meta.fields.first.sourcePath, 'first'
   test.equal CircularSecond.Meta.fields.first.sourceDocument, CircularSecond
@@ -254,7 +254,7 @@ testDefinition = (test) ->
   test.equal Recursive.Meta.collection, Recursives
   test.equal _.size(Recursive.Meta.fields), 1
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
-  test.isFalse Recursive.Meta.fields.other.isArray
+  test.isNull Recursive.Meta.fields.other.ancestorArray, Recursive.Meta.fields.other.ancestorArray
   test.isFalse Recursive.Meta.fields.other.required
   test.equal Recursive.Meta.fields.other.sourcePath, 'other'
   test.equal Recursive.Meta.fields.other.sourceDocument, Recursive
@@ -593,7 +593,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
         collection: Posts
         fields:
           reviewers: [@ReferenceField Person, ['username'], false]
-  , /Only non-array fields can be optional/
+  , /Reference field directly in an array cannot be optional/
 
   # Invalid document should not be added to the list
   test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
@@ -1829,7 +1829,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.isArray
+  test.isFalse Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
@@ -1840,7 +1840,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.isUndefined Second.Meta.fields.first.targetDocument.Meta.collection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.isArray
+  test.isFalse Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -1866,7 +1866,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.isArray
+  test.isFalse Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
@@ -1877,7 +1877,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts # Now it gets defined because First gets defined
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.isArray
+  test.isFalse Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -1891,7 +1891,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.isArray
+  test.isFalse First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -1917,7 +1917,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.isArray
+  test.isFalse Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
@@ -1928,7 +1928,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.isArray
+  test.isFalse Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -1942,7 +1942,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.isArray
+  test.isFalse First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -1967,7 +1967,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.isArray
+  test.isFalse Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
@@ -1978,7 +1978,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.isArray
+  test.isFalse Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -1992,7 +1992,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.isArray
+  test.isFalse First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -2006,7 +2006,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.collection, Posts
   test.equal _.size(Third.Meta.fields), 3
   test.instanceOf Third.Meta.fields.first, Third._ReferenceField
-  test.isFalse Third.Meta.fields.first.isArray
+  test.isFalse Third.Meta.fields.first.ancestorArray
   test.isTrue Third.Meta.fields.first.required
   test.equal Third.Meta.fields.first.sourcePath, 'first'
   test.equal Third.Meta.fields.first.sourceDocument, Third
@@ -2017,7 +2017,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.first.fields, []
   test.instanceOf Third.Meta.fields.second, Third._ReferenceField
-  test.isFalse Third.Meta.fields.second.isArray
+  test.isFalse Third.Meta.fields.second.ancestorArray
   test.isTrue Third.Meta.fields.second.required
   test.equal Third.Meta.fields.second.sourcePath, 'second'
   test.equal Third.Meta.fields.second.sourceDocument, Third
@@ -2028,7 +2028,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.second.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.second.fields, []
   test.instanceOf Third.Meta.fields.third, Third._ReferenceField
-  test.isFalse Third.Meta.fields.third.isArray
+  test.isFalse Third.Meta.fields.third.ancestorArray
   test.isTrue Third.Meta.fields.third.required
   test.equal Third.Meta.fields.third.sourcePath, 'third'
   test.equal Third.Meta.fields.third.sourceDocument, Third
@@ -2044,7 +2044,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.isArray
+  test.isFalse Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
@@ -2055,7 +2055,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.isArray
+  test.isFalse Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -2069,7 +2069,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.isArray
+  test.isFalse First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -2083,7 +2083,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.collection, Posts
   test.equal _.size(Third.Meta.fields), 3
   test.instanceOf Third.Meta.fields.first, Third._ReferenceField
-  test.isFalse Third.Meta.fields.first.isArray
+  test.isFalse Third.Meta.fields.first.ancestorArray
   test.isTrue Third.Meta.fields.first.required
   test.equal Third.Meta.fields.first.sourcePath, 'first'
   test.equal Third.Meta.fields.first.sourceDocument, Third
@@ -2094,7 +2094,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.first.fields, []
   test.instanceOf Third.Meta.fields.second, Third._ReferenceField
-  test.isFalse Third.Meta.fields.second.isArray
+  test.isFalse Third.Meta.fields.second.ancestorArray
   test.isTrue Third.Meta.fields.second.required
   test.equal Third.Meta.fields.second.sourcePath, 'second'
   test.equal Third.Meta.fields.second.sourceDocument, Third
@@ -2105,7 +2105,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.second.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.second.fields, []
   test.instanceOf Third.Meta.fields.third, Third._ReferenceField
-  test.isFalse Third.Meta.fields.third.isArray
+  test.isFalse Third.Meta.fields.third.ancestorArray
   test.isTrue Third.Meta.fields.third.required
   test.equal Third.Meta.fields.third.sourcePath, 'third'
   test.equal Third.Meta.fields.third.sourceDocument, Third

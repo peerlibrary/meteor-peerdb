@@ -39,7 +39,7 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     update = {}
     for field, value of fields
-      if @isArray
+      if @ancestorArray and @sourcePath is @ancestorArray
         path = "#{ @sourcePath }.$.#{ field }"
       else
         path = "#{ @sourcePath }.#{ field }"
@@ -57,7 +57,7 @@ Document._ReferenceField = class extends Document._ReferenceField
     selector["#{ @sourcePath }._id"] = id
 
     # If it is an array, we remove references
-    if @isArray
+    if @ancestorArray and @sourcePath is @ancestorArray
       path = "#{ @sourcePath }.$"
       update =
         $unset: {}
@@ -91,7 +91,7 @@ Document._ReferenceField = class extends Document._ReferenceField
   updatedWithValue: (id, value) =>
     unless _.isObject(value) and _.isString(value._id)
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
-      return if _.isNull(value) and @isArray
+      return if _.isNull(value) and @ancestorArray and @sourcePath is @ancestorArray
 
       # Optional field
       return if _.isNull(value) and not @required
@@ -165,7 +165,7 @@ Document = class extends Document
     assert field
 
     if field instanceof Document._ObservingField
-      if field.isArray
+      if field.ancestorArray and name is field.ancestorArray
         unless _.isArray value
           Log.warn "Document's '#{ id }' field '#{ name }' was updated with non-array value: #{ util.inspect value }"
           return
