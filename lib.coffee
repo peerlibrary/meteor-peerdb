@@ -1,4 +1,8 @@
 INVALID_TARGET = "Invalid target document or collection"
+UNDEFINED_SOURCE_DOCUMENT = "Undefined source document"
+UNDEFINED_SOURCE_PATH = "Undefined source path"
+UNDEFINED_TARGET_COLLECTION = "Undefined target collection"
+UNDEFINED_TARGET_DOCUMENT = "Undefined target document"
 
 isPlainObject = (obj) ->
   if not _.isObject(obj) or _.isArray(obj) or _.isFunction(obj)
@@ -26,6 +30,10 @@ class Document
     contributeToClass: (@sourceDocument, @sourcePath, @isArray) =>
       @sourceCollection = @sourceDocument.Meta.collection
 
+    validate: =>
+      throw new Error UNDEFINED_SOURCE_DOCUMENT unless @sourceDocument
+      throw new Error UNDEFINED_SOURCE_PATH unless @sourcePath
+
   @_ObservingField: class extends @_Field
 
   @_TargetedFieldsObservingField: class extends @_ObservingField
@@ -52,6 +60,12 @@ class Document
       if @targetDocument is 'self'
         @targetDocument = @sourceDocument
         @targetCollection = @sourceCollection
+
+    validate: =>
+      super()
+
+      throw new Error UNDEFINED_TARGET_COLLECTION unless @targetCollection
+      throw new Error UNDEFINED_TARGET_DOCUMENT if _.isUndefined @targetDocument
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
     constructor: (targetDocumentOrCollection, fields, @required) ->
@@ -218,6 +232,13 @@ class Document
       delete document.Meta._delayed if _.has document.Meta, '_delayed'
       document.Meta meta, false, throwErrors
 
+  @_validateFields: (obj) ->
+    for name, field of obj
+      if field instanceof Document._Field
+        field.validate()
+      else
+        @_validateFields field
+
   @redefineAll: (throwErrors) ->
     Document._retryDelayed throwErrors
 
@@ -226,5 +247,7 @@ class Document
       document.Meta = document.Meta._meta
       document.Meta metadata, true
       document.Meta._initialized = i
+
+      @_validateFields document.Meta.fields
 
 @Document = Document

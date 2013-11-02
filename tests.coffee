@@ -2125,3 +2125,44 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   # Verify we are back to normal
   testDefinition test
+
+Tinytest.add 'meteor-peerdb - invalid documents', (test) ->
+  list = _.clone Document.Meta.list
+
+  class First extends Document
+    @Meta =>
+      fields:
+        first: @ReferenceField First
+
+  test.throws ->
+    Document.redefineAll()
+  , /Undefined target collection/
+
+  # Restore
+  Document.Meta.list = _.clone list
+  Document.Meta.delayed = []
+  Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+
+  class First extends Document
+    @Meta =>
+      collection: Posts
+      fields:
+        first: @ReferenceField undefined # To force delayed
+
+  class Second extends Document
+    @Meta =>
+      collection: Posts
+      fields:
+        first: @ReferenceField First
+
+  test.throws ->
+    Document.redefineAll()
+  , /Undefined target collection/
+
+  # Restore
+  Document.Meta.list = _.clone list
+  Document.Meta.delayed = []
+  Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+
+  # Verify we are back to normal
+  testDefinition test
