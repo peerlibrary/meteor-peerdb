@@ -1,8 +1,4 @@
 INVALID_TARGET = "Invalid target document or collection"
-UNDEFINED_SOURCE_DOCUMENT = "Undefined source document"
-UNDEFINED_SOURCE_PATH = "Undefined source path"
-UNDEFINED_TARGET_COLLECTION = "Undefined target collection"
-UNDEFINED_TARGET_DOCUMENT = "Undefined target document"
 
 isPlainObject = (obj) ->
   if not _.isObject(obj) or _.isArray(obj) or _.isFunction(obj)
@@ -31,8 +27,8 @@ class Document
       @sourceCollection = @sourceDocument.Meta.collection
 
     validate: =>
-      throw new Error UNDEFINED_SOURCE_DOCUMENT unless @sourceDocument
-      throw new Error UNDEFINED_SOURCE_PATH unless @sourcePath
+      throw new Error "Undefined source document" unless @sourceDocument
+      throw new Error "Undefined source path" unless @sourcePath
 
   @_ObservingField: class extends @_Field
 
@@ -64,8 +60,8 @@ class Document
     validate: =>
       super()
 
-      throw new Error UNDEFINED_TARGET_COLLECTION unless @targetCollection
-      throw new Error UNDEFINED_TARGET_DOCUMENT if _.isUndefined @targetDocument
+      throw new Error "Undefined target collection" unless @targetCollection
+      throw new Error "Undefined target document" if _.isUndefined @targetDocument
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
     constructor: (targetDocumentOrCollection, fields, @required) ->
