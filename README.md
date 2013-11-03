@@ -1,9 +1,11 @@
 PeerDB
 ======
 
-Meteor smart package which provides database support for collaborative documents. Planned features are:
+Meteor smart package which provides database support for collaborative documents. Implemented features are:
  * references between documents
  * auto-generated fields from other fields
+ 
+Planned features are:
  * versioning of all changes to documents
  * schema migrations
  * integration with [full-text search](http://www.elasticsearch.org/)
