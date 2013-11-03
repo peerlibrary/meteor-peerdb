@@ -53,9 +53,23 @@ class Post extends Document
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
         person: @ReferenceField Person, ['username'], false
+        slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
+          if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
+            [fields._id, undefined]
+          else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+            [fields._id, null]
+          else
+            [fields._id, "subdocument-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
       nested: [
         required: @ReferenceField Person, ['username']
         optional: @ReferenceField Person, ['username'], false
+        slug: @GeneratedField 'self', ['body', 'nested.body'], (fields) ->
+          if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
+            [fields._id, undefined]
+          else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+            [fields._id, null]
+          else
+            [fields._id, "nested-prefix-#{ fields.body.toLowerCase() }-#{ fields.nested.body.toLowerCase() }-suffix"]
       ]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
         if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
@@ -64,6 +78,14 @@ class Post extends Document
           [fields._id, null]
         else
           [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
+      tags: @GeneratedField 'self', ['body', 'subdocument.body', 'nested.body'], (fields) ->
+        tags = []
+        if fields.body and fields.subdocument?.body
+          tags.push "tag-#{ tags.length }-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"
+        if fields.body and fields.nested and _.isArray fields.nested
+          for nested in fields.nested
+            tags.push "tag-#{ tags.length }-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
+        [fields._id, tags]
 
 # To test MixinMeta when initial Meta is delayed
 class Post extends Post
@@ -138,7 +160,7 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields, {}
 
   test.equal Post.Meta.collection, Posts
-  test.equal _.size(Post.Meta.fields), 6
+  test.equal _.size(Post.Meta.fields), 7
   test.instanceOf Post.Meta.fields.author, Person._ReferenceField
   test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
   test.isTrue Post.Meta.fields.author.required
@@ -171,7 +193,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.reviewers.fields, [username: 1]
-  test.equal _.size(Post.Meta.fields.subdocument), 2
+  test.equal _.size(Post.Meta.fields.subdocument), 3
   test.isNull Post.Meta.fields.subdocument.person.ancestorArray, Post.Meta.fields.subdocument.person.ancestorArray
   test.isFalse Post.Meta.fields.subdocument.person.required
   test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
@@ -192,6 +214,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
+  test.equal _.size(Post.Meta.fields.nested), 3
   test.equal Post.Meta.fields.nested.required.ancestorArray, 'nested'
   test.isTrue Post.Meta.fields.nested.required.required
   test.equal Post.Meta.fields.nested.required.sourcePath, 'nested.required'
@@ -451,6 +474,7 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person3._id
           username: @person3.username
         ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
@@ -459,10 +483,15 @@ testAsyncMulti 'meteor-peerdb - references', [
         optional:
           _id: @person3._id
           username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
         body: 'NestedFooBar'
       ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
 
     Persons.update @person1Id,
       $set:
@@ -546,6 +575,7 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person3._id
           username: @person3.username
         ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
@@ -554,10 +584,15 @@ testAsyncMulti 'meteor-peerdb - references', [
         optional:
           _id: @person3._id
           username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
         body: 'NestedFooBar'
       ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
 
     Persons.remove @person3Id,
       expect (error) =>
@@ -591,16 +626,22 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
         ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
           _id: @person2._id
           username: @person2.username
         optional: null
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
         body: 'NestedFooBar'
       ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
 
     Persons.remove @person2Id,
       expect (error) =>
@@ -625,10 +666,14 @@ testAsyncMulti 'meteor-peerdb - references', [
       subdocument:
         person: null
         persons: []
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: []
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+      ]
 
     Persons.remove @person1Id,
       expect (error) =>
