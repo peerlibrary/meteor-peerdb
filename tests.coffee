@@ -64,12 +64,12 @@ class Post extends Document
         required: @ReferenceField Person, ['username']
         optional: @ReferenceField Person, ['username'], false
         slug: @GeneratedField 'self', ['body', 'nested.body'], (fields) ->
-          if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
+          if _.isUndefined(fields.body) or _.isUndefined(fields.nested?[0]?.body)
             [fields._id, undefined]
-          else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+          else if _.isNull(fields.body) or _.isNull(fields.nested?[0]?.body)
             [fields._id, null]
           else
-            [fields._id, "nested-prefix-#{ fields.body.toLowerCase() }-#{ fields.nested.body.toLowerCase() }-suffix"]
+            [fields._id, "nested-prefix-#{ fields.body.toLowerCase() }-#{ fields.nested?[0]?.body.toLowerCase() }-suffix"]
       ]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
         if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
@@ -81,10 +81,10 @@ class Post extends Document
       tags: @GeneratedField 'self', ['body', 'subdocument.body', 'nested.body'], (fields) ->
         tags = []
         if fields.body and fields.subdocument?.body
-          tags.push "tag-#{ tags.length }-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"
+          tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"
         if fields.body and fields.nested and _.isArray fields.nested
           for nested in fields.nested
-            tags.push "tag-#{ tags.length }-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
+            tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
         [fields._id, tags]
 
 # To test MixinMeta when initial Meta is delayed
@@ -1521,6 +1521,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           _id: @person3._id
           username: @person3.username
         ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
