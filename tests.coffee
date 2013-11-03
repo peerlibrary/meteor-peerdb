@@ -183,6 +183,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subscribers.fields, []
+  test.instanceOf Post.Meta.fields.reviewers, Person._ReferenceField
   test.equal Post.Meta.fields.reviewers.ancestorArray, 'reviewers'
   test.isTrue Post.Meta.fields.reviewers.required
   test.equal Post.Meta.fields.reviewers.sourcePath, 'reviewers'
@@ -194,6 +195,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.reviewers.fields, [username: 1]
   test.equal _.size(Post.Meta.fields.subdocument), 3
+  test.instanceOf Post.Meta.fields.subdocument.person, Person._ReferenceField
   test.isNull Post.Meta.fields.subdocument.person.ancestorArray, Post.Meta.fields.subdocument.person.ancestorArray
   test.isFalse Post.Meta.fields.subdocument.person.required
   test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
@@ -204,6 +206,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subdocument.person.fields, ['username']
+  test.instanceOf Post.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue Post.Meta.fields.subdocument.persons.required
   test.equal Post.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
@@ -214,7 +217,19 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
+  test.instanceOf Post.Meta.fields.subdocument.slug, Person._GeneratedField
+  test.isNull Post.Meta.fields.subdocument.slug.ancestorArray, Post.Meta.fields.subdocument.slug.ancestorArray
+  test.isTrue _.isFunction Post.Meta.fields.subdocument.slug.generator
+  test.equal Post.Meta.fields.subdocument.slug.sourcePath, 'subdocument.slug'
+  test.equal Post.Meta.fields.subdocument.slug.sourceDocument, Post
+  test.equal Post.Meta.fields.subdocument.slug.targetDocument, Post
+  test.equal Post.Meta.fields.subdocument.slug.sourceCollection, Posts
+  test.equal Post.Meta.fields.subdocument.slug.targetCollection, Posts
+  test.equal Post.Meta.fields.subdocument.slug.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.subdocument.slug.targetDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.subdocument.slug.fields, ['body', 'subdocument.body']
   test.equal _.size(Post.Meta.fields.nested), 3
+  test.instanceOf Post.Meta.fields.nested.required, Person._ReferenceField
   test.equal Post.Meta.fields.nested.required.ancestorArray, 'nested'
   test.isTrue Post.Meta.fields.nested.required.required
   test.equal Post.Meta.fields.nested.required.sourcePath, 'nested.required'
@@ -225,6 +240,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.required.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.nested.required.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.nested.required.fields, ['username']
+  test.instanceOf Post.Meta.fields.nested.optional, Person._ReferenceField
   test.equal Post.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse Post.Meta.fields.nested.optional.required
   test.equal Post.Meta.fields.nested.optional.sourcePath, 'nested.optional'
@@ -235,6 +251,18 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.optional.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.nested.optional.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.nested.optional.fields, ['username']
+  test.instanceOf Post.Meta.fields.nested.slug, Person._GeneratedField
+  test.equal Post.Meta.fields.nested.slug.ancestorArray, 'nested'
+  test.isTrue _.isFunction Post.Meta.fields.nested.slug.generator
+  test.equal Post.Meta.fields.nested.slug.sourcePath, 'nested.slug'
+  test.equal Post.Meta.fields.nested.slug.sourceDocument, Post
+  test.equal Post.Meta.fields.nested.slug.targetDocument, Post
+  test.equal Post.Meta.fields.nested.slug.sourceCollection, Posts
+  test.equal Post.Meta.fields.nested.slug.targetCollection, Posts
+  test.equal Post.Meta.fields.nested.slug.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.nested.slug.targetDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.nested.slug.fields, ['body', 'nested.body']
+  test.instanceOf Post.Meta.fields.slug, Person._GeneratedField
   test.isNull Post.Meta.fields.slug.ancestorArray, Post.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.slug.generator
   test.equal Post.Meta.fields.slug.sourcePath, 'slug'
@@ -245,6 +273,17 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.slug.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.slug.targetDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
+  test.instanceOf Post.Meta.fields.tags, Person._GeneratedField
+  test.isNull Post.Meta.fields.tags.ancestorArray, Post.Meta.fields.tags.ancestorArray
+  test.isTrue _.isFunction Post.Meta.fields.tags.generator
+  test.equal Post.Meta.fields.tags.sourcePath, 'tags'
+  test.equal Post.Meta.fields.tags.sourceDocument, Post
+  test.equal Post.Meta.fields.tags.targetDocument, Post
+  test.equal Post.Meta.fields.tags.sourceCollection, Posts
+  test.equal Post.Meta.fields.tags.targetCollection, Posts
+  test.equal Post.Meta.fields.tags.sourceDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.tags.targetDocument.Meta.collection, Posts
+  test.equal Post.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
 
   test.equal UserLink.Meta.collection, UserLinks
   test.equal _.size(UserLink.Meta.fields), 1
