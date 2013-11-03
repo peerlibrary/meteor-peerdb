@@ -93,9 +93,6 @@ Document._ReferenceField = class extends Document._ReferenceField
 
   updatedWithValue: (id, value) =>
     unless _.isObject(value) and _.isString(value._id)
-      # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
-      return if _.isNull(value) and @isArray
-
       # Optional field
       return if _.isNull(value) and not @required
 
