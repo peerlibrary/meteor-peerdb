@@ -51,20 +51,27 @@ Document._ReferenceField = class extends Document._ReferenceField
 
         s = {}
         if @inArray
-          s[@ancestorArray] =
-            $elemMatch: {}
+          # We have cannot use top-level $or with $elemMatch
+          # See: https://jira.mongodb.org/browse/SERVER-11537
+
+          selector[@ancestorArray] ?= {}
+          selector[@ancestorArray].$elemMatch ?=
+            $or: []
+
           # We have to repeat id selector here as well
           # See: https://jira.mongodb.org/browse/SERVER-11536
-          s[@ancestorArray].$elemMatch["#{ @arraySuffix }._id".substring(1)] = id
+          s["#{ @arraySuffix }._id".substring(1)] = id
           # Remove initial dot with substring(1)
-          s[@ancestorArray].$elemMatch["#{ @arraySuffix }.#{ field }".substring(1)] =
+          s["#{ @arraySuffix }.#{ field }".substring(1)] =
             $exists: true
+
+          selector[@ancestorArray].$elemMatch.$or.push s
         else
           s[selectorPath] =
             $exists: true
 
-        selector.$or ?= []
-        selector.$or.push s
+          selector.$or ?= []
+          selector.$or.push s
       else
         update.$set ?= {}
         update.$set[path] = value
