@@ -39,20 +39,59 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     update = {}
     for field, value of fields
+      selectorPath = "#{ @sourcePath }.#{ field }"
       if @inArray
-        # TODO: This updates only the first matching element in the array
-        # See: https://jira.mongodb.org/browse/SERVER-1243
         path = "#{ @ancestorArray }.$#{ @arraySuffix }.#{ field }"
       else
-        path = "#{ @sourcePath }.#{ field }"
-      if _.isUndefined value
-        update['$unset'] ?= {}
-        update['$unset'][path] = ''
-      else
-        update['$set'] ?= {}
-        update['$set'][path] = value
+        path = selectorPath
 
-    @sourceCollection.update selector, update, multi: true
+      if _.isUndefined value
+        update.$unset ?= {}
+        update.$unset[path] = ''
+
+        s = {}
+        if @inArray
+          s[@ancestorArray] =
+            $elemMatch: {}
+          # We have to repeat id selector here as well
+          # See: https://jira.mongodb.org/browse/SERVER-11536
+          s[@ancestorArray].$elemMatch["#{ @arraySuffix }._id".substring(1)] = id
+          # Remove initial dot with substring(1)
+          s[@ancestorArray].$elemMatch["#{ @arraySuffix }.#{ field }".substring(1)] =
+            $exists: true
+        else
+          s[selectorPath] =
+            $exists: true
+
+        selector.$or ?= []
+        selector.$or.push s
+      else
+        update.$set ?= {}
+        update.$set[path] = value
+
+        s = {}
+        if @inArray
+          s[@ancestorArray] =
+            $elemMatch: {}
+          # We have to repeat id selector here as well
+          # See: https://jira.mongodb.org/browse/SERVER-11536
+          s[@ancestorArray].$elemMatch["#{ @arraySuffix }._id".substring(1)] = id
+          # Remove initial dot with substring(1)
+          s[@ancestorArray].$elemMatch["#{ @arraySuffix }.#{ field }".substring(1)] =
+            $ne: value
+        else
+          s[selectorPath] =
+            $ne: value
+
+        selector.$and ?= []
+        selector.$and.push s
+
+    # $ operator updates only the first matching element in the array.
+    # So if we are in the array, we have to loop until nothing changes.
+    # See: https://jira.mongodb.org/browse/SERVER-1243
+    loop
+      break unless @sourceCollection.update selector, update, multi: true
+      break unless @inArray
 
   removeSource: (id) =>
     selector = {}
@@ -62,28 +101,30 @@ Document._ReferenceField = class extends Document._ReferenceField
     if @isArray or (@required and @inArray)
       update =
         $pull: {}
-      update['$pull'][@ancestorArray] = {}
+      update.$pull[@ancestorArray] = {}
       # @arraySuffix starts with a dot, so with .substring(1) we always remove a dot
-      update['$pull'][@ancestorArray]["#{ @arraySuffix or '' }._id".substring(1)] = id
+      update.$pull[@ancestorArray]["#{ @arraySuffix or '' }._id".substring(1)] = id
 
       @sourceCollection.update selector, update, multi: true
 
     # If it is an optional field of a subdocument in an array, we set it to null
     else if not @required and @inArray
-      # TODO: This updates only the first matching element in the array
-      # See: https://jira.mongodb.org/browse/SERVER-1243
       path = "#{ @ancestorArray }.$#{ @arraySuffix }"
       update =
         $set: {}
-      update['$set'][path] = null
+      update.$set[path] = null
 
-      @sourceCollection.update selector, update, multi: true
+      # $ operator updates only the first matching element in the array.
+      # So we have to loop until nothing changes.
+      # See: https://jira.mongodb.org/browse/SERVER-1243
+      loop
+        break unless @sourceCollection.update selector, update, multi: true
 
     # If it is an optional reference, we set it to null
     else if not @required
       update =
         $set: {}
-      update['$set'][@sourcePath] = null
+      update.$set[@sourcePath] = null
 
       @sourceCollection.update selector, update, multi: true
 
@@ -127,7 +168,8 @@ Document._GeneratedField = class extends Document._GeneratedField
         fields: targetFields
         transform: null
 
-      # There is a slight race condition here, document could be deleted in meantime
+      # There is a slight race condition here, document could be deleted in meantime.
+      # In such case we set fields as they are when document is deleted.
       unless fields
         fields =
           _id: id
@@ -138,15 +180,54 @@ Document._GeneratedField = class extends Document._GeneratedField
 
     return unless selector
 
+    if _.isString selector
+      selector =
+        _id: selector
+
+    # Only if we are updating value nested in a subdocument of an array we operate on the array.
+    # Otherwise we simply set whole array to the value returned.
+    # TODO: We could raise some warning or error if sourceValue is not an array but @isArray is set
+    if @inArray and not @isArray
+      assert @arraySuffix # Should be non-null
+      path = "#{ @ancestorArray }.$#{ @arraySuffix }"
+    else
+      path = @sourcePath
+
     update = {}
     if _.isUndefined sourceValue
-      update['$unset'] = {}
-      update['$unset'][@sourcePath] = ''
-    else
-      update['$set'] = {}
-      update['$set'][@sourcePath] = sourceValue
+      update.$unset = {}
+      update.$unset[path] = ''
 
-    @sourceCollection.update selector, update, multi: true
+      if @inArray and not @isArray
+        selector[@ancestorArray] =
+          $elemMatch: {}
+        # Remove initial dot with substring(1)
+        selector[@ancestorArray].$elemMatch[@arraySuffix.substring(1)] =
+          $exists: true
+      else
+        selector[@sourcePath] =
+          $exists: true
+
+    else
+      update.$set = {}
+      update.$set[path] = sourceValue
+
+      if @inArray and not @isArray
+        selector[@ancestorArray] =
+          $elemMatch: {}
+        # Remove initial dot with substring(1)
+        selector[@ancestorArray].$elemMatch[@arraySuffix.substring(1)] =
+          $ne: sourceValue
+      else
+        selector[@sourcePath] =
+          $ne: sourceValue
+
+    # $ operator updates only the first matching element in the array.
+    # So if we are in the array, we have to loop until nothing changes.
+    # See: https://jira.mongodb.org/browse/SERVER-1243
+    loop
+      break unless @sourceCollection.update selector, update, multi: true
+      break unless @inArray and not @isArray
 
   removeSource: (id) =>
     @updateSource id, {}
