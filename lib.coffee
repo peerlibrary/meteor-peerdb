@@ -201,7 +201,8 @@ class Document
         field = field[0]
 
         if array
-          # MongoDB limitation: https://jira.mongodb.org/browse/SERVER-831
+          # TODO: Support nested arrays
+          # See: https://jira.mongodb.org/browse/SERVER-831
           throw new Error "Field cannot be in a nested array: #{ path }"
 
         array = path

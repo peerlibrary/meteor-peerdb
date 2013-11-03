@@ -40,6 +40,8 @@ Document._ReferenceField = class extends Document._ReferenceField
     update = {}
     for field, value of fields
       if @inArray
+        # TODO: This updates only the first matching element in the array
+        # See: https://jira.mongodb.org/browse/SERVER-1243
         path = "#{ @ancestorArray }.$#{ @arraySuffix }.#{ field }"
       else
         path = "#{ @sourcePath }.#{ field }"
@@ -58,26 +60,18 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     # If it is an array or a required field of a subdocument is in an array, we remove references from an array
     if @isArray or (@required and @inArray)
-      path = "#{ @ancestorArray }.$"
-      update =
-        $unset: {}
-      update['$unset'][path] = ''
-
-      # MongoDB supports removal of array elements only in two steps
-      # First, we set all removed references to null
-      @sourceCollection.update selector, update, multi: true
-
-      # Then we remove all null elements
-      selector = {}
-      selector[@ancestorArray] = null
       update =
         $pull: {}
-      update['$pull'][@ancestorArray] = null
+      update['$pull'][@ancestorArray] = {}
+      # @arraySuffix starts with a dot, so with .substring(1) we always remove a dot
+      update['$pull'][@ancestorArray]["#{ @arraySuffix or '' }._id".substring(1)] = id
 
       @sourceCollection.update selector, update, multi: true
 
     # If it is an optional field of a subdocument in an array, we set it to null
     else if not @required and @inArray
+      # TODO: This updates only the first matching element in the array
+      # See: https://jira.mongodb.org/browse/SERVER-1243
       path = "#{ @ancestorArray }.$#{ @arraySuffix }"
       update =
         $set: {}
