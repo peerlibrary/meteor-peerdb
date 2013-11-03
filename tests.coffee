@@ -393,7 +393,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 1'
     ,
       expect (error, person1Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person1Id
         @person1Id = person1Id
 
@@ -402,7 +402,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 2'
     ,
       expect (error, person2Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person2Id
         @person2Id = person2Id
 
@@ -411,7 +411,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 3'
     ,
       expect (error, person3Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person3Id
         @person3Id = person3Id
 
@@ -470,7 +470,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       body: 'FooBar'
     ,
       expect (error, postId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue postId
         @postId = postId
 
@@ -537,7 +537,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         username: 'person1a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     Persons.update @person2Id,
@@ -545,7 +545,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         username: 'person2a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -559,7 +559,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         username: 'person3a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 ,
   (test, expect) ->
@@ -635,7 +635,7 @@ testAsyncMulti 'meteor-peerdb - references', [
 
     Persons.remove @person3Id,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -684,7 +684,7 @@ testAsyncMulti 'meteor-peerdb - references', [
 
     Persons.remove @person2Id,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -716,7 +716,7 @@ testAsyncMulti 'meteor-peerdb - references', [
 
     Persons.remove @person1Id,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -764,7 +764,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       content: 'FooBar 1'
     ,
       expect (error, circularFirstId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue circularFirstId
         @circularFirstId = circularFirstId
 
@@ -773,7 +773,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       content: 'FooBar 2'
     ,
       expect (error, circularSecondId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue circularSecondId
         @circularSecondId = circularSecondId
 
@@ -815,7 +815,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
           _id: @circularSecondId
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -844,7 +844,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
           _id: @circularFirstId
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -874,7 +874,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         content: 'FooBar 1a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -904,7 +904,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         content: 'FooBar 2a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -931,7 +931,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     CircularSeconds.remove @circularSecondId,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -954,7 +954,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       content: 'FooBar 2'
     ,
       expect (error, circularSecondId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue circularSecondId
         @circularSecondId = circularSecondId
 ,
@@ -965,7 +965,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       content: 'FooBar 1'
     ,
       expect (error, circularFirstId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue circularFirstId
         @circularFirstId = circularFirstId
 
@@ -1000,7 +1000,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
           _id: @circularFirstId
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1027,7 +1027,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     CircularFirsts.remove @circularFirstId,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update document
     Meteor.setTimeout expect(), 500
@@ -1054,7 +1054,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
       content: 'FooBar 1'
     ,
       expect (error, recursive1Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue recursive1Id
         @recursive1Id = recursive1Id
 
@@ -1063,7 +1063,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
       content: 'FooBar 2'
     ,
       expect (error, recursive2Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue recursive2Id
         @recursive2Id = recursive2Id
 
@@ -1091,7 +1091,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
           _id: @recursive2Id
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1120,7 +1120,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
           _id: @recursive1Id
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1150,7 +1150,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         content: 'FooBar 1a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1180,7 +1180,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         content: 'FooBar 2a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1207,7 +1207,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     Recursives.remove @recursive2Id,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -1233,7 +1233,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
       content: 'FooBar'
     ,
       expect (error, recursiveId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue recursiveId
         @recursiveId = recursiveId
 
@@ -1255,7 +1255,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
           _id: @recursiveId
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1277,7 +1277,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         content: 'FooBara'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1296,7 +1296,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
 
     Recursives.remove @recursiveId,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -1413,7 +1413,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 1'
     ,
       expect (error, person1Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person1Id
         @person1Id = person1Id
 
@@ -1422,7 +1422,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 2'
     ,
       expect (error, person2Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person2Id
         @person2Id = person2Id
 
@@ -1431,7 +1431,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 3'
     ,
       expect (error, person3Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person3Id
         @person3Id = person3Id
 ,
@@ -1472,10 +1472,17 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           _id: @person3._id
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+        optional:
+          _id: @person3._id
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
     ,
       expect (error, postId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue postId
         @postId = postId
 
@@ -1515,15 +1522,29 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           username: @person3.username
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
 
     PostLinks.insert
       post:
         _id: @post._id
     ,
       expect (error, postLinkId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue postLinkId
         @postLinkId = postLinkId
 
@@ -1555,7 +1576,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         username: 'person2a'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1589,7 +1610,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
 
     Persons.remove @person2Id,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -1611,7 +1632,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
 
     Posts.remove @post._id,
       expect (error) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), 500
@@ -1630,7 +1651,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       displayName: 'Person 1'
     ,
       expect (error, person1Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person1Id
         @person1Id = person1Id
 
@@ -1639,7 +1660,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       displayName: 'Person 2'
     ,
       expect (error, person2Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person2Id
         @person2Id = person2Id
 
@@ -1648,7 +1669,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       displayName: 'Person 3'
     ,
       expect (error, person3Id) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue person3Id
         @person3Id = person3Id
 ,
@@ -1689,10 +1710,17 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
           _id: @person3._id
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+        optional:
+          _id: @person3._id
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
     ,
       expect (error, postId) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue postId
         @postId = postId
 
@@ -1731,25 +1759,44 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
           _id: @person3._id
           username: @person3.username
         ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
 
     Posts.update @postId,
       $set:
         body: 'FooBarZ'
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
+    # so that persons updates are not merged together to better
+    # test the code for multiple updates
     Meteor.setTimeout expect(), 500
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
+    # All persons had usernames changed, they should
+    # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
       author:
@@ -1778,16 +1825,163 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
           _id: @person3._id
           username: @person3.username
         ]
+        slug: 'subdocument-prefix-foobarz-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
       body: 'FooBarZ'
       slug: 'prefix-foobarz-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobarz-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobarz-nestedfoobar-suffix'
+      ]
+
+    Posts.update @postId,
+      $set:
+        'subdocument.body': 'SubdocumentFooBarZ'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    # so that persons updates are not merged together to better
+    # test the code for multiple updates
+    Meteor.setTimeout expect(), 500
+,
+   (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    # All persons had usernames changed, they should
+    # be updated in the post as well, automatically
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
+        body: 'SubdocumentFooBarZ'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBarZ'
+      slug: 'prefix-foobarz-subdocumentfoobarz-suffix'
+      tags: [
+        'tag-0-prefix-foobarz-subdocumentfoobarz-suffix'
+        'tag-1-prefix-foobarz-nestedfoobar-suffix'
+      ]
+
+    Posts.update @postId,
+      $set:
+        'nested.0.body': 'NestedFooBarZ'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    # so that persons updates are not merged together to better
+    # test the code for multiple updates
+    Meteor.setTimeout expect(), 500
+,
+   (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    # All persons had usernames changed, they should
+    # be updated in the post as well, automatically
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
+        body: 'SubdocumentFooBarZ'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-nestedfoobarz-suffix'
+        body: 'NestedFooBarZ'
+      ]
+      body: 'FooBarZ'
+      slug: 'prefix-foobarz-subdocumentfoobarz-suffix'
+      tags: [
+        'tag-0-prefix-foobarz-subdocumentfoobarz-suffix'
+        'tag-1-prefix-foobarz-nestedfoobarz-suffix'
+      ]
 
     Posts.update @postId,
       $set:
         body: null
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1825,16 +2019,28 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
           _id: @person3._id
           username: @person3.username
         ]
-        body: 'SubdocumentFooBar'
+        slug: null
+        body: 'SubdocumentFooBarZ'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: null
+        body: 'NestedFooBarZ'
+      ]
       body: null
       slug: null
+      tags: []
 
     Posts.update @postId,
       $unset:
         body: ''
     ,
       expect (error, res) =>
-        test.isFalse error, error
+        test.isFalse error, error?.toString?() or error
         test.isTrue res
 
     # Sleep so that observers have time to update documents
@@ -1872,7 +2078,17 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
           _id: @person3._id
           username: @person3.username
         ]
-        body: 'SubdocumentFooBar'
+        body: 'SubdocumentFooBarZ'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        body: 'NestedFooBarZ'
+      ]
+      tags: []
 ]
 
 Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
