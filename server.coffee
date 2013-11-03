@@ -51,7 +51,7 @@ Document._ReferenceField = class extends Document._ReferenceField
 
         s = {}
         if @inArray
-          # We have cannot use top-level $or with $elemMatch
+          # We have cannot use top-level $or with $elemMatch so we do it differently than for $and below
           # See: https://jira.mongodb.org/browse/SERVER-11537
 
           selector[@ancestorArray] ?= {}
