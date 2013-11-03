@@ -365,21 +365,21 @@ testDefinition = (test) ->
   test.equal Recursive.Meta._initialized, 5
   test.equal Post.Meta._initialized, 6
 
-  test.isUndefined UserLink.Meta._delayed
-  test.isUndefined PostLink.Meta._delayed
-  test.isUndefined CircularSecond.Meta._delayed
-  test.isUndefined Person.Meta._delayed
-  test.isUndefined CircularFirst.Meta._delayed
-  test.isUndefined Recursive.Meta._delayed
-  test.isUndefined Post.Meta._delayed
+  test.isUndefined UserLink.Meta._delayed, UserLink.Meta._delayed
+  test.isUndefined PostLink.Meta._delayed, PostLink.Meta._delayed
+  test.isUndefined CircularSecond.Meta._delayed, CircularSecond.Meta._delayed
+  test.isUndefined Person.Meta._delayed, Person.Meta._delayed
+  test.isUndefined CircularFirst.Meta._delayed, CircularFirst.Meta._delayed
+  test.isUndefined Recursive.Meta._delayed, Recursive.Meta._delayed
+  test.isUndefined Post.Meta._delayed, Post.Meta._delayed
 
-  test.isUndefined UserLink.Meta._meta._delayed
-  test.isUndefined PostLink.Meta._meta._delayed
-  test.isUndefined CircularSecond.Meta._meta._delayed
-  test.isUndefined Person.Meta._meta._delayed
-  test.isUndefined CircularFirst.Meta._meta._delayed
-  test.isUndefined Recursive.Meta._meta._delayed
-  test.isUndefined Post.Meta._meta._delayed
+  test.isUndefined UserLink.Meta._meta._delayed, UserLink.Meta._meta._delayed
+  test.isUndefined PostLink.Meta._meta._delayed, PostLink.Meta._meta._delayed
+  test.isUndefined CircularSecond.Meta._meta._delayed, CircularSecond.Meta._meta._delayed
+  test.isUndefined Person.Meta._meta._delayed, Person.Meta._meta._delayed
+  test.isUndefined CircularFirst.Meta._meta._delayed, CircularFirst.Meta._meta._delayed
+  test.isUndefined Recursive.Meta._meta._delayed, Recursive.Meta._meta._delayed
+  test.isUndefined Post.Meta._meta._delayed, Post.Meta._meta._delayed
 
 testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
@@ -728,7 +728,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       transform: null # So that we can use test.equal
 
     # If directly referenced document is removed, dependency is removed as well
-    test.isFalse @post
+    test.isFalse @post, @post
 ]
 
 Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
@@ -944,10 +944,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
     @circularSecond = CircularSeconds.findOne @circularSecondId,
       transform: null # So that we can use test.equal
 
-    test.isFalse @circularSecond
+    test.isFalse @circularSecond, @circularSecond
 
     # If directly referenced document is removed, dependency is removed as well
-    test.isFalse @circularFirst
+    test.isFalse @circularFirst, @circularFirst
 
     Log._intercept 1 if Meteor.isServer
 
@@ -1040,7 +1040,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
     @circularSecond = CircularSeconds.findOne @circularSecondId,
       transform: null # So that we can use test.equal
 
-    test.isFalse @circularFirst
+    test.isFalse @circularFirst, @circularFirst
 
     # If directly referenced but optional document is removed, dependency is not removed as well, but set to null
     test.equal @circularSecond,
@@ -1220,7 +1220,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
     @recursive2 = Recursives.findOne @recursive2Id,
       transform: null # So that we can use test.equal
 
-    test.isFalse @recursive2
+    test.isFalse @recursive2, @recursive2
 
     test.equal @recursive1,
       _id: @recursive1Id
@@ -1307,7 +1307,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
     @recursive = Recursives.findOne @recursiveId,
       transform: null # So that we can use test.equal
 
-    test.isFalse @recursive
+    test.isFalse @recursive, @recursive
 ]
 
 if Meteor.isServer
@@ -1644,7 +1644,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     @postLink = PostLinks.findOne @postLinkId,
       transform: null # So that we can use test.equal
 
-    test.isFalse @postLink
+    test.isFalse @postLink, @postLink
 ]
 
 testAsyncMulti 'meteor-peerdb - generated fields', [
@@ -2125,7 +2125,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed[1][0], Second
   test.equal Document.Meta.delayed[2][0], Third
 
-  test.isUndefined Document.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
   test.equal First.Meta._delayed, 0
   test.equal Second.Meta._delayed, 1
   test.equal Third.Meta._delayed, 2
@@ -2152,7 +2152,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed[1][0], Second
   test.equal Document.Meta.delayed[2][0], Third
 
-  test.isUndefined Document.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
   test.equal First.Meta._delayed, 0
   test.equal Second.Meta._delayed, 1
   test.equal Third.Meta._delayed, 2
@@ -2168,7 +2168,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed[1][0], Second
   test.equal Document.Meta.delayed[2][0], Third
 
-  test.isUndefined Document.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
   test.equal First.Meta._delayed, 0
   test.equal Second.Meta._delayed, 1
   test.equal Third.Meta._delayed, 2
@@ -2184,7 +2184,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed[1][0], Second
   test.equal Document.Meta.delayed[2][0], Third
 
-  test.isUndefined Document.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
   test.equal First.Meta._delayed, 0
   test.equal Second.Meta._delayed, 1
   test.equal Third.Meta._delayed, 2
@@ -2197,26 +2197,26 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Third
 
-  test.isUndefined Document.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
   test.equal First.Meta._delayed, 0
-  test.isUndefined Second.Meta._delayed
+  test.isUndefined Second.Meta._delayed, Second.Meta._delayed
   test.equal Third.Meta._delayed, 1
 
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.ancestorArray
+  test.isFalse Second.Meta.fields.first.ancestorArray, Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
   test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
   test.equal Second.Meta.fields.first.sourceCollection, Posts
-  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.isUndefined Second.Meta.fields.first.targetCollection, Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
-  test.isUndefined Second.Meta.fields.first.targetDocument.Meta.collection # Currently target collection is still undefined
+  test.isUndefined Second.Meta.fields.first.targetDocument.Meta.collection, Second.Meta.fields.first.targetDocument.Meta.collection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.ancestorArray
+  test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -2234,26 +2234,26 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed.length, 1
   test.equal Document.Meta.delayed[0][0], Third
 
-  test.isUndefined Document.Meta._delayed
-  test.isUndefined First.Meta._delayed
-  test.isUndefined Second.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
+  test.isUndefined First.Meta._delayed, First.Meta._delayed
+  test.isUndefined Second.Meta._delayed, Second.Meta._delayed
   test.equal Third.Meta._delayed, 0
 
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.ancestorArray
+  test.isFalse Second.Meta.fields.first.ancestorArray, Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
   test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
   test.equal Second.Meta.fields.first.sourceCollection, Posts
-  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.isUndefined Second.Meta.fields.first.targetCollection, Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts # Now it gets defined because First gets defined
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.ancestorArray
+  test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -2267,7 +2267,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.ancestorArray
+  test.isFalse First.Meta.fields.first.ancestorArray, First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -2285,26 +2285,26 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.delayed.length, 1
   test.equal Document.Meta.delayed[0][0], Third
 
-  test.isUndefined Document.Meta._delayed
-  test.isUndefined First.Meta._delayed
-  test.isUndefined Second.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
+  test.isUndefined First.Meta._delayed, First.Meta._delayed
+  test.isUndefined Second.Meta._delayed, Second.Meta._delayed
   test.equal Third.Meta._delayed, 0
 
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.ancestorArray
+  test.isFalse Second.Meta.fields.first.ancestorArray, Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
   test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
   test.equal Second.Meta.fields.first.sourceCollection, Posts
-  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.isUndefined Second.Meta.fields.first.targetCollection, Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.ancestorArray
+  test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -2318,7 +2318,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.ancestorArray
+  test.isFalse First.Meta.fields.first.ancestorArray, First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -2335,26 +2335,26 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First, Third]
   test.equal Document.Meta.delayed.length, 0
 
-  test.isUndefined Document.Meta._delayed
-  test.isUndefined First.Meta._delayed
-  test.isUndefined Second.Meta._delayed
-  test.isUndefined Third.Meta._delayed
+  test.isUndefined Document.Meta._delayed, Document.Meta._delayed
+  test.isUndefined First.Meta._delayed, First.Meta._delayed
+  test.isUndefined Second.Meta._delayed, Second.Meta._delayed
+  test.isUndefined Third.Meta._delayed, Third.Meta._delayed
 
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.ancestorArray
+  test.isFalse Second.Meta.fields.first.ancestorArray, Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
   test.equal Second.Meta.fields.first.targetDocument, firstReferenceA
   test.equal Second.Meta.fields.first.sourceCollection, Posts
-  test.isUndefined Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
+  test.isUndefined Second.Meta.fields.first.targetCollection, Second.Meta.fields.first.targetCollection # Currently target collection is still undefined
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.ancestorArray
+  test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -2368,7 +2368,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.ancestorArray
+  test.isFalse First.Meta.fields.first.ancestorArray, First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -2382,7 +2382,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.collection, Posts
   test.equal _.size(Third.Meta.fields), 3
   test.instanceOf Third.Meta.fields.first, Third._ReferenceField
-  test.isFalse Third.Meta.fields.first.ancestorArray
+  test.isFalse Third.Meta.fields.first.ancestorArray, Third.Meta.fields.first.ancestorArray
   test.isTrue Third.Meta.fields.first.required
   test.equal Third.Meta.fields.first.sourcePath, 'first'
   test.equal Third.Meta.fields.first.sourceDocument, Third
@@ -2393,7 +2393,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.first.fields, []
   test.instanceOf Third.Meta.fields.second, Third._ReferenceField
-  test.isFalse Third.Meta.fields.second.ancestorArray
+  test.isFalse Third.Meta.fields.second.ancestorArray, Third.Meta.fields.second.ancestorArray
   test.isTrue Third.Meta.fields.second.required
   test.equal Third.Meta.fields.second.sourcePath, 'second'
   test.equal Third.Meta.fields.second.sourceDocument, Third
@@ -2404,7 +2404,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.second.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.second.fields, []
   test.instanceOf Third.Meta.fields.third, Third._ReferenceField
-  test.isFalse Third.Meta.fields.third.ancestorArray
+  test.isFalse Third.Meta.fields.third.ancestorArray, Third.Meta.fields.third.ancestorArray
   test.isTrue Third.Meta.fields.third.required
   test.equal Third.Meta.fields.third.sourcePath, 'third'
   test.equal Third.Meta.fields.third.sourceDocument, Third
@@ -2420,7 +2420,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
-  test.isFalse Second.Meta.fields.first.ancestorArray
+  test.isFalse Second.Meta.fields.first.ancestorArray, Second.Meta.fields.first.ancestorArray
   test.isTrue Second.Meta.fields.first.required
   test.equal Second.Meta.fields.first.sourcePath, 'first'
   test.equal Second.Meta.fields.first.sourceDocument, Second
@@ -2431,7 +2431,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Second.Meta.fields.first.fields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
-  test.isFalse Second.Meta.fields.second.ancestorArray
+  test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
   test.equal Second.Meta.fields.second.sourcePath, 'second'
   test.equal Second.Meta.fields.second.sourceDocument, Second
@@ -2445,7 +2445,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.collection, Posts
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.ancestorArray
+  test.isFalse First.Meta.fields.first.ancestorArray, First.Meta.fields.first.ancestorArray
   test.isTrue First.Meta.fields.first.required
   test.equal First.Meta.fields.first.sourcePath, 'first'
   test.equal First.Meta.fields.first.sourceDocument, First
@@ -2459,7 +2459,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.collection, Posts
   test.equal _.size(Third.Meta.fields), 3
   test.instanceOf Third.Meta.fields.first, Third._ReferenceField
-  test.isFalse Third.Meta.fields.first.ancestorArray
+  test.isFalse Third.Meta.fields.first.ancestorArray, Third.Meta.fields.first.ancestorArray
   test.isTrue Third.Meta.fields.first.required
   test.equal Third.Meta.fields.first.sourcePath, 'first'
   test.equal Third.Meta.fields.first.sourceDocument, Third
@@ -2470,7 +2470,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.first.fields, []
   test.instanceOf Third.Meta.fields.second, Third._ReferenceField
-  test.isFalse Third.Meta.fields.second.ancestorArray
+  test.isFalse Third.Meta.fields.second.ancestorArray, Third.Meta.fields.second.ancestorArray
   test.isTrue Third.Meta.fields.second.required
   test.equal Third.Meta.fields.second.sourcePath, 'second'
   test.equal Third.Meta.fields.second.sourceDocument, Third
@@ -2481,7 +2481,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.second.targetDocument.Meta.collection, Posts
   test.equal Third.Meta.fields.second.fields, []
   test.instanceOf Third.Meta.fields.third, Third._ReferenceField
-  test.isFalse Third.Meta.fields.third.ancestorArray
+  test.isFalse Third.Meta.fields.third.ancestorArray, Third.Meta.fields.third.ancestorArray
   test.isTrue Third.Meta.fields.third.required
   test.equal Third.Meta.fields.third.sourcePath, 'third'
   test.equal Third.Meta.fields.third.sourceDocument, Third
@@ -2949,7 +2949,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     @person1 = Persons.findOne @person1Id
 
     test.instanceOf @person1, Person
-    test.isUndefined @person1.username
+    test.isUndefined @person1.username, @person1.username
     test.equal @person1.displayName, 'Person 1'
 
     @post = Posts.findOne @postId,
@@ -3077,7 +3077,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     @person2 = Persons.findOne @person2Id
 
     test.instanceOf @person2, Person
-    test.isUndefined @person2.username
+    test.isUndefined @person2.username, @person2.username
     test.equal @person2.displayName, 'Person 2'
 
     @post = Posts.findOne @postId,
@@ -3195,7 +3195,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     @person3 = Persons.findOne @person3Id
 
     test.instanceOf @person3, Person
-    test.isUndefined @person3.username
+    test.isUndefined @person3.username, @person3.username
     test.equal @person3.displayName, 'Person 3'
 
     @post = Posts.findOne @postId,
@@ -3756,5 +3756,5 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     @post = Posts.findOne @postId,
       transform: null # So that we can use test.equal
 
-    test.isFalse @post
+    test.isFalse @post, @post
 ]
