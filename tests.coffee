@@ -78,14 +78,16 @@ class Post extends Document
           [fields._id, null]
         else
           [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
-      tags: @GeneratedField 'self', ['body', 'subdocument.body', 'nested.body'], (fields) ->
-        tags = []
-        if fields.body and fields.subdocument?.body
-          tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"
-        if fields.body and fields.nested and _.isArray fields.nested
-          for nested in fields.nested
-            tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
-        [fields._id, tags]
+      tags: [
+        @GeneratedField 'self', ['body', 'subdocument.body', 'nested.body'], (fields) ->
+          tags = []
+          if fields.body and fields.subdocument?.body
+            tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"
+          if fields.body and fields.nested and _.isArray fields.nested
+            for nested in fields.nested
+              tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
+          [fields._id, tags]
+      ]
 
 # To test MixinMeta when initial Meta is delayed
 class Post extends Post
@@ -274,7 +276,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.slug.targetDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
   test.instanceOf Post.Meta.fields.tags, Person._GeneratedField
-  test.isNull Post.Meta.fields.tags.ancestorArray, Post.Meta.fields.tags.ancestorArray
+  test.equal Post.Meta.fields.tags.ancestorArray, 'tags'
   test.isTrue _.isFunction Post.Meta.fields.tags.generator
   test.equal Post.Meta.fields.tags.sourcePath, 'tags'
   test.equal Post.Meta.fields.tags.sourceDocument, Post
@@ -792,7 +794,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         break if i.indexOf(@circularFirstId) isnt -1
       intercepted = EJSON.parse i
 
-      test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with invalid value: null"
+      test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with an invalid value: null"
       test.equal intercepted.level, 'warn'
 
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -1325,7 +1327,7 @@ if Meteor.isServer
 
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing nonexistent document 'nonexistent'"
+    test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing a nonexistent document 'nonexistent'"
     test.equal intercepted.level, 'warn'
 
     Log._intercept 2 # Two to see if we catch more than expected
@@ -1342,7 +1344,7 @@ if Meteor.isServer
 
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with non-array value: 'foobar'"
+    test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with a non-array value: 'foobar'"
     test.equal intercepted.level, 'warn'
 
     Log._intercept 2 # Two to see if we catch more than expected
@@ -1359,7 +1361,7 @@ if Meteor.isServer
 
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with invalid value: null"
+    test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with an invalid value: null"
     test.equal intercepted.level, 'warn'
 
     Log._intercept 1

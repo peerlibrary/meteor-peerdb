@@ -145,7 +145,7 @@ Document._ReferenceField = class extends Document._ReferenceField
       return if _.isNull(value) and not @required
 
       # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
-      Log.warn "Document's '#{ id }' field '#{ @sourcePath }' was updated with invalid value: #{ util.inspect value }"
+      Log.warn "Document's '#{ id }' field '#{ @sourcePath }' was updated with an invalid value: #{ util.inspect value }"
       return
 
     # Only _id is requested, we do not have to do anything
@@ -157,7 +157,7 @@ Document._ReferenceField = class extends Document._ReferenceField
       transform: null
 
     unless target
-      Log.warn "Document's '#{ id }' field '#{ @sourcePath }' is referencing nonexistent document '#{ value._id }'"
+      Log.warn "Document's '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
       # TODO: Should we call reference.removeSource here?
       return
 
@@ -186,6 +186,14 @@ Document._GeneratedField = class extends Document._GeneratedField
     [selector, sourceValue] = @generator fields
 
     return unless selector
+
+    if @isArray and not _.isArray sourceValue
+      Log.warn "Generated field '#{ @sourcePath }' defined as an array with selector '#{ selector }' was updated with a non-array value: #{ util.inspect sourceValue }"
+      return
+
+    if not @isArray and _.isArray sourceValue
+      Log.warn "Generated field '#{ @sourcePath }' not defined as an array with selector '#{ selector }' was updated with an array value: #{ util.inspect sourceValue }"
+      return
 
     if _.isString selector
       selector =
@@ -255,7 +263,7 @@ Document = class extends Document
     if field instanceof Document._ObservingField
       if field.ancestorArray and name is field.ancestorArray
         unless _.isArray value
-          Log.warn "Document's '#{ id }' field '#{ name }' was updated with non-array value: #{ util.inspect value }"
+          Log.warn "Document's '#{ id }' field '#{ name }' was updated with a non-array value: #{ util.inspect value }"
           return
       else
         value = [value]
