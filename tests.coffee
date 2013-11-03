@@ -39,6 +39,8 @@ class Post extends Document
   #   body
   #   subdocument
   #     body
+  #   nested
+  #     body
 
   @Meta =>
     collection: Posts
@@ -54,7 +56,6 @@ class Post extends Document
       nested: [
         required: @ReferenceField Person, ['username']
         optional: @ReferenceField Person, ['username'], false
-        many: [@ReferenceField Person, ['username']]
       ]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
         if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
@@ -211,16 +212,6 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.optional.sourceDocument.Meta.collection, Posts
   test.equal Post.Meta.fields.nested.optional.targetDocument.Meta.collection, Persons
   test.equal Post.Meta.fields.nested.optional.fields, ['username']
-  test.equal Post.Meta.fields.nested.many.ancestorArray, 'nested.many'
-  test.isTrue Post.Meta.fields.nested.many.required
-  test.equal Post.Meta.fields.nested.many.sourcePath, 'nested.many'
-  test.equal Post.Meta.fields.nested.many.sourceDocument, Post
-  test.equal Post.Meta.fields.nested.many.targetDocument, Person
-  test.equal Post.Meta.fields.nested.many.sourceCollection, Posts
-  test.equal Post.Meta.fields.nested.many.targetCollection, Persons
-  test.equal Post.Meta.fields.nested.many.sourceDocument.Meta.collection, Posts
-  test.equal Post.Meta.fields.nested.many.targetDocument.Meta.collection, Persons
-  test.equal Post.Meta.fields.nested.many.fields, ['username']
   test.isNull Post.Meta.fields.slug.ancestorArray, Post.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.slug.generator
   test.equal Post.Meta.fields.slug.sourcePath, 'slug'
@@ -407,6 +398,13 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person3._id
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+        optional:
+          _id: @person3._id
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
     ,
       expect (error, postId) =>
@@ -454,6 +452,15 @@ testAsyncMulti 'meteor-peerdb - references', [
           username: @person3.username
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
@@ -474,7 +481,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    # so that persons updates are not merged togetger to better
+    # so that persons updates are not merged together to better
     # test the code for multiple updates
     Meteor.setTimeout expect(), 500
 ,
@@ -540,6 +547,15 @@ testAsyncMulti 'meteor-peerdb - references', [
           username: @person3.username
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
@@ -576,6 +592,13 @@ testAsyncMulti 'meteor-peerdb - references', [
           username: @person2.username
         ]
         body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional: null
+        body: 'NestedFooBar'
+      ]
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
@@ -603,6 +626,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         person: null
         persons: []
         body: 'SubdocumentFooBar'
+      nested: []
       body: 'FooBar'
       slug: 'prefix-foobar-subdocumentfoobar-suffix'
 
@@ -629,6 +653,20 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
         fields:
           reviewers: [@ReferenceField Person, ['username'], false]
   , /Reference field directly in an array cannot be optional/
+
+  # Invalid document should not be added to the list
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+
+Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
+  test.throws ->
+    class BadPost extends Document
+      @Meta
+        collection: Posts
+        fields:
+          nested: [
+            many: [@ReferenceField Person, ['username']]
+          ]
+  , /Field cannot be in a nested array/
 
   # Invalid document should not be added to the list
   test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]

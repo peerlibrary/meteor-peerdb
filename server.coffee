@@ -8,6 +8,12 @@ fieldsToProjection = (fields) ->
       _.extend projection, field
   projection
 
+startsWith = (string, start) ->
+  string.lastIndexOf(start, 0) is 0
+
+removePrefix = (string, prefix) ->
+  string.substring prefix.length
+
 Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
   setupTargetObservers: =>
     referenceFields = fieldsToProjection @fields
@@ -39,8 +45,9 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     update = {}
     for field, value of fields
-      if @ancestorArray and @sourcePath is @ancestorArray
-        path = "#{ @sourcePath }.$.#{ field }"
+      if @ancestorArray and startsWith @sourcePath, @ancestorArray
+        suffix = removePrefix @sourcePath, @ancestorArray
+        path = "#{ @ancestorArray }.$#{ suffix }.#{ field }"
       else
         path = "#{ @sourcePath }.#{ field }"
       if _.isUndefined value
@@ -56,9 +63,9 @@ Document._ReferenceField = class extends Document._ReferenceField
     selector = {}
     selector["#{ @sourcePath }._id"] = id
 
-    # If it is an array, we remove references
-    if @ancestorArray and @sourcePath is @ancestorArray
-      path = "#{ @sourcePath }.$"
+    # If it is an array or a required field of a subdocument in an array, we remove references from an array
+    if @ancestorArray and (@sourcePath is @ancestorArray or (@required and startsWith @sourcePath, @ancestorArray))
+      path = "#{ @ancestorArray }.$"
       update =
         $unset: {}
       update['$unset'][path] = ''
@@ -69,10 +76,20 @@ Document._ReferenceField = class extends Document._ReferenceField
 
       # Then we remove all null elements
       selector = {}
-      selector[@sourcePath] = null
+      selector[@ancestorArray] = null
       update =
         $pull: {}
-      update['$pull'][@sourcePath] = null
+      update['$pull'][@ancestorArray] = null
+
+      @sourceCollection.update selector, update, multi: true
+
+    # If it is an optional field of a subdocument in an array, we set it to null
+    else if @ancestorArray and not @required and startsWith @sourcePath, @ancestorArray
+      suffix = removePrefix @sourcePath, @ancestorArray
+      path = "#{ @ancestorArray }.$#{ suffix }"
+      update =
+        $set: {}
+      update['$set'][path] = null
 
       @sourceCollection.update selector, update, multi: true
 
@@ -176,8 +193,11 @@ Document = class extends Document
         field.updatedWithValue id, v
 
     else if field not instanceof Document._Field
-      for n, f of field
-        @_sourceFieldUpdated id, "#{ name }.#{ n }", value[n], f
+      value = [value] unless _.isArray value
+
+      for v in value
+        for n, f of field
+          @_sourceFieldUpdated id, "#{ name }.#{ n }", v[n], f
 
   @_sourceUpdated: (id, fields) ->
     for name, value of fields

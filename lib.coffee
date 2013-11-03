@@ -186,8 +186,13 @@ class Document
       array = ancestorArray
 
       if _.isArray field
-        throw new Error "Array field has to contain exactly one element, not #{ field.length }" if field.length isnt 1
+        throw new Error "Array field has to contain exactly one element, not #{ field.length }: #{ path }" if field.length isnt 1
         field = field[0]
+
+        if array
+          # MongoDB limitation: https://jira.mongodb.org/browse/SERVER-831
+          throw new Error "Field cannot be in a nested array: #{ path }"
+
         array = path
 
       if field instanceof @_Field
@@ -196,7 +201,7 @@ class Document
       else if _.isObject field
         res[name] = @_processFields field, path, array
       else
-        throw new Error "Invalid value for field '#{ path }': #{ field }"
+        throw new Error "Invalid value for field: #{ path }"
 
     res
 
