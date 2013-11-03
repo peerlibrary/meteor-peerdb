@@ -8,12 +8,6 @@ fieldsToProjection = (fields) ->
       _.extend projection, field
   projection
 
-startsWith = (string, start) ->
-  string.lastIndexOf(start, 0) is 0
-
-removePrefix = (string, prefix) ->
-  string.substring prefix.length
-
 Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
   setupTargetObservers: =>
     referenceFields = fieldsToProjection @fields
@@ -45,9 +39,8 @@ Document._ReferenceField = class extends Document._ReferenceField
 
     update = {}
     for field, value of fields
-      if @ancestorArray and startsWith @sourcePath, @ancestorArray
-        suffix = removePrefix @sourcePath, @ancestorArray
-        path = "#{ @ancestorArray }.$#{ suffix }.#{ field }"
+      if @inArray
+        path = "#{ @ancestorArray }.$#{ @arraySuffix }.#{ field }"
       else
         path = "#{ @sourcePath }.#{ field }"
       if _.isUndefined value
@@ -63,8 +56,8 @@ Document._ReferenceField = class extends Document._ReferenceField
     selector = {}
     selector["#{ @sourcePath }._id"] = id
 
-    # If it is an array or a required field of a subdocument in an array, we remove references from an array
-    if @ancestorArray and (@sourcePath is @ancestorArray or (@required and startsWith @sourcePath, @ancestorArray))
+    # If it is an array or a required field of a subdocument is in an array, we remove references from an array
+    if @isArray or (@required and @inArray)
       path = "#{ @ancestorArray }.$"
       update =
         $unset: {}
@@ -84,9 +77,8 @@ Document._ReferenceField = class extends Document._ReferenceField
       @sourceCollection.update selector, update, multi: true
 
     # If it is an optional field of a subdocument in an array, we set it to null
-    else if @ancestorArray and not @required and startsWith @sourcePath, @ancestorArray
-      suffix = removePrefix @sourcePath, @ancestorArray
-      path = "#{ @ancestorArray }.$#{ suffix }"
+    else if not @required and @inArray
+      path = "#{ @ancestorArray }.$#{ @arraySuffix }"
       update =
         $set: {}
       update['$set'][path] = null
@@ -108,7 +100,7 @@ Document._ReferenceField = class extends Document._ReferenceField
   updatedWithValue: (id, value) =>
     unless _.isObject(value) and _.isString(value._id)
       # Special case: when elements are being deleted from the array they are temporary set to null value, so we are ignoring this
-      return if _.isNull(value) and @ancestorArray and @sourcePath is @ancestorArray
+      return if _.isNull(value) and @isArray
 
       # Optional field
       return if _.isNull(value) and not @required

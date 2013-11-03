@@ -18,6 +18,12 @@ deepExtend = (obj, args...) ->
         obj[key] = value
   obj
 
+startsWith = (string, start) ->
+  string.lastIndexOf(start, 0) is 0
+
+removePrefix = (string, prefix) ->
+  string.substring prefix.length
+
 class Document
   constructor: (doc) ->
     _.extend @, doc
@@ -56,6 +62,11 @@ class Document
       if @targetDocument is 'self'
         @targetDocument = @sourceDocument
         @targetCollection = @sourceCollection
+
+      # Helpful values to know where and what the field is
+      @inArray = @ancestorArray and startsWith @sourcePath, @ancestorArray
+      @isArray = @ancestorArray and @sourcePath is @ancestorArray
+      @arraySuffix = removePrefix @sourcePath, @ancestorArray if @inArray
 
     validate: =>
       super()
