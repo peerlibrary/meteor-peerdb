@@ -5,6 +5,7 @@ PostLinks = new Meteor.Collection 'PostLinks', transform: (doc) => new PostLink 
 CircularFirsts = new Meteor.Collection 'CircularFirsts', transform: (doc) => new CircularFirst doc
 CircularSeconds = new Meteor.Collection 'CircularSeconds', transform: (doc) => new CircularSecond doc
 Recursives = new Meteor.Collection 'Recursives', transform: (doc) => new Recursive doc
+IdentityGenerators = new Meteor.Collection 'IdentityGenerators', transform: (doc) => new IdentityGenerator doc
 
 if Meteor.isServer
   # Initialize the database
@@ -15,6 +16,7 @@ if Meteor.isServer
   CircularFirsts.remove {}
   CircularSeconds.remove {}
   Recursives.remove {}
+  IdentityGenerators.remove {}
   Meteor.users.remove {}
 
   Meteor.publish null, ->
@@ -31,6 +33,8 @@ if Meteor.isServer
     CircularSeconds.find()
   Meteor.publish null, ->
     Recursives.find()
+  Meteor.publish null, ->
+    IdentityGenerators.find()
 
 # The order of documents here tests delayed definitions
 
@@ -154,6 +158,20 @@ class Recursive extends Document
     collection: Recursives
     fields:
       other: @ReferenceField 'self', ['content'], false
+
+class IdentityGenerator extends Document
+  # Other fields:
+  #   source
+
+  @Meta =>
+    collection: IdentityGenerators
+    fields:
+      result: @GeneratedField 'self', ['source'], (fields) ->
+        return [fields._id, fields.source]
+      results: [
+        @GeneratedField 'self', ['source'], (fields) ->
+          return [fields._id, fields.source]
+      ]
 
 Document.redefineAll()
 
@@ -355,7 +373,32 @@ testDefinition = (test) ->
   test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection, Recursives
   test.equal Recursive.Meta.fields.other.fields, ['content']
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal IdentityGenerator.Meta.collection, IdentityGenerators
+  test.equal _.size(IdentityGenerator.Meta.fields), 2
+  test.instanceOf IdentityGenerator.Meta.fields.result, IdentityGenerator._GeneratedField
+  test.isNull IdentityGenerator.Meta.fields.result.ancestorArray, IdentityGenerator.Meta.fields.result.ancestorArray
+  test.isTrue _.isFunction IdentityGenerator.Meta.fields.result.generator
+  test.equal IdentityGenerator.Meta.fields.result.sourcePath, 'result'
+  test.equal IdentityGenerator.Meta.fields.result.sourceDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.fields.result.targetDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.fields.result.sourceCollection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.result.targetCollection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.result.sourceDocument.Meta.collection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.result.targetDocument.Meta.collection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.result.fields, ['source']
+  test.instanceOf IdentityGenerator.Meta.fields.results, IdentityGenerator._GeneratedField
+  test.equal IdentityGenerator.Meta.fields.results.ancestorArray, 'results'
+  test.isTrue _.isFunction IdentityGenerator.Meta.fields.results.generator
+  test.equal IdentityGenerator.Meta.fields.results.sourcePath, 'results'
+  test.equal IdentityGenerator.Meta.fields.results.sourceDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.fields.results.targetDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.fields.results.sourceCollection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.results.targetCollection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.results.sourceDocument.Meta.collection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.results.targetDocument.Meta.collection, IdentityGenerators
+  test.equal IdentityGenerator.Meta.fields.results.fields, ['source']
+
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
 
   test.equal UserLink.Meta._initialized, 0
   test.equal PostLink.Meta._initialized, 1
@@ -364,6 +407,7 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta._initialized, 4
   test.equal Recursive.Meta._initialized, 5
   test.equal Post.Meta._initialized, 6
+  test.equal IdentityGenerator.Meta._initialized, 7
 
   test.isUndefined UserLink.Meta._delayed, UserLink.Meta._delayed
   test.isUndefined PostLink.Meta._delayed, PostLink.Meta._delayed
@@ -372,6 +416,7 @@ testDefinition = (test) ->
   test.isUndefined CircularFirst.Meta._delayed, CircularFirst.Meta._delayed
   test.isUndefined Recursive.Meta._delayed, Recursive.Meta._delayed
   test.isUndefined Post.Meta._delayed, Post.Meta._delayed
+  test.isUndefined IdentityGenerator.Meta._delayed, IdentityGenerator.Meta._delayed
 
   test.isUndefined UserLink.Meta._meta._delayed, UserLink.Meta._meta._delayed
   test.isUndefined PostLink.Meta._meta._delayed, PostLink.Meta._meta._delayed
@@ -380,6 +425,7 @@ testDefinition = (test) ->
   test.isUndefined CircularFirst.Meta._meta._delayed, CircularFirst.Meta._meta._delayed
   test.isUndefined Recursive.Meta._meta._delayed, Recursive.Meta._meta._delayed
   test.isUndefined Post.Meta._meta._delayed, Post.Meta._meta._delayed
+  test.isUndefined IdentityGenerator.Meta._meta._delayed, IdentityGenerator.Meta._meta._delayed
 
 testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
@@ -741,7 +787,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Reference field directly in an array cannot be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
 
 Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   test.throws ->
@@ -755,7 +801,7 @@ Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   , /Field cannot be in a nested array/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
 
 testAsyncMulti 'meteor-peerdb - circular changes', [
   (test, expect) ->
@@ -1400,7 +1446,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
     test.equal intercepted.level, 'error'
 
-    test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+    test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
     test.equal Document.Meta.delayed.length, 1
 
     # Clear delayed so that we can retry tests without errors
@@ -2119,7 +2165,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.third = @ReferenceField secondReferenceA
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2146,7 +2192,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.third = @ReferenceField secondReferenceB
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2162,7 +2208,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.third = @ReferenceField Person
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2178,7 +2224,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.first = @ReferenceField Person
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2192,7 +2238,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   firstReferenceA = First
   Document._retryDelayed()
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator, Second]
   test.equal Document.Meta.delayed.length, 2
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Third
@@ -2230,7 +2276,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   firstReferenceB = Posts
   Document._retryDelayed()
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator, Second, First]
   test.equal Document.Meta.delayed.length, 1
   test.equal Document.Meta.delayed[0][0], Third
 
@@ -2281,7 +2327,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   secondReferenceA = First
   Document._retryDelayed()
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator, Second, First]
   test.equal Document.Meta.delayed.length, 1
   test.equal Document.Meta.delayed[0][0], Third
 
@@ -2332,7 +2378,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   secondReferenceB = Posts
   Document._retryDelayed()
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, Second, First, Third]
+  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator, Second, First, Third]
   test.equal Document.Meta.delayed.length, 0
 
   test.isUndefined Document.Meta._delayed, Document.Meta._delayed
@@ -3757,4 +3803,80 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       transform: null # So that we can use test.equal
 
     test.isFalse @post, @post
+]
+
+testAsyncMulti 'meteor-peerdb - warnings for generated fields', [
+  (test, expect) ->
+    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+
+    IdentityGenerators.insert
+      source: 'foobar'
+    ,
+      expect (error, identityGeneratorId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue identityGeneratorId
+        @identityGeneratorId = identityGeneratorId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      # One or two because it depends if the client tests are running at the same time
+      test.isTrue 1 <= intercepted.length <= 2, intercepted
+
+      # We are testing only the server one, so let's find it
+      for i in intercepted
+        break if i.indexOf(@identityGeneratorId) isnt -1
+      intercepted = EJSON.parse i
+
+      test.equal intercepted.message, "Generated field 'results' defined as an array with selector '#{ @identityGeneratorId }' was updated with a non-array value: 'foobar'"
+      test.equal intercepted.level, 'warn'
+
+    @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
+      transform: null # So that we can use test.equal
+
+    test.equal @identityGenerator,
+      _id: @identityGeneratorId
+      source: 'foobar'
+      result: 'foobar'
+
+    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+
+    IdentityGenerators.update @identityGeneratorId,
+      $set:
+        source: ['foobar2']
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      # One or two because it depends if the client tests are running at the same time
+      test.isTrue 1 <= intercepted.length <= 2, intercepted
+
+      # We are testing only the server one, so let's find it
+      for i in intercepted
+        break if i.indexOf(@identityGeneratorId) isnt -1
+      intercepted = EJSON.parse i
+
+      test.equal intercepted.message, "Generated field 'result' not defined as an array with selector '#{ @identityGeneratorId }' was updated with an array value: [ 'foobar2' ]"
+      test.equal intercepted.level, 'warn'
+
+    @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
+      transform: null # So that we can use test.equal
+
+    test.equal @identityGenerator,
+      _id: @identityGeneratorId
+      source: ['foobar2']
+      result: 'foobar'
+      results: ['foobar2']
 ]
