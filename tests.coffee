@@ -68,12 +68,13 @@ class Post extends Document
         required: @ReferenceField Person, ['username']
         optional: @ReferenceField Person, ['username'], false
         slug: @GeneratedField 'self', ['body', 'nested.body'], (fields) ->
-          if _.isUndefined(fields.body) or _.isUndefined(fields.nested?[0]?.body)
-            [fields._id, undefined]
-          else if _.isNull(fields.body) or _.isNull(fields.nested?[0]?.body)
-            [fields._id, null]
-          else
-            [fields._id, "nested-prefix-#{ fields.body.toLowerCase() }-#{ fields.nested?[0]?.body.toLowerCase() }-suffix"]
+          for nested in fields.nested or []
+            if _.isUndefined(fields.body) or _.isUndefined(nested.body)
+              [fields._id, undefined]
+            else if _.isNull(fields.body) or _.isNull(nested.body)
+              [fields._id, null]
+            else
+              [fields._id, "nested-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"]
       ]
       slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
         if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)

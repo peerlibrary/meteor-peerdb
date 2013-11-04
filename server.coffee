@@ -165,6 +165,57 @@ Document._ReferenceField = class extends Document._ReferenceField
     @updateSource target._id, _.omit target, '_id'
 
 Document._GeneratedField = class extends Document._GeneratedField
+  _updateSourceField: (id, fields) =>
+    [selector, sourceValue] = @generator fields
+
+    return unless selector
+
+    if @isArray and not _.isArray sourceValue
+      Log.error "Generated field '#{ @sourcePath }' defined as an array with selector '#{ selector }' was updated with a non-array value: #{ util.inspect sourceValue }"
+      return
+
+    if not @isArray and _.isArray sourceValue
+      Log.error "Generated field '#{ @sourcePath }' not defined as an array with selector '#{ selector }' was updated with an array value: #{ util.inspect sourceValue }"
+      return
+
+    update = {}
+    if _.isUndefined sourceValue
+      update.$unset = {}
+      update.$unset[@sourcePath] = ''
+    else
+      update.$set = {}
+      update.$set[@sourcePath] = sourceValue
+
+    @sourceCollection.update selector, update, multi: true
+
+  _updateSourceNestedArray: (id, fields) =>
+    assert @arraySuffix # Should be non-null
+
+    values = @generator fields
+
+    unless _.isArray values
+      Log.error "Value returned from the generator for field '#{ @sourcePath }' is not a nested array despite field being nested in an array: #{ util.inspect values }"
+      return
+
+    for [selector, sourceValue], i in values
+      continue unless selector
+
+      if _.isArray sourceValue
+        Log.error "Generated field '#{ @sourcePath }' not defined as an array with selector '#{ selector }' was updated with an array value: #{ util.inspect sourceValue }"
+        continue
+
+      path = "#{ @ancestorArray }.#{ i }#{ @arraySuffix }"
+
+      update = {}
+      if _.isUndefined sourceValue
+        update.$unset = {}
+        update.$unset[path] = ''
+      else
+        update.$set = {}
+        update.$set[path] = sourceValue
+
+      break unless @sourceCollection.update selector, update, multi: true
+
   updateSource: (id, fields) =>
     if _.isEmpty fields
       fields._id = id
@@ -183,65 +234,12 @@ Document._GeneratedField = class extends Document._GeneratedField
     else
       fields._id = id
 
-    [selector, sourceValue] = @generator fields
-
-    return unless selector
-
-    if @isArray and not _.isArray sourceValue
-      Log.error "Generated field '#{ @sourcePath }' defined as an array with selector '#{ selector }' was updated with a non-array value: #{ util.inspect sourceValue }"
-      return
-
-    if not @isArray and _.isArray sourceValue
-      Log.error "Generated field '#{ @sourcePath }' not defined as an array with selector '#{ selector }' was updated with an array value: #{ util.inspect sourceValue }"
-      return
-
-    if _.isString selector
-      selector =
-        _id: selector
-
     # Only if we are updating value nested in a subdocument of an array we operate
     # on the array. Otherwise we simply set whole array to the value returned.
     if @inArray and not @isArray
-      assert @arraySuffix # Should be non-null
-      path = "#{ @ancestorArray }.$#{ @arraySuffix }"
+      @_updateSourceNestedArray id, fields
     else
-      path = @sourcePath
-
-    update = {}
-    if _.isUndefined sourceValue
-      update.$unset = {}
-      update.$unset[path] = ''
-
-      if @inArray and not @isArray
-        selector[@ancestorArray] =
-          $elemMatch: {}
-        # Remove initial dot with substring(1)
-        selector[@ancestorArray].$elemMatch[@arraySuffix.substring(1)] =
-          $exists: true
-      else
-        selector[@sourcePath] =
-          $exists: true
-
-    else
-      update.$set = {}
-      update.$set[path] = sourceValue
-
-      if @inArray and not @isArray
-        selector[@ancestorArray] =
-          $elemMatch: {}
-        # Remove initial dot with substring(1)
-        selector[@ancestorArray].$elemMatch[@arraySuffix.substring(1)] =
-          $ne: sourceValue
-      else
-        selector[@sourcePath] =
-          $ne: sourceValue
-
-    # $ operator updates only the first matching element in the array.
-    # So if we are in the array, we have to loop until nothing changes.
-    # See: https://jira.mongodb.org/browse/SERVER-1243
-    loop
-      break unless @sourceCollection.update selector, update, multi: true
-      break unless @inArray and not @isArray
+      @_updateSourceField id, fields
 
   removeSource: (id) =>
     @updateSource id, {}
