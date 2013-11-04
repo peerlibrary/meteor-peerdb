@@ -168,6 +168,7 @@ class IdentityGenerator extends Document
     collection: IdentityGenerators
     fields:
       result: @GeneratedField 'self', ['source'], (fields) ->
+        throw new Error "Test exception" if fields.source is 'exception'
         return [fields._id, fields.source]
       results: [
         @GeneratedField 'self', ['source'], (fields) ->
@@ -4739,4 +4740,35 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
       source: ['foobar2']
       result: 'foobar'
       results: ['foobar2']
+]
+
+testAsyncMulti 'meteor-peerdb - exception while processing', [
+  (test, expect) ->
+    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+
+    IdentityGenerators.insert
+      source: 'exception'
+    ,
+      expect (error, identityGeneratorId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue identityGeneratorId
+        @identityGeneratorId = identityGeneratorId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      # One or two because it depends if the client tests are running at the same time
+      test.isTrue 1 <= intercepted.length <= 2, intercepted
+
+      # We are testing only the server one, so let's find it
+      for i in intercepted
+        break if i.indexOf(@identityGeneratorId) isnt -1
+      intercepted = EJSON.parse i
+
+      test.isTrue intercepted.message.lastIndexOf('Exception processing PeerDB fields: Error: Test exception', 0) is 0
+      test.equal intercepted.level, 'error'
 ]

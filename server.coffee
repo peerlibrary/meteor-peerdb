@@ -8,17 +8,25 @@ fieldsToProjection = (fields) ->
       _.extend projection, field
   projection
 
+# TODO: Should we add retry?
+catchErrors = (f) ->
+  return (args...) ->
+    try
+      f args...
+    catch e
+      Log.error "Exception processing PeerDB fields: #{ e }: #{ util.inspect args, depth: 10 }"
+
 Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
   setupTargetObservers: =>
     referenceFields = fieldsToProjection @fields
     @targetCollection.find({}, fields: referenceFields).observeChanges
-      added: (id, fields) =>
+      added: catchErrors (id, fields) =>
         @updateSource id, fields
 
-      changed: (id, fields) =>
+      changed: catchErrors (id, fields) =>
         @updateSource id, fields
 
-      removed: (id) =>
+      removed: catchErrors (id) =>
         @removeSource id
 
 # Have to refresh with new methods from TargetedFieldsObservingField
@@ -298,10 +306,10 @@ Document = class extends Document
     sourceFieldsWalker @Meta.fields
 
     @Meta.collection.find({}, fields: sourceFields).observeChanges
-      added: (id, fields) =>
+      added: catchErrors (id, fields) =>
         @_sourceUpdated id, fields
 
-      changed: (id, fields) =>
+      changed: catchErrors (id, fields) =>
         @_sourceUpdated id, fields
 
 setupObservers = ->
