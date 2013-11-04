@@ -2548,6 +2548,82 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   # Verify we are back to normal
   testDefinition test
 
+testAsyncMulti 'meteor-peerdb - errors for generated fields', [
+  (test, expect) ->
+    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+
+    IdentityGenerators.insert
+      source: 'foobar'
+    ,
+      expect (error, identityGeneratorId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue identityGeneratorId
+        @identityGeneratorId = identityGeneratorId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 750
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      # One or two because it depends if the client tests are running at the same time
+      test.isTrue 1 <= intercepted.length <= 2, intercepted
+
+      # We are testing only the server one, so let's find it
+      for i in intercepted
+        break if i.indexOf(@identityGeneratorId) isnt -1
+      intercepted = EJSON.parse i
+
+      test.equal intercepted.message, "Generated field 'results' defined as an array with selector '#{ @identityGeneratorId }' was updated with a non-array value: 'foobar'"
+      test.equal intercepted.level, 'error'
+
+    @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
+      transform: null # So that we can use test.equal
+
+    test.equal @identityGenerator,
+      _id: @identityGeneratorId
+      source: 'foobar'
+      result: 'foobar'
+
+    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+
+    IdentityGenerators.update @identityGeneratorId,
+      $set:
+        source: ['foobar2']
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 750
+,
+  (test, expect) ->
+    if Meteor.isServer
+      intercepted = Log._intercepted()
+
+      # One or two because it depends if the client tests are running at the same time
+      test.isTrue 1 <= intercepted.length <= 2, intercepted
+
+      # We are testing only the server one, so let's find it
+      for i in intercepted
+        break if i.indexOf(@identityGeneratorId) isnt -1
+      intercepted = EJSON.parse i
+
+      test.equal intercepted.message, "Generated field 'result' not defined as an array with selector '#{ @identityGeneratorId }' was updated with an array value: [ 'foobar2' ]"
+      test.equal intercepted.level, 'error'
+
+    @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
+      transform: null # So that we can use test.equal
+
+    test.equal @identityGenerator,
+      _id: @identityGeneratorId
+      source: ['foobar2']
+      result: 'foobar'
+      results: ['foobar2']
+]
+
 Tinytest.add 'meteor-peerdb - invalid documents', (test) ->
   list = _.clone Document.Meta.list
 
@@ -4664,82 +4740,6 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       transform: null # So that we can use test.equal
 
     test.isFalse @post, @post
-]
-
-testAsyncMulti 'meteor-peerdb - errors for generated fields', [
-  (test, expect) ->
-    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
-
-    IdentityGenerators.insert
-      source: 'foobar'
-    ,
-      expect (error, identityGeneratorId) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue identityGeneratorId
-        @identityGeneratorId = identityGeneratorId
-
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
-,
-  (test, expect) ->
-    if Meteor.isServer
-      intercepted = Log._intercepted()
-
-      # One or two because it depends if the client tests are running at the same time
-      test.isTrue 1 <= intercepted.length <= 2, intercepted
-
-      # We are testing only the server one, so let's find it
-      for i in intercepted
-        break if i.indexOf(@identityGeneratorId) isnt -1
-      intercepted = EJSON.parse i
-
-      test.equal intercepted.message, "Generated field 'results' defined as an array with selector '#{ @identityGeneratorId }' was updated with a non-array value: 'foobar'"
-      test.equal intercepted.level, 'error'
-
-    @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
-      transform: null # So that we can use test.equal
-
-    test.equal @identityGenerator,
-      _id: @identityGeneratorId
-      source: 'foobar'
-      result: 'foobar'
-
-    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
-
-    IdentityGenerators.update @identityGeneratorId,
-      $set:
-        source: ['foobar2']
-    ,
-      expect (error, res) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue res
-
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
-,
-  (test, expect) ->
-    if Meteor.isServer
-      intercepted = Log._intercepted()
-
-      # One or two because it depends if the client tests are running at the same time
-      test.isTrue 1 <= intercepted.length <= 2, intercepted
-
-      # We are testing only the server one, so let's find it
-      for i in intercepted
-        break if i.indexOf(@identityGeneratorId) isnt -1
-      intercepted = EJSON.parse i
-
-      test.equal intercepted.message, "Generated field 'result' not defined as an array with selector '#{ @identityGeneratorId }' was updated with an array value: [ 'foobar2' ]"
-      test.equal intercepted.level, 'error'
-
-    @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
-      transform: null # So that we can use test.equal
-
-    test.equal @identityGenerator,
-      _id: @identityGeneratorId
-      source: ['foobar2']
-      result: 'foobar'
-      results: ['foobar2']
 ]
 
 testAsyncMulti 'meteor-peerdb - exception while processing', [
