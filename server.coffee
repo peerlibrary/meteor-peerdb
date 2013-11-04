@@ -273,8 +273,11 @@ Document = class extends Document
     else if field not instanceof Document._Field
       value = [value] unless _.isArray value
 
+      # If value is an array but it should not be, we cannot do much else.
+      # Same goes if the value does not match structurally fields.
       for v in value
         for n, f of field
+          # TODO: Should we skip calling @_sourceFieldUpdated if we already called it with exactly the same parameters this run?
           @_sourceFieldUpdated id, "#{ name }.#{ n }", v[n], f
 
   @_sourceUpdated: (id, fields) ->
