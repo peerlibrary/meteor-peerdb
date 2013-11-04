@@ -841,7 +841,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with an invalid value: null"
-      test.equal intercepted.level, 'warn'
+      test.equal intercepted.level, 'error'
 
     @circularFirst = CircularFirsts.findOne @circularFirstId,
       transform: null # So that we can use test.equal
@@ -1357,7 +1357,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
 ]
 
 if Meteor.isServer
-  Tinytest.add 'meteor-peerdb - warnings', (test) ->
+  Tinytest.add 'meteor-peerdb - errors', (test) ->
     Log._intercept 2 # Two to see if we catch more than expected
 
     postId = Posts.insert
@@ -1374,7 +1374,7 @@ if Meteor.isServer
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing a nonexistent document 'nonexistent'"
-    test.equal intercepted.level, 'warn'
+    test.equal intercepted.level, 'error'
 
     Log._intercept 2 # Two to see if we catch more than expected
 
@@ -1391,7 +1391,7 @@ if Meteor.isServer
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with a non-array value: 'foobar'"
-    test.equal intercepted.level, 'warn'
+    test.equal intercepted.level, 'error'
 
     Log._intercept 2 # Two to see if we catch more than expected
 
@@ -1408,7 +1408,7 @@ if Meteor.isServer
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with an invalid value: null"
-    test.equal intercepted.level, 'warn'
+    test.equal intercepted.level, 'error'
 
     Log._intercept 1
 
@@ -3805,7 +3805,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.isFalse @post, @post
 ]
 
-testAsyncMulti 'meteor-peerdb - warnings for generated fields', [
+testAsyncMulti 'meteor-peerdb - errors for generated fields', [
   (test, expect) ->
     Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
 
@@ -3833,7 +3833,7 @@ testAsyncMulti 'meteor-peerdb - warnings for generated fields', [
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Generated field 'results' defined as an array with selector '#{ @identityGeneratorId }' was updated with a non-array value: 'foobar'"
-      test.equal intercepted.level, 'warn'
+      test.equal intercepted.level, 'error'
 
     @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
       transform: null # So that we can use test.equal
@@ -3869,7 +3869,7 @@ testAsyncMulti 'meteor-peerdb - warnings for generated fields', [
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Generated field 'result' not defined as an array with selector '#{ @identityGeneratorId }' was updated with an array value: [ 'foobar2' ]"
-      test.equal intercepted.level, 'warn'
+      test.equal intercepted.level, 'error'
 
     @identityGenerator = IdentityGenerators.findOne @identityGeneratorId,
       transform: null # So that we can use test.equal
