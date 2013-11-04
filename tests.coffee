@@ -471,7 +471,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # (triggered by person inserts, but pending) run afterwards, then they can patch things which
     # should in fact be done by source observers (on post), like setting usernames in post's
     # references to persons
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person1 = Persons.findOne @person1Id
@@ -525,7 +525,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         @postId = postId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -601,7 +601,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # Sleep so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     Persons.update @person3Id,
@@ -628,7 +628,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.equal @person3.displayName, 'Person 3'
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -688,7 +688,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -737,7 +737,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -769,7 +769,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -828,7 +828,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         @circularSecondId = circularSecondId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     if Meteor.isServer
@@ -869,7 +869,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -898,7 +898,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -928,7 +928,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -958,7 +958,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -984,7 +984,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -1020,7 +1020,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         @circularFirstId = circularFirstId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     if Meteor.isServer
@@ -1054,7 +1054,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -1080,7 +1080,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update document
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @circularFirst = CircularFirsts.findOne @circularFirstId,
@@ -1118,7 +1118,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         @recursive2Id = recursive2Id
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1145,7 +1145,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1174,7 +1174,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1204,7 +1204,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1234,7 +1234,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1260,7 +1260,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive1 = Recursives.findOne @recursive1Id,
@@ -1288,7 +1288,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         @recursiveId = recursiveId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1309,7 +1309,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1331,7 +1331,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1349,7 +1349,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @recursive = Recursives.findOne @recursiveId,
@@ -1367,7 +1367,7 @@ if Meteor.isServer
         _id: 'nonexistent'
 
     # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(750)
+    Meteor._sleepForMs(1000)
 
     intercepted = Log._intercepted()
 
@@ -1384,7 +1384,7 @@ if Meteor.isServer
       subscribers: 'foobar'
 
     # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(750)
+    Meteor._sleepForMs(1000)
 
     intercepted = Log._intercepted()
 
@@ -1401,7 +1401,7 @@ if Meteor.isServer
       author: null
 
     # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(750)
+    Meteor._sleepForMs(1000)
 
     intercepted = Log._intercepted()
 
@@ -1418,7 +1418,7 @@ if Meteor.isServer
       user: null
 
     # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(750)
+    Meteor._sleepForMs(1000)
 
     intercepted = Log._intercepted()
 
@@ -1537,7 +1537,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         @postId = postId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -1600,7 +1600,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         @postLinkId = postLinkId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @postLink = PostLinks.findOne @postLinkId,
@@ -1631,7 +1631,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person2 = Persons.findOne @person2Id
@@ -1664,7 +1664,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @postLink = PostLinks.findOne @postLinkId,
@@ -1686,7 +1686,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @postLink = PostLinks.findOne @postLinkId,
@@ -1776,7 +1776,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         @postId = postId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -1840,7 +1840,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
     # Sleep so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -1906,7 +1906,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
     # Sleep so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
    (test, expect) ->
     @post = Posts.findOne @postId,
@@ -1972,7 +1972,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
     # Sleep so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
    (test, expect) ->
     @post = Posts.findOne @postId,
@@ -2036,7 +2036,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -2095,7 +2095,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -2561,7 +2561,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
         @identityGeneratorId = identityGeneratorId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     if Meteor.isServer
@@ -2597,7 +2597,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     if Meteor.isServer
@@ -2784,7 +2784,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         @postId = postId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -2917,7 +2917,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     # Sleep so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     Persons.update @person3Id,
@@ -2944,7 +2944,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.equal @person3.displayName, 'Person 3'
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -3067,7 +3067,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person1 = Persons.findOne @person1Id
@@ -3195,7 +3195,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person2 = Persons.findOne @person2Id
@@ -3313,7 +3313,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person3 = Persons.findOne @person3Id
@@ -3421,7 +3421,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person1 = Persons.findOne @person1Id
@@ -3530,7 +3530,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person2 = Persons.findOne @person2Id
@@ -3649,7 +3649,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @person3 = Persons.findOne @person3Id
@@ -3778,7 +3778,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -3901,7 +3901,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4024,7 +4024,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4147,7 +4147,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4269,7 +4269,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4388,7 +4388,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4512,7 +4512,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4637,7 +4637,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4703,7 +4703,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4733,7 +4733,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     @post = Posts.findOne @postId,
@@ -4755,7 +4755,7 @@ testAsyncMulti 'meteor-peerdb - exception while processing', [
         @identityGeneratorId = identityGeneratorId
 
     # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), 750
+    Meteor.setTimeout expect(), 1000
 ,
   (test, expect) ->
     if Meteor.isServer
