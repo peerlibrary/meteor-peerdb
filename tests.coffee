@@ -4304,7 +4304,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     Posts.update @postId,
       $set:
-        'body': 'FooBarZ'
+        body: 'FooBarZ'
     ,
       expect (error, res) =>
         test.isFalse error, error?.toString?() or error
@@ -4419,6 +4419,140 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         'tag-2-prefix-foobarz-nestedfoobar-suffix'
         'tag-3-prefix-foobarz-nestedfoobara-suffix'
         'tag-4-prefix-foobarz-nestedfoobar-suffix'
+      ]
+
+    Posts.update @postId,
+      $push:
+        nested:
+          required:
+            _id: @person2._id
+          optional:
+            _id: @person3._id
+          body: 'NewFooBar'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), 500
+,
+  (test, expect) ->
+    @post = Posts.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      author:
+        _id: @person1._id
+        username: @person1.username
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
+        body: 'SubdocumentFooBarZ'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-nestedfoobarz-suffix'
+        body: 'NestedFooBarZ'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+        optional:
+          _id: @person2._id
+          username: @person2.username
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: null
+        body: null
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobarz-nestedfoobara-suffix'
+        body: 'NestedFooBarA'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobarz-newfoobar-suffix'
+        body: 'NewFooBar'
+      ]
+      body: 'FooBarZ'
+      slug: 'prefix-foobarz-subdocumentfoobarz-suffix'
+      tags: [
+        'tag-0-prefix-foobarz-subdocumentfoobarz-suffix'
+        'tag-1-prefix-foobarz-nestedfoobarz-suffix'
+        'tag-2-prefix-foobarz-nestedfoobar-suffix'
+        'tag-3-prefix-foobarz-nestedfoobara-suffix'
+        'tag-4-prefix-foobarz-nestedfoobar-suffix'
+        'tag-5-prefix-foobarz-newfoobar-suffix'
       ]
 
     Persons.remove @person2Id,
