@@ -845,6 +845,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       # We are testing only the server one, so let's find it
       for i in intercepted
         break if i.indexOf(@circularFirstId) isnt -1
+      test.isTrue _.isString(i), i
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with an invalid value: null"
@@ -1378,6 +1379,7 @@ if Meteor.isServer
 
     test.equal intercepted.length, 1, intercepted
 
+    test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing a nonexistent document 'nonexistent'"
@@ -1395,6 +1397,7 @@ if Meteor.isServer
 
     test.equal intercepted.length, 1, intercepted
 
+    test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with a non-array value: 'foobar'"
@@ -1412,6 +1415,7 @@ if Meteor.isServer
 
     test.equal intercepted.length, 1, intercepted
 
+    test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with an invalid value: null"
@@ -1448,6 +1452,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
 
     test.equal intercepted.length, 1, intercepted
 
+    test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
     test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
@@ -2578,6 +2583,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
       # We are testing only the server one, so let's find it
       for i in intercepted
         break if i.indexOf(@identityGeneratorId) isnt -1
+      test.isTrue _.isString(i), i
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Generated field 'results' defined as an array with selector '#{ @identityGeneratorId }' was updated with a non-array value: 'foobar'"
@@ -2614,6 +2620,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
       # We are testing only the server one, so let's find it
       for i in intercepted
         break if i.indexOf(@identityGeneratorId) isnt -1
+      test.isTrue _.isString(i), i
       intercepted = EJSON.parse i
 
       test.equal intercepted.message, "Generated field 'result' not defined as an array with selector '#{ @identityGeneratorId }' was updated with an array value: [ 'foobar2' ]"
@@ -4772,6 +4779,7 @@ testAsyncMulti 'meteor-peerdb - exception while processing', [
       # We are testing only the server one, so let's find it
       for i in intercepted
         break if i.indexOf(@identityGeneratorId) isnt -1
+      test.isTrue _.isString(i), i
       intercepted = EJSON.parse i
 
       test.isTrue intercepted.message.lastIndexOf('Exception processing PeerDB fields: Error: Test exception', 0) is 0
