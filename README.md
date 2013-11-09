@@ -9,6 +9,7 @@ Planned features are:
  * versioning of all changes to documents
  * schema migrations
  * integration with [full-text search](http://www.elasticsearch.org/)
+ * [strict-typed schema validation](https://github.com/balderdashy/anchor)
 
 Adding this package to your [Meteor](http://www.meteor.com/) application adds `Document` object into the global scope.
 
