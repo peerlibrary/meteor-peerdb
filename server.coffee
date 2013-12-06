@@ -330,4 +330,11 @@ Meteor.startup ->
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   Document._retryDelayed true
 
-  setupObservers()
+  # TODO: Use official API when it will be available: https://github.com/meteor/meteor/issues/180
+  if process.env.NODE_ENV is 'production' or Meteor.settings?.production or Meteor.settings?.public?.production
+    # Setup observers and run all initial updates in blocking mode on production
+    setupObservers()
+  else
+    # Otherwise do it in the background
+    Meteor.defer ->
+      setupObservers()
