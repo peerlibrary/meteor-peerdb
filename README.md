@@ -78,7 +78,7 @@ If your order of definitions cannot be controlled or if you have circular defini
 If the function throws an exception that a variable is not yet defined, PeerDB will retry later. You can
 also call `Document.redefineAll()` after all your definitions to assure all your delayed definitions are
 processed. You can call this function if you for some reason want to redo all metadata definitions
-(only those defined as functions). For example, if you overrode (or monkey patch) document definitions and
+(only those defined as functions). For example, if you overrode (or monkey-patched) document definitions and
 would like metadata to use those new document definitions.
 
 If you want to reference the same document recursively, use string `'self'` as an argument to `@ReferenceField`.
