@@ -14,7 +14,7 @@ catchErrors = (f) ->
     try
       f args...
     catch e
-      Log.error "Exception processing PeerDB fields: #{ e }: #{ util.inspect args, depth: 10 }"
+      Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
 
 Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
   setupTargetObservers: =>
@@ -312,6 +312,13 @@ Document = class extends Document
       changed: catchErrors (id, fields) =>
         @_sourceUpdated id, fields
 
+  @setupMigrations: ->
+    @Meta.collection.find({}, fields: _id: 1).observeChanges
+      added: catchErrors (id, fields) =>
+        @Meta.collection.update id,
+          $set:
+            _migration: 1
+
 setupObservers = ->
   setupTargetObservers = (fields) ->
     for name, field of fields
@@ -325,10 +332,30 @@ setupObservers = ->
     setupTargetObservers document.Meta.fields
     document.setupSourceObservers()
 
+setupMigrations = ->
+  for document in Document.Meta.list
+    document.setupMigrations()
+
+migrations = ->
+  # We use a lower case collection name to signal it is a system collection
+  Migrations = new Meteor.Collection 'migrations'
+
+  # We fake support for migrations which will come in later versions
+  if Migrations.find({}, limit: 1).count() == 0
+    Migrations.insert
+      serial: 1
+      timestamp: moment.utc().toDate()
+      all: 0
+      migrated: 0
+
+  setupMigrations()
+
 Meteor.startup ->
   # To try delayed references one last time, this time we throw any exceptions
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   Document._retryDelayed true
+
+  migrations()
 
   # TODO: Use official API when it will be available: https://github.com/meteor/meteor/issues/180
   if process.env.NODE_ENV is 'production' or Meteor.settings?.production or Meteor.settings?.public?.production
