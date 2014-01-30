@@ -317,7 +317,7 @@ Document = class extends Document
       added: catchErrors (id, fields) =>
         @Meta.collection.update id,
           $set:
-            _migration: 1
+            _schema: '1.0.0'
 
 setupObservers = ->
   setupTargetObservers = (fields) ->
