@@ -313,8 +313,16 @@ Document = class extends Document
         @_sourceUpdated id, fields
 
   @setupMigrations: ->
-    @Meta.collection.find({}, fields: _id: 1).observeChanges
+    @Meta.collection.find(
+      _schema: null
+    ,
+      fields:
+        _id: 1
+        _schema: 1
+    ).observeChanges
       added: catchErrors (id, fields) =>
+        return if fields._schema
+
         @Meta.collection.update id,
           $set:
             _schema: '1.0.0'
