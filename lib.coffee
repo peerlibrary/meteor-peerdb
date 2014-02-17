@@ -98,6 +98,9 @@ class Document
   @Meta: (meta, dontList, throwErrors) ->
     originalMeta = @Meta
 
+    # For easier debugging
+    @_metaLocation = (new Error().stack).split('\n')[2].trim() unless @_metaLocation
+
     if _.isFunction meta
       try
         @Meta = meta()
