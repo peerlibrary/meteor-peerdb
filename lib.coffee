@@ -47,7 +47,7 @@ class Document
       if targetDocumentOrCollection is 'self'
         @targetDocument = 'self'
         @targetCollection = null
-      else if _.isFunction(targetDocumentOrCollection) and new targetDocumentOrCollection instanceof Document
+      else if _.isFunction(targetDocumentOrCollection) and new targetDocumentOrCollection() instanceof Document
         @targetDocument = targetDocumentOrCollection
         @targetCollection = targetDocumentOrCollection.Meta.collection
       else if targetDocumentOrCollection
