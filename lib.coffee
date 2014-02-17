@@ -261,8 +261,8 @@ class Document
     for document in Document.Meta.list
       @_validateFields document.Meta.fields
 
-  @redefineAll: (throwErrors) ->
-    Document._retryDelayed throwErrors
+  @redefineAll: (dontThrowErrors) ->
+    Document._retryDelayed not dontThrowErrors
 
     for document, i in Document.Meta.list when _.isFunction document.Meta._metaData
       metadata = document.Meta._metaData

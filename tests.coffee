@@ -2711,8 +2711,12 @@ Tinytest.add 'meteor-peerdb - invalid documents', (test) ->
         first: @ReferenceField First
 
   test.throws ->
-    Document.redefineAll()
+    Document.redefineAll true
   , /Undefined target collection/
+
+  test.throws ->
+    Document.redefineAll()
+  , /Invalid target document or collection/
 
   # Restore
   Document.Meta.list = _.clone list
