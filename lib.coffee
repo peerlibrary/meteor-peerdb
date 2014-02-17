@@ -71,8 +71,8 @@ class Document
     validate: =>
       super()
 
-      throw new Error "Undefined target collection" unless @targetCollection
-      throw new Error "Undefined target document" if _.isUndefined @targetDocument
+      throw new Error "Undefined target collection (for #{ @sourcePath })" unless @targetCollection
+      throw new Error "Undefined target document (for #{ @sourcePath })" if _.isUndefined @targetDocument
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
     constructor: (targetDocumentOrCollection, fields, @required) ->
@@ -83,7 +83,7 @@ class Document
     contributeToClass: (sourceDocument, sourcePath, ancestorArray) =>
       super sourceDocument, sourcePath, ancestorArray
 
-      throw new Error "Reference field directly in an array cannot be optional" if @ancestorArray and @sourcePath is @ancestorArray and not @required
+      throw new Error "Reference field directly in an array cannot be optional (for #{ @sourcePath })" if @ancestorArray and @sourcePath is @ancestorArray and not @required
 
   @ReferenceField: (args...) ->
     new @_ReferenceField args...
