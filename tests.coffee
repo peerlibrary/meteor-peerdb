@@ -540,6 +540,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # automatically populated with additional fields as defined in @ReferenceField
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -643,6 +644,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -702,6 +704,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # person3 was removed, references should be removed as well, automatically
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -752,6 +755,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     # but lists should be kept as empty lists
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -858,10 +862,12 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second: null
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
 
@@ -885,12 +891,14 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
 
@@ -914,12 +922,14 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1'
@@ -944,12 +954,14 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1a'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1a'
@@ -974,12 +986,14 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2a'
       content: 'FooBar 1a'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1a'
@@ -1041,12 +1055,14 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
 
@@ -1070,12 +1086,14 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
+      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1'
@@ -1099,6 +1117,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
     # If directly referenced but optional document is removed, dependency is not removed as well, but set to null
     test.equal @circularSecond,
       _id: @circularSecondId
+      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
 ]
@@ -1134,10 +1153,12 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
+      _schema: '1.0.0'
       other: null
       content: 'FooBar 1'
     test.equal @recursive2,
       _id: @recursive2Id
+      _schema: '1.0.0'
       other: null
       content: 'FooBar 2'
 
@@ -1161,12 +1182,14 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
+      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @recursive2,
       _id: @recursive2Id
+      _schema: '1.0.0'
       other: null
       content: 'FooBar 2'
 
@@ -1190,12 +1213,14 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
+      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @recursive2,
       _id: @recursive2Id
+      _schema: '1.0.0'
       other:
         _id: @recursive1Id
         content: 'FooBar 1'
@@ -1220,12 +1245,14 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
+      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2'
       content: 'FooBar 1a'
     test.equal @recursive2,
       _id: @recursive2Id
+      _schema: '1.0.0'
       other:
         _id: @recursive1Id
         content: 'FooBar 1a'
@@ -1250,12 +1277,14 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
+      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2a'
       content: 'FooBar 1a'
     test.equal @recursive2,
       _id: @recursive2Id
+      _schema: '1.0.0'
       other:
         _id: @recursive1Id
         content: 'FooBar 1a'
@@ -1278,6 +1307,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
+      _schema: '1.0.0'
       other: null
       content: 'FooBar 1a'
 ]
@@ -1302,6 +1332,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
 
     test.equal @recursive,
       _id: @recursiveId
+      _schema: '1.0.0'
       other: null
       content: 'FooBar'
 
@@ -1323,6 +1354,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
 
     test.equal @recursive,
       _id: @recursiveId
+      _schema: '1.0.0'
       other:
         _id: @recursiveId
         content: 'FooBar'
@@ -1345,6 +1377,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
 
     test.equal @recursive,
       _id: @recursiveId
+      _schema: '1.0.0'
       other:
         _id: @recursiveId
         content: 'FooBara'
@@ -1555,6 +1588,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1618,6 +1652,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
 
     test.equal @postLink,
       _id: @postLinkId
+      _schema: '1.0.0'
       post:
         _id: @post._id
         subdocument:
@@ -1655,6 +1690,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
 
     test.equal @postLink,
       _id: @postLinkId
+      _schema: '1.0.0'
       post:
         _id: @post._id
         subdocument:
@@ -1682,6 +1718,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
 
     test.equal @postLink,
       _id: @postLinkId
+      _schema: '1.0.0'
       post:
         _id: @post._id
         subdocument:
@@ -1794,6 +1831,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1860,6 +1898,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1926,6 +1965,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1992,6 +2032,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2054,6 +2095,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2113,6 +2155,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2594,6 +2637,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
 
     test.equal @identityGenerator,
       _id: @identityGeneratorId
+      _schema: '1.0.0'
       source: 'foobar'
       result: 'foobar'
 
@@ -2631,6 +2675,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
 
     test.equal @identityGenerator,
       _id: @identityGeneratorId
+      _schema: '1.0.0'
       source: ['foobar2']
       result: 'foobar'
       results: ['foobar2']
@@ -2804,6 +2849,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2964,6 +3010,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3093,6 +3140,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
       subscribers: [
@@ -3221,6 +3269,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
       subscribers: [
@@ -3339,6 +3388,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
       subscribers: [
@@ -3447,6 +3497,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3556,6 +3607,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3675,6 +3727,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3798,6 +3851,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3921,6 +3975,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4044,6 +4099,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4167,6 +4223,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4289,6 +4346,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4408,6 +4466,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4532,6 +4591,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4657,6 +4717,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4723,6 +4784,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
+      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4782,6 +4844,6 @@ testAsyncMulti 'meteor-peerdb - exception while processing', [
       test.isTrue _.isString(i), i
       intercepted = EJSON.parse i
 
-      test.isTrue intercepted.message.lastIndexOf('Exception processing PeerDB fields: Error: Test exception', 0) is 0
+      test.isTrue intercepted.message.lastIndexOf('PeerDB exception: Error: Test exception', 0) is 0, intercepted.message
       test.equal intercepted.level, 'error'
 ]
