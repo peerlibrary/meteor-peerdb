@@ -182,6 +182,8 @@ class IdentityGenerator extends Document
 
 Document.redefineAll()
 
+ALL = [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+
 testDefinition = (test) ->
   test.equal Person.Meta.collection, Persons
   test.equal Person.Meta.fields, {}
@@ -405,7 +407,7 @@ testDefinition = (test) ->
   test.equal IdentityGenerator.Meta.fields.results.targetDocument.Meta.collection, IdentityGenerators
   test.equal IdentityGenerator.Meta.fields.results.fields, ['source']
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
 
   test.equal UserLink.Meta._initialized, 0
   test.equal PostLink.Meta._initialized, 1
@@ -798,7 +800,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   , /Reference field directly in an array cannot be optional/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
 
 Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   test.throws ->
@@ -812,7 +814,7 @@ Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   , /Field cannot be in a nested array/
 
   # Invalid document should not be added to the list
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
 
 testAsyncMulti 'meteor-peerdb - circular changes', [
   (test, expect) ->
@@ -1491,7 +1493,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     test.equal intercepted.message, "Not all delayed document definitions were successfully retried: BadPost"
     test.equal intercepted.level, 'error'
 
-    test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+    test.equal Document.Meta.list, ALL
     test.equal Document.Meta.delayed.length, 1
 
     # Clear delayed so that we can retry tests without errors
@@ -2220,7 +2222,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.third = @ReferenceField secondReferenceA
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2247,7 +2249,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.third = @ReferenceField secondReferenceB
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2263,7 +2265,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.third = @ReferenceField Person
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
@@ -2279,7 +2281,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
       meta.fields.first = @ReferenceField Person
       meta
 
-  test.equal Document.Meta.list, [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
+  test.equal Document.Meta.list, ALL
   test.equal Document.Meta.delayed.length, 3
   test.equal Document.Meta.delayed[0][0], First
   test.equal Document.Meta.delayed[1][0], Second
