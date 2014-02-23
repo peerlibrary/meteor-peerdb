@@ -96,10 +96,10 @@ class Document
     new @_GeneratedField args...
 
   @Meta: (meta, dontList, throwErrors) ->
-    originalMeta = @Meta
-
     # For easier debugging
     @_metaLocation = (new Error().stack).split('\n')[2].trim() unless @_metaLocation
+
+    originalMeta = @Meta
 
     if _.isFunction meta
       try
@@ -169,15 +169,17 @@ class Document
 
       if _.isFunction document.Meta._metaData
         if _.isFunction additionalMeta
-          @Meta => additionalMeta metadata()
+          newMeta = => additionalMeta metadata()
         else
-          @Meta => mergeMeta metadata(), additionalMeta
+          newMeta = => mergeMeta metadata(), additionalMeta
       else
         # We do not want to override metadata if it maybe shared among classes
         if _.isFunction additionalMeta
-          @Meta => additionalMeta _.clone metadata
+          newMeta = => additionalMeta _.clone metadata
         else
-          @Meta => mergeMeta _.clone(metadata), additionalMeta
+          newMeta = => mergeMeta _.clone(metadata), additionalMeta
+
+      @Meta newMeta
 
     else
       # Not delayed and not initialized - there was some exception when initializing somewhere so we should not really get here
