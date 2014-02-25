@@ -1,4 +1,5 @@
-INVALID_TARGET = "Invalid target document or collection"
+RESERVED_FIELDS = ['list', 'parent', 'delayed']
+INVALID_TARGET = "Invalid target document"
 
 isPlainObject = (obj) ->
   if not _.isObject(obj) or _.isArray(obj) or _.isFunction(obj)
@@ -24,35 +25,55 @@ startsWith = (string, start) ->
 removePrefix = (string, prefix) ->
   string.substring prefix.length
 
+getCurrentLocation = ->
+  # TODO: Does this work on the client side as well? Should we use Log._getCallerDetails?
+  lines = (new Error().stack).split('\n')
+  thisFile = (lines[2].match(/\((.*peerdb\/lib\.coffee).*\)$/))[1]
+  for line in lines[1..] when line.indexOf(thisFile) is -1
+    return line.trim().replace(/^at\s*/, '')
+
+collections = {}
+getCollection = (name, document) ->
+  transform = (doc) => new document doc
+
+  if collections[name]
+    collection = _.clone collections[name]
+    collection._transform = Deps._makeNonreactive transform
+  else
+    collection = new Meteor.Collection name, transform: transform
+    collections[name] = collection
+
+  collection
+
 class Document
   constructor: (doc) ->
     _.extend @, doc
 
   @_Field: class
     contributeToClass: (@sourceDocument, @sourcePath, @ancestorArray) =>
+      @_metaLocation = @sourceDocument._metaLocation
       @sourceCollection = @sourceDocument.Meta.collection
 
     validate: =>
-      throw new Error "Undefined source document" unless @sourceDocument
-      throw new Error "Undefined source path" unless @sourcePath
+      throw new Error "Missing meta location" unless @_metaLocation
+      throw new Error "Missing source path (from #{ @_metaLocation })" unless @sourcePath
+      throw new Error "Missing source document (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceDocument
+      throw new Error "Missing source collection (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceCollection
 
   @_ObservingField: class extends @_Field
 
   @_TargetedFieldsObservingField: class extends @_ObservingField
-    constructor: (targetDocumentOrCollection, @fields) ->
+    constructor: (targetDocument, @fields) ->
       super()
 
       @fields ?= []
 
-      if targetDocumentOrCollection is 'self'
+      if targetDocument is 'self'
         @targetDocument = 'self'
         @targetCollection = null
-      else if _.isFunction(targetDocumentOrCollection) and new targetDocumentOrCollection() instanceof Document
-        @targetDocument = targetDocumentOrCollection
-        @targetCollection = targetDocumentOrCollection.Meta.collection
-      else if targetDocumentOrCollection
-        @targetDocument = null
-        @targetCollection = targetDocumentOrCollection
+      else if _.isFunction(targetDocument) and new targetDocument() instanceof Document
+        @targetDocument = targetDocument
+        @targetCollection = targetDocument.Meta.collection
       else
         throw new Error INVALID_TARGET
 
@@ -71,144 +92,88 @@ class Document
     validate: =>
       super()
 
-      throw new Error "Undefined target collection (for #{ @sourcePath })" unless @targetCollection
-      throw new Error "Undefined target document (for #{ @sourcePath })" if _.isUndefined @targetDocument
+      throw new Error "Missing target document (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetDocument
+      throw new Error "Missing target collection (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetCollection
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
-    constructor: (targetDocumentOrCollection, fields, @required) ->
-      super targetDocumentOrCollection, fields
+    constructor: (targetDocument, fields, @required) ->
+      super targetDocument, fields
 
       @required ?= true
 
     contributeToClass: (sourceDocument, sourcePath, ancestorArray) =>
       super sourceDocument, sourcePath, ancestorArray
 
-      throw new Error "Reference field directly in an array cannot be optional (for #{ @sourcePath })" if @ancestorArray and @sourcePath is @ancestorArray and not @required
+      throw new Error "Reference field directly in an array cannot be optional (for #{ @sourcePath } from #{ @_metaLocation })" if @ancestorArray and @sourcePath is @ancestorArray and not @required
 
   @ReferenceField: (args...) ->
     new @_ReferenceField args...
 
   @_GeneratedField: class extends @_TargetedFieldsObservingField
-    constructor: (targetDocumentOrCollection, fields, @generator) ->
-      super targetDocumentOrCollection, fields
+    constructor: (targetDocument, fields, @generator) ->
+      super targetDocument, fields
 
   @GeneratedField: (args...) ->
     new @_GeneratedField args...
 
-  @Meta: (meta, dontList, throwErrors) ->
-    # For easier debugging
-    @_metaLocation = (new Error().stack).split('\n')[2].trim() unless @_metaLocation
+  @_Manager: class
+    constructor: (@meta) ->
 
-    originalMeta = @Meta
+    find: (args...) =>
+      @meta.collection.find args...
 
-    if _.isFunction meta
-      try
-        @Meta = meta()
-      catch e
-        if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
-          @_addDelayed @, meta
-          return
-        else
-          throw e
-    else
-      @Meta = meta
+    findOne: (args...) =>
+      @meta.collection.findOne args...
 
-    # Store original so othat we can rerun or extend
-    # We can assign directly, because we overrode @Meta at this point
-    @Meta._meta = originalMeta
-    @Meta._metaData = meta
+    insert: (args...) =>
+      @meta.collection.insert args...
 
-    @_initialize()
+    update: (args...) =>
+      @meta.collection.update args...
 
-    # If initialization was successful, we register the current document into the global list (Document.Meta.list)
-    unless dontList
-      Document.Meta.list.push @
-      # Store location in the list and that we have been successfully initialized
-      @Meta._initialized = Document.Meta.list.length - 1
+    upsert: (args...) =>
+      @meta.collection.upsert args...
 
-    @_retryDelayed()
+    remove: (args...) =>
+      @meta.collection.remove args...
 
-  @Meta.list = []
-  @Meta.delayed = []
-  @Meta._delayedCheckTimeout = null
+  @_setDelayedCheck: ->
+    return unless Document.Meta.delayed.length
 
-  @_ExtendMeta: (mixin, additionalMeta) ->
-    mergeMeta = (first, second) ->
-      deepExtend first, second
+    @_clearDelayedCheck()
 
-    unless _.isUndefined @Meta._delayed
-      # We have been delayed
-      [document, meta] = Document.Meta.delayed[@Meta._delayed]
+    Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
+      if Document.Meta.delayed.length
+        delayed = [] # Display friendly list of delayed documents
+        for [document, fields] in Document.Meta.delayed
+          delayed.push "#{ document.Meta._name } from #{ document._metaLocation }"
+        Log.error "Not all delayed document definitions were successfully retried:\n#{ delayed.join('\n') }"
+    , 1000 # ms
 
-      # Only functions can be delayed
-      assert _.isFunction meta
-
-      if _.isFunction additionalMeta
-        newMeta = => additionalMeta meta()
-      else
-        newMeta = => mergeMeta meta(), additionalMeta
-
-      if mixin
-        # Let us just update the list
-        Document.Meta.delayed[@Meta._delayed] = [@, newMeta]
-      else
-        @_addDelayed @, newMeta
-
-      # @_retryDelayed is called inside @Meta as well below
-      @_retryDelayed()
-
-    else if not _.isUndefined @Meta._initialized
-      # We have been already initialized
-      document = Document.Meta.list[@Meta._initialized]
-
-      # We remove it from the list because @Meta below will add it back
-      Document.Meta.list.splice @Meta._initialized, 1 if mixin
-
-      @Meta = document.Meta._meta
-      metadata = document.Meta._metaData
-
-      if _.isFunction document.Meta._metaData
-        if _.isFunction additionalMeta
-          newMeta = => additionalMeta metadata()
-        else
-          newMeta = => mergeMeta metadata(), additionalMeta
-      else
-        # We do not want to override metadata if it maybe shared among classes
-        if _.isFunction additionalMeta
-          newMeta = => additionalMeta _.clone metadata
-        else
-          newMeta = => mergeMeta _.clone(metadata), additionalMeta
-
-      @Meta newMeta
-
-    else
-      # Not delayed and not initialized - there was some exception when initializing somewhere so we should not really get here
-      assert false
-
-  @ExtendMeta: (additionalMeta) ->
-    @_ExtendMeta false, additionalMeta
-
-  @MixinMeta: (additionalMeta) ->
-    @_ExtendMeta true, additionalMeta
+  @_clearDelayedCheck: ->
+    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
 
   @_processFields: (fields, parent, ancestorArray) ->
+    assert fields
+    assert isPlainObject fields
+
     ancestorArray = ancestorArray or null
 
     res = {}
-    for name, field of fields or {}
-      throw new Error "Field names cannot contain '.': #{ name }" if name.indexOf('.') isnt -1
+    for name, field of fields
+      throw new Error "Field names cannot contain '.' (for #{ name } from #{ @_metaLocation })" if name.indexOf('.') isnt -1
 
       path = if parent then "#{ parent }.#{ name }" else name
       array = ancestorArray
 
       if _.isArray field
-        throw new Error "Array field has to contain exactly one element, not #{ field.length }: #{ path }" if field.length isnt 1
+        throw new Error "Array field has to contain exactly one element, not #{ field.length } (for #{ path } from #{ @_metaLocation })" if field.length isnt 1
         field = field[0]
 
         if array
           # TODO: Support nested arrays
           # See: https://jira.mongodb.org/browse/SERVER-831
-          throw new Error "Field cannot be in a nested array: #{ path }"
+          throw new Error "Field cannot be in a nested array (for #{ path } from #{ @_metaLocation })"
 
         array = path
 
@@ -218,39 +183,41 @@ class Document
       else if _.isObject field
         res[name] = @_processFields field, path, array
       else
-        throw new Error "Invalid value for field: #{ path }"
+        throw new Error "Invalid value for field (for #{ path } from #{ @_metaLocation })"
 
     res
 
-  @_initialize: ->
-    @Meta.fields = @_processFields @Meta.fields
-
-  @_addDelayed: (document, meta) ->
-    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
-
-    Document.Meta.delayed.push [document, meta]
-    # _delayed must be a subclass value, we do not want to change global Document.Meta
-    document.Meta = class extends document.Meta
-      @_delayed: Document.Meta.delayed.length - 1
-
-    Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
-      if Document.Meta.delayed.length
-        delayed = [] # Display friendly list of delayed documents
-        for [document, meta] in Document.Meta.delayed
-          delayed.push document.name or document
-        Log.error "Not all delayed document definitions were successfully retried: #{ delayed }"
-    , 1000 # ms
-
   @_retryDelayed: (throwErrors) ->
-    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+    @_clearDelayedCheck()
 
     # We store the delayed list away, so that we can iterate over it
     delayed = Document.Meta.delayed
-    # And set it back to empty list, document.Meta will populate it again as necessary
+    # And set it back to the empty list, we will add to it again as necessary
     Document.Meta.delayed = []
-    for [document, meta] in delayed
-      delete document.Meta._delayed if _.has document.Meta, '_delayed'
-      document.Meta meta, false, throwErrors
+
+    for [document, fieldsFunction] in delayed
+      try
+        fields = fieldsFunction.call document, {}
+      catch e
+        if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
+          @_addDelayed document, fieldsFunction
+          continue
+        else
+          throw new Error "Invalid fields (from #{ document._metaLocation }): #{ if e.stack then "#{ e.stack }\n---" else e.stringOf?() or e }"
+
+      throw new Error "No fields returned (from #{ document._metaLocation })" unless fields
+      throw new Error "Returned fields should be a plain object (from #{ document._metaLocation })" unless isPlainObject fields
+
+      document.Meta.fields = document._processFields fields
+
+    @_setDelayedCheck()
+
+  @_addDelayed: (document, fields) ->
+    @_clearDelayedCheck()
+
+    Document.Meta.delayed.push [document, fields]
+
+    @_setDelayedCheck()
 
   @_validateFields: (obj) ->
     for name, field of obj
@@ -259,19 +226,59 @@ class Document
       else
         @_validateFields field
 
+  @Meta: (meta) ->
+    # For easier debugging and better error messages
+    @_metaLocation = getCurrentLocation()
+
+    for field in RESERVED_FIELDS or startsWith field, '_'
+      throw "Reserved meta field name: #{ field }" if field of meta
+
+    throw new Error "Missing document name" unless meta.name
+    throw new Error "Document name does not match class name" if @name and @name isnt meta.name
+
+    name = meta.name
+    currentFields = meta.fields or (fs) -> fs
+    parentFields = @Meta._fields
+    if parentFields
+      fields = (fs) -> currentFields parentFields fs
+    else
+      fields = currentFields
+
+    meta = _.omit meta, 'name', 'fields'
+    meta._fields = fields # Fields function
+    meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
+
+    if _.isString meta.collection
+      meta.collection = getCollection meta.collection, @
+    else if not meta.collection
+      meta.collection = getCollection "#{ name }s", @
+
+    if @Meta._name
+      meta.parent = @Meta
+
+    parentMeta = @Meta
+    clonedParentMeta = -> parentMeta.apply @, arguments
+    @Meta = _.extend clonedParentMeta, @Meta, meta
+
+    @documents = new @_Manager @Meta
+
+    @_addDelayed @, fields
+
+    Document.Meta.list.push @
+
+    @_retryDelayed()
+
+  @Meta.list = []
+  @Meta.delayed = []
+  @Meta._delayedCheckTimeout = null
+
   @validateAll: ->
     for document in Document.Meta.list
+      throw new Error "Missing fields (from #{ document._metaLocation })" unless document.Meta.fields
       @_validateFields document.Meta.fields
 
-  @redefineAll: (dontThrowErrors) ->
+  @defineAll: (dontThrowErrors) ->
     Document._retryDelayed not dontThrowErrors
-
-    for document, i in Document.Meta.list when _.isFunction document.Meta._metaData
-      metadata = document.Meta._metaData
-      document.Meta = document.Meta._meta
-      document.Meta metadata, true
-      document.Meta._initialized = i
-
     Document.validateAll()
 
 @Document = Document

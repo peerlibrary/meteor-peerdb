@@ -3,44 +3,6 @@ if Meteor.isServer
 else
   WAIT_TIME = __meteor_runtime_config__?.WAIT_TIME or 500
 
-Persons = new Meteor.Collection 'Persons', transform: (doc) => new Person doc
-Posts = new Meteor.Collection 'Posts', transform: (doc) => new Post doc
-UserLinks = new Meteor.Collection 'UserLinks', transform: (doc) => new UserLink doc
-PostLinks = new Meteor.Collection 'PostLinks', transform: (doc) => new PostLink doc
-CircularFirsts = new Meteor.Collection 'CircularFirsts', transform: (doc) => new CircularFirst doc
-CircularSeconds = new Meteor.Collection 'CircularSeconds', transform: (doc) => new CircularSecond doc
-Recursives = new Meteor.Collection 'Recursives', transform: (doc) => new Recursive doc
-IdentityGenerators = new Meteor.Collection 'IdentityGenerators', transform: (doc) => new IdentityGenerator doc
-
-if Meteor.isServer
-  # Initialize the database
-  Persons.remove {}
-  Posts.remove {}
-  UserLinks.remove {}
-  PostLinks.remove {}
-  CircularFirsts.remove {}
-  CircularSeconds.remove {}
-  Recursives.remove {}
-  IdentityGenerators.remove {}
-  Meteor.users.remove {}
-
-  Meteor.publish null, ->
-    Persons.find()
-  Meteor.publish null, ->
-    Posts.find()
-  Meteor.publish null, ->
-    UserLinks.find()
-  Meteor.publish null, ->
-    PostLinks.find()
-  Meteor.publish null, ->
-    CircularFirsts.find()
-  Meteor.publish null, ->
-    CircularSeconds.find()
-  Meteor.publish null, ->
-    Recursives.find()
-  Meteor.publish null, ->
-    IdentityGenerators.find()
-
 # The order of documents here tests delayed definitions
 
 class Post extends Document
@@ -51,9 +13,9 @@ class Post extends Document
   #   nested
   #     body
 
-  @Meta =>
-    collection: Posts
-    fields:
+  @Meta
+    name: 'Post'
+    fields: =>
       # We can reference other document
       author: @ReferenceField Person, ['username']
       # Or an array of documents
@@ -99,52 +61,61 @@ class Post extends Document
           [fields._id, tags]
       ]
 
-# To test MixinMeta when initial Meta is delayed
+# Extending delayed document
 class Post extends Post
-  @MixinMeta (meta) =>
-    meta.fields.subdocument.persons = [@ReferenceField Person, ['username']]
-    meta
+  @Meta
+    name: 'Post'
+    fields: (fields) =>
+      fields.subdocument.persons = [@ReferenceField Person, ['username']]
+      fields
+
+class User extends Document
+  @Meta
+    name: 'User'
+    # Specifying collection directly
+    collection: Meteor.users
 
 class UserLink extends Document
   @Meta
-    collection: UserLinks
-    fields:
-      # We can reference just a collection
-      user: @ReferenceField Meteor.users, ['username'], false
+    name: 'UserLink'
+    fields: =>
+      user: @ReferenceField User, ['username'], false
 
 class PostLink extends Document
   @Meta
-    collection: PostLinks
+    name: 'PostLink'
 
-# To test MixinMeta when initial Meta is not a function
+# To test extending when initial document has no fields
 class PostLink extends PostLink
-  @MixinMeta (meta) =>
-    meta.fields ?= {}
-    meta.fields.post = @ReferenceField Posts, ['subdocument.person', 'subdocument.persons']
-    meta
+  @Meta
+    name: 'PostLink'
+    fields: (fields) =>
+      fields.post = @ReferenceField Post, ['subdocument.person', 'subdocument.persons']
+      fields
 
 class CircularFirst extends Document
   # Other fields:
   #   content
 
-  @Meta =>
-    collection: CircularFirsts
+  @Meta
+    name: 'CircularFirst'
 
-# To test MixinMeta when initial Meta is a function
+# To test extending when initial document has no fields and fields will be delayed
 class CircularFirst extends CircularFirst
-  @MixinMeta (meta) =>
-    meta.fields ?= {}
-    # We can reference circular documents
-    meta.fields.second = @ReferenceField CircularSecond, ['content']
-    meta
+  @Meta
+    name: 'CircularFirst'
+    fields: (fields) =>
+      # We can reference circular documents
+      fields.second = @ReferenceField CircularSecond, ['content']
+      fields
 
 class CircularSecond extends Document
   # Other fields:
   #   content
 
-  @Meta =>
-    collection: CircularSeconds
-    fields:
+  @Meta
+    name: 'CircularSecond'
+    fields: =>
       # But of course one should not be required so that we can insert without warnings
       first: @ReferenceField CircularFirst, ['content'], false
 
@@ -154,24 +125,24 @@ class Person extends Document
   #   displayName
 
   @Meta
-    collection: Persons
+    name: 'Person'
 
 class Recursive extends Document
   # Other fields:
   #   content
 
   @Meta
-    collection: Recursives
-    fields:
+    name: 'Recursive'
+    fields: =>
       other: @ReferenceField 'self', ['content'], false
 
 class IdentityGenerator extends Document
   # Other fields:
   #   source
 
-  @Meta =>
-    collection: IdentityGenerators
-    fields:
+  @Meta
+    name: 'IdentityGenerator'
+    fields: =>
       result: @GeneratedField 'self', ['source'], (fields) ->
         throw new Error "Test exception" if fields.source is 'exception'
         return [fields._id, fields.source]
@@ -180,7 +151,48 @@ class IdentityGenerator extends Document
           return [fields._id, fields.source]
       ]
 
-Document.redefineAll()
+# Extending and renaming the class, this creates new collection as well
+class SpecialPost extends Post
+  @Meta
+    name: 'SpecialPost'
+    fields: (fields) =>
+      fields.special = @ReferenceField Person
+      fields
+
+Document.defineAll()
+
+if Meteor.isServer
+  # Initialize the database
+  Post.documents.remove {}
+  User.documents.remove {}
+  UserLink.documents.remove {}
+  PostLink.documents.remove {}
+  CircularFirst.documents.remove {}
+  CircularSecond.documents.remove {}
+  Person.documents.remove {}
+  Recursive.documents.remove {}
+  IdentityGenerator.documents.remove {}
+  SpecialPost.documents.remove {}
+
+  Meteor.publish null, ->
+    Post.documents.find()
+  # User is already published as Meteor.users
+  Meteor.publish null, ->
+    UserLink.documents.find()
+  Meteor.publish null, ->
+    PostLink.documents.find()
+  Meteor.publish null, ->
+    CircularFirst.documents.find()
+  Meteor.publish null, ->
+    CircularSecond.documents.find()
+  Meteor.publish null, ->
+    Person.documents.find()
+  Meteor.publish null, ->
+    Recursive.documents.find()
+  Meteor.publish null, ->
+    IdentityGenerator.documents.find()
+  Meteor.publish null, ->
+    SpecialPost.documents.find()
 
 ALL = [UserLink, PostLink, CircularSecond, Person, CircularFirst, Recursive, Post, IdentityGenerator]
 
@@ -440,8 +452,8 @@ testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
     testDefinition test
 
-    # We should be able to call redefineAll multiple times
-    Document.redefineAll()
+    # We should be able to call defineAll multiple times
+    Document.defineAll()
 
     testDefinition test
 
@@ -2518,7 +2530,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.third.targetDocument.Meta.collection, Persons
   test.equal Third.Meta.fields.third.fields, []
 
-  Document.redefineAll()
+  Document.defineAll()
 
   test.equal Second.Meta.collection, Posts
   test.equal _.size(Second.Meta.fields), 2
@@ -2692,7 +2704,7 @@ Tinytest.add 'meteor-peerdb - invalid documents', (test) ->
         first: @ReferenceField First
 
   test.throws ->
-    Document.redefineAll()
+    Document.defineAll()
   , /Undefined target collection/
 
   # Restore
@@ -2713,11 +2725,11 @@ Tinytest.add 'meteor-peerdb - invalid documents', (test) ->
         first: @ReferenceField First
 
   test.throws ->
-    Document.redefineAll true
+    Document.defineAll true
   , /Undefined target collection/
 
   test.throws ->
-    Document.redefineAll()
+    Document.defineAll()
   , /Invalid target document or collection/
 
   # Restore
