@@ -5083,3 +5083,248 @@ testAsyncMulti 'meteor-peerdb - exception while processing', [
       test.isTrue intercepted.message.lastIndexOf('PeerDB exception: Error: Test exception', 0) is 0, intercepted.message
       test.equal intercepted.level, 'error'
 ]
+
+testAsyncMulti 'meteor-peerdb - instances', [
+  (test, expect) ->
+    testDefinition test
+
+    Person.documents.insert
+      username: 'person1'
+      displayName: 'Person 1'
+    ,
+      expect (error, person1Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person1Id
+        @person1Id = person1Id
+
+    Person.documents.insert
+      username: 'person2'
+      displayName: 'Person 2'
+    ,
+      expect (error, person2Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person2Id
+        @person2Id = person2Id
+
+    Person.documents.insert
+      username: 'person3'
+      displayName: 'Person 3'
+    ,
+      expect (error, person3Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person3Id
+        @person3Id = person3Id
+
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id
+    @person2 = Person.documents.findOne @person2Id
+    @person3 = Person.documents.findOne @person3Id
+
+    test.instanceOf @person1, Person
+    test.equal @person1.username, 'person1'
+    test.equal @person1.displayName, 'Person 1'
+    test.instanceOf @person2, Person
+    test.equal @person2.username, 'person2'
+    test.equal @person2.displayName, 'Person 2'
+    test.instanceOf @person3, Person
+    test.equal @person3.username, 'person3'
+    test.equal @person3.displayName, 'Person 3'
+
+    Post.documents.insert
+      author:
+        _id: @person1._id
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+        persons: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+        optional:
+          _id: @person3._id
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId = postId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @post = Post.documents.findOne @postId
+
+    test.instanceOf @post, Post
+
+    plainObject = _.object _.pairs @post
+
+    test.equal plainObject,
+      _id: @postId
+      _schema: '1.0.0'
+      author:
+        _id: @person1._id
+        username: @person1.username
+      # subscribers have only ids
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      # But reviewers have usernames as well
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
+
+    SpecialPost.documents.insert
+      author:
+        _id: @person1._id
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+        persons: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+        optional:
+          _id: @person3._id
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+      special:
+        _id: @person1._id
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId = postId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @post = SpecialPost.documents.findOne @postId
+
+    test.instanceOf @post, SpecialPost
+
+    plainObject = _.object _.pairs @post
+
+    test.equal plainObject,
+      _id: @postId
+      _schema: '1.0.0'
+      author:
+        _id: @person1._id
+        username: @person1.username
+      # subscribers have only ids
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      # But reviewers have usernames as well
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+      ]
+      special:
+        _id: @person1._id
+]
