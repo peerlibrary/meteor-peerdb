@@ -1,4 +1,6 @@
-RESERVED_FIELDS = ['list', 'parent', 'delayed']
+globals = @
+
+RESERVED_FIELDS = ['parent']
 INVALID_TARGET = "Invalid target document"
 
 isPlainObject = (obj) ->
@@ -28,9 +30,10 @@ removePrefix = (string, prefix) ->
 getCurrentLocation = ->
   # TODO: Does this work on the client side as well? Should we use Log._getCallerDetails?
   lines = (new Error().stack).split('\n')
-  thisFile = (lines[2].match(/\((.*peerdb\/lib\.coffee).*\)$/))[1]
-  for line in lines[1..] when line.indexOf(thisFile) is -1
+  thisFile = (lines[1].match(/\((.*peerdb\/lib\.coffee).*\)$/))[1]
+  for line in lines[2..] when line.indexOf(thisFile) is -1
     return line.trim().replace(/^at\s*/, '')
+  assert false
 
 collections = {}
 getCollection = (name, document) ->
@@ -45,13 +48,13 @@ getCollection = (name, document) ->
 
   collection
 
-class Document
+class globals.Document
   constructor: (doc) ->
     _.extend @, doc
 
   @_Field: class
     contributeToClass: (@sourceDocument, @sourcePath, @ancestorArray) =>
-      @_metaLocation = @sourceDocument._metaLocation
+      @_metaLocation = @sourceDocument.Meta._location
       @sourceCollection = @sourceDocument.Meta.collection
 
     validate: =>
@@ -59,6 +62,7 @@ class Document
       throw new Error "Missing source path (from #{ @_metaLocation })" unless @sourcePath
       throw new Error "Missing source document (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceDocument
       throw new Error "Missing source collection (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceCollection
+      throw new Error "Source document not defined (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceDocument.Meta._listIndex?
 
   @_ObservingField: class extends @_Field
 
@@ -71,7 +75,7 @@ class Document
       if targetDocument is 'self'
         @targetDocument = 'self'
         @targetCollection = null
-      else if _.isFunction(targetDocument) and new targetDocument() instanceof Document
+      else if _.isFunction(targetDocument) and new targetDocument() instanceof globals.Document
         @targetDocument = targetDocument
         @targetCollection = targetDocument.Meta.collection
       else
@@ -94,6 +98,7 @@ class Document
 
       throw new Error "Missing target document (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetDocument
       throw new Error "Missing target collection (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetCollection
+      throw new Error "Target document not defined (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetDocument.Meta._listIndex?
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
     constructor: (targetDocument, fields, @required) ->
@@ -138,20 +143,20 @@ class Document
       @meta.collection.remove args...
 
   @_setDelayedCheck: ->
-    return unless Document.Meta.delayed.length
+    return unless globals.Document._delayed.length
 
     @_clearDelayedCheck()
 
-    Document.Meta._delayedCheckTimeout = Meteor.setTimeout ->
-      if Document.Meta.delayed.length
+    globals.Document._delayedCheckTimeout = Meteor.setTimeout ->
+      if globals.Document._delayed.length
         delayed = [] # Display friendly list of delayed documents
-        for [document, fields] in Document.Meta.delayed
-          delayed.push "#{ document.Meta._name } from #{ document._metaLocation }"
+        for [document, fields] in globals.Document._delayed
+          delayed.push "#{ document.Meta._name } from #{ document.Meta._location }"
         Log.error "Not all delayed document definitions were successfully retried:\n#{ delayed.join('\n') }"
     , 1000 # ms
 
   @_clearDelayedCheck: ->
-    Meteor.clearTimeout Document.Meta._delayedCheckTimeout if Document.Meta._delayedCheckTimeout
+    Meteor.clearTimeout globals.Document._delayedCheckTimeout if globals.Document._delayedCheckTimeout
 
   @_processFields: (fields, parent, ancestorArray) ->
     assert fields
@@ -161,19 +166,19 @@ class Document
 
     res = {}
     for name, field of fields
-      throw new Error "Field names cannot contain '.' (for #{ name } from #{ @_metaLocation })" if name.indexOf('.') isnt -1
+      throw new Error "Field names cannot contain '.' (for #{ name } from #{ @Meta._location })" if name.indexOf('.') isnt -1
 
       path = if parent then "#{ parent }.#{ name }" else name
       array = ancestorArray
 
       if _.isArray field
-        throw new Error "Array field has to contain exactly one element, not #{ field.length } (for #{ path } from #{ @_metaLocation })" if field.length isnt 1
+        throw new Error "Array field has to contain exactly one element, not #{ field.length } (for #{ path } from #{ @Meta._location })" if field.length isnt 1
         field = field[0]
 
         if array
           # TODO: Support nested arrays
           # See: https://jira.mongodb.org/browse/SERVER-831
-          throw new Error "Field cannot be in a nested array (for #{ path } from #{ @_metaLocation })"
+          throw new Error "Field cannot be in a nested array (for #{ path } from #{ @Meta._location })"
 
         array = path
 
@@ -183,7 +188,7 @@ class Document
       else if _.isObject field
         res[name] = @_processFields field, path, array
       else
-        throw new Error "Invalid value for field (for #{ path } from #{ @_metaLocation })"
+        throw new Error "Invalid value for field (for #{ path } from #{ @Meta._location })"
 
     res
 
@@ -191,45 +196,81 @@ class Document
     @_clearDelayedCheck()
 
     # We store the delayed list away, so that we can iterate over it
-    delayed = Document.Meta.delayed
+    delayed = globals.Document._delayed
     # And set it back to the empty list, we will add to it again as necessary
-    Document.Meta.delayed = []
+    globals.Document._delayed = []
 
     for [document, fieldsFunction] in delayed
+      delete document.Meta._delayIndex
+
+    for [document, fieldsFunction] in delayed
+      assert not document.Meta._listIndex
+
+      if document.Meta._replaced
+        continue
+
       try
         fields = fieldsFunction.call document, {}
+        document.Meta.fields = document._processFields fields if fields and isPlainObject fields
       catch e
         if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed document, fieldsFunction
           continue
         else
-          throw new Error "Invalid fields (from #{ document._metaLocation }): #{ if e.stack then "#{ e.stack }\n---" else e.stringOf?() or e }"
+          throw new Error "Invalid fields (from #{ document.Meta._location }): #{ if e.stack then "#{ e.stack }\n---" else e.stringOf?() or e }"
 
-      throw new Error "No fields returned (from #{ document._metaLocation })" unless fields
-      throw new Error "Returned fields should be a plain object (from #{ document._metaLocation })" unless isPlainObject fields
+      throw new Error "No fields returned (from #{ document.Meta._location })" unless fields
+      throw new Error "Returned fields should be a plain object (from #{ document.Meta._location })" unless isPlainObject fields
 
-      document.Meta.fields = document._processFields fields
+      if document.Meta.replaceParent
+        throw new Error "Replace parent set, but no parent known (from #{ document.Meta._location })" unless document.Meta.parent
+
+        assert not document.Meta.parent._replaced
+        document.Meta.parent._replaced = true
+
+        if document.Meta.parent._listIndex?
+          globals.Document.list.splice document.Meta.parent._listIndex, 1
+          delete document.Meta.parent._listIndex
+
+          # Renumber documents
+          for doc, i in globals.Document.list
+            doc.Meta._listIndex = i
+
+        else if document.Meta.parent._delayIndex?
+          globals.Document._delayed.splice document.Meta.parent._delayIndex, 1
+          delete document.Meta.parent._delayIndex
+
+          # Renumber documents
+          for [doc, fields], i in globals.Document._delayed
+            doc.Meta._delayIndex = i
+
+      globals.Document.list.push document
+      document.Meta._listIndex = globals.Document.list.length - 1
+      delete document.Meta._delayIndex
+
+      assert not document.Meta._replaced
 
     @_setDelayedCheck()
 
   @_addDelayed: (document, fields) ->
     @_clearDelayedCheck()
 
-    Document.Meta.delayed.push [document, fields]
+    assert not document.Meta._replaced
+    assert not document.Meta._listIndex
+
+    globals.Document._delayed.push [document, fields]
+    document.Meta._delayIndex = globals.Document._delayed.length - 1
 
     @_setDelayedCheck()
 
   @_validateFields: (obj) ->
     for name, field of obj
-      if field instanceof Document._Field
+      if field instanceof globals.Document._Field
         field.validate()
       else
         @_validateFields field
 
   @Meta: (meta) ->
-    # For easier debugging and better error messages
-    @_metaLocation = getCurrentLocation()
-
     for field in RESERVED_FIELDS or startsWith field, '_'
       throw "Reserved meta field name: #{ field }" if field of meta
 
@@ -247,6 +288,8 @@ class Document
     meta = _.omit meta, 'name', 'fields'
     meta._fields = fields # Fields function
     meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
+    # For easier debugging and better error messages
+    meta._location = getCurrentLocation()
 
     if _.isString meta.collection
       meta.collection = getCollection meta.collection, @
@@ -258,27 +301,27 @@ class Document
 
     parentMeta = @Meta
     clonedParentMeta = -> parentMeta.apply @, arguments
-    @Meta = _.extend clonedParentMeta, @Meta, meta
+    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent'
+    @Meta = _.extend clonedParentMeta, filteredParentMeta, meta
 
     @documents = new @_Manager @Meta
 
     @_addDelayed @, fields
-
-    Document.Meta.list.push @
-
     @_retryDelayed()
 
-  @Meta.list = []
-  @Meta.delayed = []
-  @Meta._delayedCheckTimeout = null
+  @list = []
+  @_delayed = []
+  @_delayedCheckTimeout = null
 
   @validateAll: ->
-    for document in Document.Meta.list
-      throw new Error "Missing fields (from #{ document._metaLocation })" unless document.Meta.fields
+    for document in globals.Document.list
+      throw new Error "Missing fields (from #{ document.Meta._location })" unless document.Meta.fields
       @_validateFields document.Meta.fields
 
-  @defineAll: (dontThrowErrors) ->
-    Document._retryDelayed not dontThrowErrors
-    Document.validateAll()
+  @defineAll: (dontThrowDelayedErrors) ->
+    globals.Document._retryDelayed not dontThrowDelayedErrors
+    globals.Document.validateAll()
 
-@Document = Document
+    assert dontThrowDelayedErrors or globals.Document._delayed.length is 0
+
+Document = globals.Document

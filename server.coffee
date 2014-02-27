@@ -1,3 +1,5 @@
+globals = @
+
 fieldsToProjection = (fields) ->
   projection =
     _id: 1 # In the case we want only id, that is, detect deletions
@@ -16,7 +18,7 @@ catchErrors = (f) ->
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
 
-Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsObservingField
+class globals.Document._TargetedFieldsObservingField extends globals.Document._TargetedFieldsObservingField
   setupTargetObservers: =>
     referenceFields = fieldsToProjection @fields
     @targetCollection.find({}, fields: referenceFields).observeChanges
@@ -30,14 +32,14 @@ Document._TargetedFieldsObservingField = class extends Document._TargetedFieldsO
         @removeSource id
 
 # Have to refresh with new methods from TargetedFieldsObservingField
-_.extend Document._ReferenceField.prototype,
-  _.omit(Document._TargetedFieldsObservingField.prototype, 'constructor'),
-  _.omit(Document._ReferenceField.prototype, 'constructor')
-_.extend Document._GeneratedField.prototype,
-  _.omit(Document._TargetedFieldsObservingField.prototype, 'constructor'),
-  _.omit(Document._GeneratedField.prototype, 'constructor')
+_.extend globals.Document._ReferenceField.prototype,
+  _.omit(globals.Document._TargetedFieldsObservingField.prototype, 'constructor'),
+  _.omit(globals.Document._ReferenceField.prototype, 'constructor')
+_.extend globals.Document._GeneratedField.prototype,
+  _.omit(globals.Document._TargetedFieldsObservingField.prototype, 'constructor'),
+  _.omit(globals.Document._GeneratedField.prototype, 'constructor')
 
-Document._ReferenceField = class extends Document._ReferenceField
+class globals.Document._ReferenceField extends globals.Document._ReferenceField
   updateSource: (id, fields) =>
     # Just to be sure
     return if _.isEmpty fields
@@ -172,7 +174,7 @@ Document._ReferenceField = class extends Document._ReferenceField
     # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
     @updateSource target._id, _.omit target, '_id'
 
-Document._GeneratedField = class extends Document._GeneratedField
+class globals.Document._GeneratedField extends globals.Document._GeneratedField
   _updateSourceField: (id, fields) =>
     [selector, sourceValue] = @generator fields
 
@@ -255,7 +257,7 @@ Document._GeneratedField = class extends Document._GeneratedField
   updatedWithValue: (id, value) =>
     # Do nothing. Code should not be updating generated field by itself anyway.
 
-Document = class extends Document
+class globals.Document extends globals.Document
   @_sourceFieldUpdated: (id, name, value, field) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     return if _.isUndefined value
@@ -265,7 +267,7 @@ Document = class extends Document
     # We should be subscribed only to those updates which are defined in @Meta.fields
     assert field
 
-    if field instanceof Document._ObservingField
+    if field instanceof globals.Document._ObservingField
       if field.ancestorArray and name is field.ancestorArray
         unless _.isArray value
           Log.error "Document's '#{ id }' field '#{ name }' was updated with a non-array value: #{ util.inspect value }"
@@ -276,7 +278,7 @@ Document = class extends Document
       for v in value
         field.updatedWithValue id, v
 
-    else if field not instanceof Document._Field
+    else if field not instanceof globals.Document._Field
       value = [value] unless _.isArray value
 
       # If value is an array but it should not be, we cannot do much else.
@@ -298,9 +300,9 @@ Document = class extends Document
 
     sourceFieldsWalker = (obj) ->
       for name, field of obj
-        if field instanceof Document._ObservingField
+        if field instanceof globals.Document._ObservingField
           sourceFields[field.sourcePath] = 1
-        else if field not instanceof Document._Field
+        else if field not instanceof globals.Document._Field
           sourceFieldsWalker field
 
     sourceFieldsWalker @Meta.fields
@@ -331,17 +333,17 @@ setupObservers = ->
   setupTargetObservers = (fields) ->
     for name, field of fields
       # There are no arrays anymore here, just objects (for subdocuments) or fields
-      if field instanceof Document._ObservingField
+      if field instanceof globals.Document._ObservingField
         field.setupTargetObservers()
-      else if field not instanceof Document._Field
+      else if field not instanceof globals.Document._Field
         setupTargetObservers field
 
-  for document in Document.Meta.list
+  for document in globals.Document.list
     setupTargetObservers document.Meta.fields
     document.setupSourceObservers()
 
 setupMigrations = ->
-  for document in Document.Meta.list
+  for document in globals.Document.list
     document.setupMigrations()
 
 migrations = ->
@@ -361,7 +363,7 @@ migrations = ->
 Meteor.startup ->
   # To try delayed references one last time, this time we throw any exceptions
   # (Otherwise setupObservers would trigger strange exceptions anyway)
-  Document._retryDelayed true
+  globals.Document._retryDelayed true
 
   migrations()
 
@@ -373,3 +375,5 @@ Meteor.startup ->
     # Otherwise do it in the background
     Meteor.defer ->
       setupObservers()
+
+Document = globals.Document
