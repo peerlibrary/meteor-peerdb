@@ -1679,7 +1679,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost from Object.<anonymous> (packages/peerdb/tests.coffee"), 0, intercepted.message
+    test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost from"), 0, intercepted.message
     test.equal intercepted.level, 'error'
 
     testDocumentList test, ALL

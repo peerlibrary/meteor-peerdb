@@ -30,7 +30,7 @@ removePrefix = (string, prefix) ->
 getCurrentLocation = ->
   # TODO: Does this work on the client side as well? Should we use Log._getCallerDetails?
   lines = (new Error().stack).split('\n')
-  thisFile = (lines[1].match(/\((.*peerdb\/lib\.coffee).*\)$/))[1]
+  thisFile = (lines[1].match(/\((.*\/.+\.(coffee|js)).*\)$/))[1]
   for line in lines[2..] when line.indexOf(thisFile) is -1
     return line.trim().replace(/^at\s*/, '')
   assert false
