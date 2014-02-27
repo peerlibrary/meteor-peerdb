@@ -49,8 +49,35 @@ getCollection = (name, document) ->
   collection
 
 class globals.Document
+  @objectify: (parent, ancestorArray, obj, fields) ->
+    for name, field of fields
+      # Not all fields are necessary provided
+      continue unless obj[name]
+
+      path = if parent then "#{ parent }.#{ name }" else name
+
+      if field instanceof globals.Document._ReferenceField
+        throw new Error "Document does not match schema, sourcePath does not match: #{ field.sourcePath } vs. #{ path }" if field.sourcePath isnt path
+
+        if field.isArray
+          throw new Error "Document does not match schema, not an array" unless _.isArray obj[name]
+          obj[name] = _.map obj[name], (o) => new field.targetDocument o
+        else
+          throw new Error "Document does not match schema, ancestorArray does not match: #{ field.ancestorArray } vs. #{ ancestorArray }" if field.ancestorArray isnt ancestorArray
+          throw new Error "Document does not match schema, not a plain object" unless isPlainObject obj[name]
+          obj[name] = new field.targetDocument obj[name]
+
+      else if isPlainObject field
+        if _.isArray obj[name]
+          throw new Error "Document does not match schema, nested arrays are not supported" if ancestorArray
+          obj[name] = _.map obj[name], (o) => @objectify path, path, o, field
+        else
+          obj[name] = @objectify path, ancestorArray, obj[name], field
+
+    obj
+
   constructor: (doc) ->
-    _.extend @, doc
+    _.extend @, @constructor.objectify '', null, (doc or {}), (@constructor?.Meta?.fields or {})
 
   @_Field: class
     contributeToClass: (@sourceDocument, @sourcePath, @ancestorArray) =>
@@ -182,7 +209,7 @@ class globals.Document
 
         array = path
 
-      if field instanceof @_Field
+      if field instanceof globals.Document._Field
         field.contributeToClass @, path, array
         res[name] = field
       else if _.isObject field

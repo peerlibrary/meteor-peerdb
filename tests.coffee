@@ -145,6 +145,9 @@ class Person extends Document
   @Meta
     name: 'Person'
 
+  formatName: ->
+    "#{ @username }-#{ @displayName or "none" }"
+
 class Recursive extends Document
   # Other fields:
   #   content
@@ -605,6 +608,16 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.special.fields, []
 
   testDocumentList test, ALL
+
+plainObject = (obj) ->
+  return obj unless _.isObject obj
+
+  return (plainObject o for o in obj) if _.isArray obj
+
+  keys = _.keys obj
+  values = (plainObject o for o in _.values obj)
+
+  _.object keys, values
 
 testAsyncMulti 'meteor-peerdb - references', [
   (test, expect) ->
@@ -5132,6 +5145,8 @@ testAsyncMulti 'meteor-peerdb - instances', [
     test.equal @person3.username, 'person3'
     test.equal @person3.displayName, 'Person 3'
 
+    test.equal @person1.formatName(), 'person1-Person 1'
+
     Post.documents.insert
       author:
         _id: @person1._id
@@ -5175,10 +5190,20 @@ testAsyncMulti 'meteor-peerdb - instances', [
     @post = Post.documents.findOne @postId
 
     test.instanceOf @post, Post
+    test.instanceOf @post.author, Person
+    test.instanceOf @post.subscribers[0], Person
+    test.instanceOf @post.subscribers[1], Person
+    test.instanceOf @post.reviewers[0], Person
+    test.instanceOf @post.reviewers[1], Person
+    test.instanceOf @post.subdocument.person, Person
+    test.instanceOf @post.subdocument.persons[0], Person
+    test.instanceOf @post.subdocument.persons[1], Person
+    test.instanceOf @post.nested[0].required, Person
+    test.instanceOf @post.nested[0].optional, Person
 
-    plainObject = _.object _.pairs @post
+    test.equal @post.author.formatName(), "#{ @person1.username }-none"
 
-    test.equal plainObject,
+    test.equal plainObject(@post),
       _id: @postId
       _schema: '1.0.0'
       author:
@@ -5273,10 +5298,21 @@ testAsyncMulti 'meteor-peerdb - instances', [
     @post = SpecialPost.documents.findOne @postId
 
     test.instanceOf @post, SpecialPost
+    test.instanceOf @post.author, Person
+    test.instanceOf @post.subscribers[0], Person
+    test.instanceOf @post.subscribers[1], Person
+    test.instanceOf @post.reviewers[0], Person
+    test.instanceOf @post.reviewers[1], Person
+    test.instanceOf @post.subdocument.person, Person
+    test.instanceOf @post.subdocument.persons[0], Person
+    test.instanceOf @post.subdocument.persons[1], Person
+    test.instanceOf @post.nested[0].required, Person
+    test.instanceOf @post.nested[0].optional, Person
+    test.instanceOf @post.special, Person
 
-    plainObject = _.object _.pairs @post
+    test.equal @post.author.formatName(), "#{ @person1.username }-none"
 
-    test.equal plainObject,
+    test.equal plainObject(@post),
       _id: @postId
       _schema: '1.0.0'
       author:
