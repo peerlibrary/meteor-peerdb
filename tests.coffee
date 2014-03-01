@@ -5364,3 +5364,93 @@ testAsyncMulti 'meteor-peerdb - instances', [
       special:
         _id: @person1._id
 ]
+
+Tinytest.add 'meteor-peerdb - bad instances', (test) ->
+  # Empty document should be always possible to create
+  for document in Document.list
+    test.isTrue new document
+
+  # Something simple
+  test.isTrue new Post
+    author:
+      _id: Random.id()
+      username: 'Foobar'
+
+  test.throws ->
+    new Post
+      author: [
+        _id: Random.id()
+        username: 'Foobar'
+      ]
+  , /Document does not match schema, not a plain object/
+
+  test.throws ->
+    new Post
+      subscribers: [
+        Random.id()
+      ]
+  , /Document does not match schema, not a plain object/
+
+  test.throws ->
+    new Post
+      subdocument: []
+  , /Document does not match schema, an unexpected array/
+
+  test.throws ->
+    new Post
+      subdocument: [
+        persons: []
+      ]
+  , /Document does not match schema, an unexpected array/
+
+  test.throws ->
+    new Post
+      subdocument: [[
+        persons: []
+      ]]
+  , /Document does not match schema, an unexpected array/
+
+  test.throws ->
+    new Post
+      subdocument:
+        persons: [
+          Random.id()
+        ]
+  , /Document does not match schema, not a plain object/
+
+  test.throws ->
+    new Post
+      nested:
+        _id: Random.id()
+  , /Document does not match schema, expected an array/
+
+  test.throws ->
+    new Post
+      nested: [
+        required: Random.id()
+      ]
+  , /Document does not match schema, not a plain object/
+
+  test.throws ->
+    new Post
+      nested:
+        required: [
+          _id: Random.id()
+        ]
+  , /Document does not match schema, expected an array/
+
+  test.throws ->
+    new Post
+      nested:
+        required:
+          _id: Random.id()
+  , /Document does not match schema, expected an array/
+
+  test.throws ->
+    new Post
+      nested: [
+        required: [
+          _id: Random.id()
+        ]
+      ]
+  , /Document does not match schema, not a plain object/

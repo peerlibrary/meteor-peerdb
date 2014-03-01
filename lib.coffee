@@ -49,7 +49,10 @@ getCollection = (name, document) ->
   collection
 
 class globals.Document
+  # TODO: When we will require all fields to be specified and have validator support to validate new objects, we can also run validation here and check all data, reference fields and others
   @objectify: (parent, ancestorArray, obj, fields) ->
+    throw new Error "Document does not match schema, not a plain object" unless isPlainObject obj
+
     for name, field of fields
       # Not all fields are necessary provided
       continue unless obj[name]
@@ -69,9 +72,11 @@ class globals.Document
 
       else if isPlainObject field
         if _.isArray obj[name]
+          throw new Error "Document does not match schema, an unexpected array" unless _.some field, (f) => f.ancestorArray is path
           throw new Error "Document does not match schema, nested arrays are not supported" if ancestorArray
           obj[name] = _.map obj[name], (o) => @objectify path, path, o, field
         else
+          throw new Error "Document does not match schema, expected an array" if _.some field, (f) => f.ancestorArray is path
           obj[name] = @objectify path, ancestorArray, obj[name], field
 
     obj
