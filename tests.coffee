@@ -5454,3 +5454,265 @@ Tinytest.add 'meteor-peerdb - bad instances', (test) ->
         ]
       ]
   , /Document does not match schema, not a plain object/
+
+if Meteor.isServer
+  testAsyncMulti 'meteor-peerdb - update all', [
+    (test, expect) ->
+      testDefinition test
+
+      Person.documents.insert
+        username: 'person1'
+        displayName: 'Person 1'
+      ,
+        expect (error, person1Id) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue person1Id
+          @person1Id = person1Id
+
+      Person.documents.insert
+        username: 'person2'
+        displayName: 'Person 2'
+      ,
+        expect (error, person2Id) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue person2Id
+          @person2Id = person2Id
+
+      Person.documents.insert
+        username: 'person3'
+        displayName: 'Person 3'
+      ,
+        expect (error, person3Id) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue person3Id
+          @person3Id = person3Id
+
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @person1 = Person.documents.findOne @person1Id
+      @person2 = Person.documents.findOne @person2Id
+      @person3 = Person.documents.findOne @person3Id
+
+      Post.documents.insert
+        author:
+          _id: @person1._id
+        subscribers: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        reviewers: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        subdocument:
+          person:
+            _id: @person2._id
+          persons: [
+            _id: @person2._id
+          ,
+            _id: @person3._id
+          ]
+          body: 'SubdocumentFooBar'
+        nested: [
+          required:
+            _id: @person2._id
+          optional:
+            _id: @person3._id
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ,
+        expect (error, postId) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue postId
+          @postId = postId
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @post = Post.documents.findOne @postId,
+        transform: null # So that we can use test.equal
+
+      test.equal @post,
+        _id: @postId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+        # subscribers have only ids
+        subscribers: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        # But reviewers have usernames as well
+        reviewers: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        subdocument:
+          person:
+            _id: @person2._id
+            username: @person2.username
+          persons: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+          slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+          body: 'SubdocumentFooBar'
+        nested: [
+          required:
+            _id: @person2._id
+            username: @person2.username
+          optional:
+            _id: @person3._id
+            username: @person3.username
+          slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+        slug: 'prefix-foobar-subdocumentfoobar-suffix'
+        tags: [
+          'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+          'tag-1-prefix-foobar-nestedfoobar-suffix'
+        ]
+
+      Post.documents.update @postId,
+        $set:
+          'author.username': 'wrong'
+          'reviewers.0.username': 'wrong'
+          'reviewers.1.username': 'wrong'
+          'subdocument.person.username': 'wrong'
+          'subdocument.persons.0.username': 'wrong'
+          'subdocument.persons.1.username': 'wrong'
+          'nested.0.required.username': 'wrong'
+          'nested.0.optional.username': 'wrong'
+          slug: 'wrong'
+          tags: 'wrong'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @post = Post.documents.findOne @postId,
+        transform: null # So that we can use test.equal
+
+      # Reference fields are automatically updated back, but generated fields are not
+      test.equal @post,
+        _id: @postId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+        # subscribers have only ids
+        subscribers: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        # But reviewers have usernames as well
+        reviewers: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        subdocument:
+          person:
+            _id: @person2._id
+            username: @person2.username
+          persons: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+          slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+          body: 'SubdocumentFooBar'
+        nested: [
+          required:
+            _id: @person2._id
+            username: @person2.username
+          optional:
+            _id: @person3._id
+            username: @person3.username
+          slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+        slug: 'wrong'
+        tags: 'wrong'
+
+        # Update all fields back (a blocking operation)
+        Document.updateAll()
+  ,
+    (test, expect) ->
+      @post = Post.documents.findOne @postId,
+        transform: null # So that we can use test.equal
+
+      test.equal @post,
+        _id: @postId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+        # subscribers have only ids
+        subscribers: [
+          _id: @person2._id
+        ,
+          _id: @person3._id
+        ]
+        # But reviewers have usernames as well
+        reviewers: [
+          _id: @person2._id
+          username: @person2.username
+        ,
+          _id: @person3._id
+          username: @person3.username
+        ]
+        subdocument:
+          person:
+            _id: @person2._id
+            username: @person2.username
+          persons: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+          slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+          body: 'SubdocumentFooBar'
+        nested: [
+          required:
+            _id: @person2._id
+            username: @person2.username
+          optional:
+            _id: @person3._id
+            username: @person3.username
+          slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+        slug: 'prefix-foobar-subdocumentfoobar-suffix'
+        tags: [
+          'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+          'tag-1-prefix-foobar-nestedfoobar-suffix'
+        ]
+  ]

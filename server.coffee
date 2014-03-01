@@ -265,9 +265,6 @@ class globals.Document._GeneratedField extends globals.Document._GeneratedField
   updatedWithValue: (id, value) =>
     # Do nothing. Code should not be updating generated field by itself anyway.
 
-  @updateAll: ->
-    setupObservers true
-
 class globals.Document extends globals.Document
   @_sourceFieldUpdated: (id, name, value, field) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
@@ -347,6 +344,9 @@ class globals.Document extends globals.Document
         @Meta.collection.update id,
           $set:
             _schema: '1.0.0'
+
+  @updateAll: ->
+    setupObservers true
 
 setupObservers = (updateAll) ->
   setupTargetObservers = (fields) ->
