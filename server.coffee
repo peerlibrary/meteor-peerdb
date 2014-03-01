@@ -19,17 +19,25 @@ catchErrors = (f) ->
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
 
 class globals.Document._TargetedFieldsObservingField extends globals.Document._TargetedFieldsObservingField
-  setupTargetObservers: =>
+  setupTargetObservers: (updateAll) =>
+    initializing = true
+
     referenceFields = fieldsToProjection @fields
-    @targetCollection.find({}, fields: referenceFields).observeChanges
+    handle = @targetCollection.find({}, fields: referenceFields).observeChanges
       added: catchErrors (id, fields) =>
-        @updateSource id, fields
+        @updateSource id, fields if updateAll or not initializing
 
       changed: catchErrors (id, fields) =>
         @updateSource id, fields
 
       removed: catchErrors (id) =>
         @removeSource id
+
+    if updateAll
+      handle.stop()
+      return
+
+    initializing = false
 
 # Have to refresh with new methods from TargetedFieldsObservingField
 _.extend globals.Document._ReferenceField.prototype,
@@ -257,6 +265,9 @@ class globals.Document._GeneratedField extends globals.Document._GeneratedField
   updatedWithValue: (id, value) =>
     # Do nothing. Code should not be updating generated field by itself anyway.
 
+  @updateAll: ->
+    setupObservers true
+
 class globals.Document extends globals.Document
   @_sourceFieldUpdated: (id, name, value, field) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
@@ -292,7 +303,7 @@ class globals.Document extends globals.Document
     for name, value of fields
       @_sourceFieldUpdated id, name, value
 
-  @setupSourceObservers: ->
+  @setupSourceObservers: (updateAll) ->
     return if _.isEmpty @Meta.fields
 
     sourceFields =
@@ -307,12 +318,20 @@ class globals.Document extends globals.Document
 
     sourceFieldsWalker @Meta.fields
 
-    @Meta.collection.find({}, fields: sourceFields).observeChanges
+    initializing = true
+
+    handle = @Meta.collection.find({}, fields: sourceFields).observeChanges
       added: catchErrors (id, fields) =>
-        @_sourceUpdated id, fields
+        @_sourceUpdated id, fields if updateAll or not initializing
 
       changed: catchErrors (id, fields) =>
         @_sourceUpdated id, fields
+
+    if updateAll
+      handle.stop()
+      return
+
+    initializing = false
 
   @setupMigrations: ->
     @Meta.collection.find(
@@ -329,18 +348,18 @@ class globals.Document extends globals.Document
           $set:
             _schema: '1.0.0'
 
-setupObservers = ->
+setupObservers = (updateAll) ->
   setupTargetObservers = (fields) ->
     for name, field of fields
       # There are no arrays anymore here, just objects (for subdocuments) or fields
       if field instanceof globals.Document._ObservingField
-        field.setupTargetObservers()
+        field.setupTargetObservers updateAll
       else if field not instanceof globals.Document._Field
         setupTargetObservers field
 
   for document in globals.Document.list
     setupTargetObservers document.Meta.fields
-    document.setupSourceObservers()
+    document.setupSourceObservers updateAll
 
 setupMigrations = ->
   for document in globals.Document.list
@@ -363,17 +382,10 @@ migrations = ->
 Meteor.startup ->
   # To try delayed references one last time, this time we throw any exceptions
   # (Otherwise setupObservers would trigger strange exceptions anyway)
-  globals.Document._retryDelayed true
+  globals.Document.defineAll()
 
   migrations()
 
-  # TODO: Use official API when it will be available: https://github.com/meteor/meteor/issues/180
-  if process.env.NODE_ENV is 'production' or Meteor.settings?.production or Meteor.settings?.public?.production
-    # Setup observers and run all initial updates in blocking mode on production
-    setupObservers()
-  else
-    # Otherwise do it in the background
-    Meteor.defer ->
-      setupObservers()
+  setupObservers()
 
 Document = globals.Document
