@@ -20,13 +20,13 @@ class Post extends Document
     name: 'Post'
     fields: =>
       # We can reference other document
-      author: @ReferenceField Person, ['username', 'displayName']
+      author: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2']
       # Or an array of documents
       subscribers: [@ReferenceField Person]
       # Fields can be arbitrary MongoDB projections
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
-        person: @ReferenceField Person, ['username'], false
+        person: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], false
         slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
           if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
             [fields._id, undefined]
@@ -35,7 +35,7 @@ class Post extends Document
           else
             [fields._id, "subdocument-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
       nested: [
-        required: @ReferenceField Person, ['username']
+        required: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2']
         optional: @ReferenceField Person, ['username'], false
         slug: @GeneratedField 'self', ['body', 'nested.body'], (fields) ->
           for nested in fields.nested or []
@@ -73,7 +73,7 @@ class Post extends Post
     name: 'Post'
     replaceParent: true
     fields: (fields) =>
-      fields.subdocument.persons = [@ReferenceField Person, ['username']]
+      fields.subdocument.persons = [@ReferenceField Person, ['username', 'displayName', 'field1', 'field2']]
       fields
 
 # Store away for testing
@@ -141,6 +141,8 @@ class Person extends Document
   # Other fields:
   #   username
   #   displayName
+  #   field1
+  #   field2
 
   @Meta
     name: 'Person'
@@ -238,7 +240,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.author.targetCollection._name, 'Persons'
   test.equal Post.Meta.fields.author.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.author.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Post.Meta.fields.author.fields, ['username', 'displayName']
+  test.equal Post.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
   test.equal Post.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue Post.Meta.fields.subscribers.required
@@ -272,7 +274,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.targetCollection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Post.Meta.fields.subdocument.person.fields, ['username']
+  test.equal Post.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf Post.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue Post.Meta.fields.subdocument.persons.required
@@ -283,7 +285,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.targetCollection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Post.Meta.fields.subdocument.persons.fields, ['username']
+  test.equal Post.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf Post.Meta.fields.subdocument.slug, Person._GeneratedField
   test.isNull Post.Meta.fields.subdocument.slug.ancestorArray, Post.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.subdocument.slug.generator
@@ -306,7 +308,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.required.targetCollection._name, 'Persons'
   test.equal Post.Meta.fields.nested.required.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.nested.required.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Post.Meta.fields.nested.required.fields, ['username']
+  test.equal Post.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf Post.Meta.fields.nested.optional, Person._ReferenceField
   test.equal Post.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse Post.Meta.fields.nested.optional.required
@@ -482,7 +484,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.author.targetCollection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.author.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.author.targetDocument.Meta.collection._name, 'Persons'
-  test.equal SpecialPost.Meta.fields.author.fields, ['username', 'displayName']
+  test.equal SpecialPost.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf SpecialPost.Meta.fields.subscribers, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue SpecialPost.Meta.fields.subscribers.required
@@ -516,7 +518,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.person.targetCollection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
-  test.equal SpecialPost.Meta.fields.subdocument.person.fields, ['username']
+  test.equal SpecialPost.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf SpecialPost.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue SpecialPost.Meta.fields.subdocument.persons.required
@@ -527,7 +529,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.persons.targetCollection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name, 'Persons'
-  test.equal SpecialPost.Meta.fields.subdocument.persons.fields, ['username']
+  test.equal SpecialPost.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf SpecialPost.Meta.fields.subdocument.slug, Person._GeneratedField
   test.isNull SpecialPost.Meta.fields.subdocument.slug.ancestorArray, SpecialPost.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction SpecialPost.Meta.fields.subdocument.slug.generator
@@ -550,7 +552,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.required.targetCollection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.nested.required.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.nested.required.targetDocument.Meta.collection._name, 'Persons'
-  test.equal SpecialPost.Meta.fields.nested.required.fields, ['username']
+  test.equal SpecialPost.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
   test.instanceOf SpecialPost.Meta.fields.nested.optional, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse SpecialPost.Meta.fields.nested.optional.required
@@ -699,6 +701,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       subdocument:
         person:
           _id: @person2._id
+          username: 'wrong'
         persons: [
           _id: @person2._id
         ,
@@ -709,6 +712,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         required:
           _id: @person2._id
           username: 'wrong'
+          displayName: 'wrong'
         optional:
           _id: @person3._id
           username: 'wrong'
@@ -755,12 +759,15 @@ testAsyncMulti 'meteor-peerdb - references', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -768,6 +775,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -858,12 +866,15 @@ testAsyncMulti 'meteor-peerdb - references', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -871,6 +882,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -914,9 +926,11 @@ testAsyncMulti 'meteor-peerdb - references', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -924,6 +938,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional: null
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
         body: 'NestedFooBar'
@@ -1824,12 +1839,15 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -1837,6 +1855,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -1875,12 +1894,15 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           person:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           persons: [
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           ,
             _id: @person3._id
             username: @person3.username
+            displayName: @person3.displayName
           ]
 
     Person.documents.update @person2Id,
@@ -1913,12 +1935,15 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           person:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           persons: [
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           ,
             _id: @person3._id
             username: @person3.username
+            displayName: @person3.displayName
           ]
 
     Person.documents.remove @person2Id,
@@ -1942,6 +1967,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           persons: [
             _id: @person3._id
             username: @person3.username
+            displayName: @person3.displayName
           ]
 
     Post.documents.remove @post._id,
@@ -2068,12 +2094,15 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -2081,6 +2110,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -2136,12 +2166,15 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -2149,6 +2182,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -2204,12 +2238,15 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -2217,6 +2254,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -2272,12 +2310,15 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -2285,6 +2326,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -2336,12 +2378,15 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: null
         body: 'SubdocumentFooBarZ'
@@ -2349,6 +2394,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -2397,18 +2443,22 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         body: 'SubdocumentFooBarZ'
       nested: [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3142,18 +3192,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3161,6 +3216,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3170,6 +3226,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3179,6 +3236,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3188,6 +3246,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3197,6 +3256,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3206,6 +3266,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3304,18 +3365,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3323,6 +3389,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3332,6 +3399,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3341,6 +3409,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3350,6 +3419,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3359,6 +3429,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3368,6 +3439,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3434,18 +3506,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3453,6 +3530,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3462,6 +3540,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3471,6 +3550,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3480,6 +3560,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3489,6 +3570,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3498,6 +3580,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3562,22 +3645,28 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       subdocument:
         person:
           _id: @person2._id
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
+          displayName: @person2.displayName
         ,
           _id: @person2._id
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3586,6 +3675,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3595,6 +3685,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3603,6 +3694,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3610,6 +3702,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3618,6 +3711,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3680,20 +3774,26 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       subdocument:
         person:
           _id: @person2._id
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
+          displayName: @person2.displayName
         ,
           _id: @person2._id
+          displayName: @person2.displayName
         ,
           _id: @person3._id
+          displayName: @person3.displayName
         ,
           _id: @person3._id
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3701,6 +3801,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3708,6 +3809,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3715,6 +3817,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3722,6 +3825,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3729,6 +3833,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3791,20 +3896,26 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       subdocument:
         person:
           _id: @person2._id
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
+          displayName: @person2.displayName
         ,
           _id: @person2._id
+          displayName: @person2.displayName
         ,
           _id: @person3._id
+          displayName: @person3.displayName
         ,
           _id: @person3._id
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
       nested: [
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3812,6 +3923,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3819,6 +3931,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3826,6 +3939,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3833,6 +3947,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person2._id
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3840,6 +3955,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3904,16 +4020,21 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
+          displayName: @person3.displayName
         ,
           _id: @person3._id
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3921,6 +4042,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3929,6 +4051,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3936,23 +4059,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
-        optional:
-          _id: @person2._id
-          username: @person2.username
-        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
-        body: 'NestedFooBar'
-      ,
-        required:
-          _id: @person3._id
-        optional:
-          _id: @person2._id
-          username: @person2.username
-        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
-        body: 'NestedFooBar'
-      ,
-        required:
-          _id: @person2._id
-          username: @person2.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3961,6 +4068,26 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       ,
         required:
           _id: @person3._id
+          displayName: @person3.displayName
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -4027,18 +4154,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -4046,6 +4178,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4055,6 +4188,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4064,6 +4198,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4073,6 +4208,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4082,6 +4218,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4091,6 +4228,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4152,18 +4290,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4171,6 +4314,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4180,6 +4324,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4189,6 +4334,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4198,6 +4344,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4207,6 +4354,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4216,6 +4364,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4277,18 +4426,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4296,6 +4450,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4305,6 +4460,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4314,6 +4470,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4323,6 +4480,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4332,6 +4490,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4341,6 +4500,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4402,18 +4562,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4421,6 +4586,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4430,6 +4596,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4439,6 +4606,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4448,6 +4616,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4457,6 +4626,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4466,6 +4636,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4527,18 +4698,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4546,6 +4722,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4555,6 +4732,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4564,6 +4742,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4573,6 +4752,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4582,6 +4762,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4591,6 +4772,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4651,18 +4833,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4670,6 +4857,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4679,6 +4867,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4688,6 +4877,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4695,6 +4885,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4704,6 +4895,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4713,6 +4905,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4772,18 +4965,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4791,6 +4989,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4800,6 +4999,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4809,6 +5009,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4816,6 +5017,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4825,6 +5027,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4834,6 +5037,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4898,18 +5102,23 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4917,6 +5126,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4926,6 +5136,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4935,6 +5146,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4942,6 +5154,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4951,6 +5164,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4960,6 +5174,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4969,6 +5184,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5019,9 +5235,11 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         persons: [
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -5029,11 +5247,13 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional: null
       ,
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional: null
         slug: null
         body: null
@@ -5041,6 +5261,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5263,12 +5484,15 @@ testAsyncMulti 'meteor-peerdb - instances', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -5276,6 +5500,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5373,12 +5598,15 @@ testAsyncMulti 'meteor-peerdb - instances', [
         person:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         persons: [
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         ,
           _id: @person3._id
           username: @person3.username
+          displayName: @person3.displayName
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -5386,6 +5614,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
         required:
           _id: @person2._id
           username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5602,12 +5831,15 @@ if Meteor.isServer
           person:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           persons: [
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           ,
             _id: @person3._id
             username: @person3.username
+            displayName: @person3.displayName
           ]
           slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
           body: 'SubdocumentFooBar'
@@ -5615,6 +5847,7 @@ if Meteor.isServer
           required:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           optional:
             _id: @person3._id
             username: @person3.username
@@ -5678,12 +5911,15 @@ if Meteor.isServer
           person:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           persons: [
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           ,
             _id: @person3._id
             username: @person3.username
+            displayName: @person3.displayName
           ]
           slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
           body: 'SubdocumentFooBar'
@@ -5691,6 +5927,7 @@ if Meteor.isServer
           required:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           optional:
             _id: @person3._id
             username: @person3.username
@@ -5733,12 +5970,15 @@ if Meteor.isServer
           person:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           persons: [
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           ,
             _id: @person3._id
             username: @person3.username
+            displayName: @person3.displayName
           ]
           slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
           body: 'SubdocumentFooBar'
@@ -5746,6 +5986,7 @@ if Meteor.isServer
           required:
             _id: @person2._id
             username: @person2.username
+            displayName: @person2.displayName
           optional:
             _id: @person3._id
             username: @person3.username
