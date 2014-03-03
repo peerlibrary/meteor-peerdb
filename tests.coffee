@@ -633,6 +633,8 @@ testAsyncMulti 'meteor-peerdb - references', [
     Person.documents.insert
       username: 'person1'
       displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
     ,
       expect (error, person1Id) =>
         test.isFalse error, error?.toString?() or error
@@ -642,6 +644,8 @@ testAsyncMulti 'meteor-peerdb - references', [
     Person.documents.insert
       username: 'person2'
       displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
     ,
       expect (error, person2Id) =>
         test.isFalse error, error?.toString?() or error
@@ -651,6 +655,8 @@ testAsyncMulti 'meteor-peerdb - references', [
     Person.documents.insert
       username: 'person3'
       displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
     ,
       expect (error, person3Id) =>
         test.isFalse error, error?.toString?() or error
@@ -673,19 +679,27 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1'
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
     test.instanceOf @person3, Person
     test.equal @person3.username, 'person3'
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     Post.documents.insert
       author:
         _id: @person1._id
-        # To test what happens if both fields are not up to date
+        # To test what happens if all fields are not up to date
         username: 'wrong'
         displayName: 'wrong'
+        field1: 'wrong'
+        field2: 'wrong'
       subscribers: [
         _id: @person2._id
       ,
@@ -741,6 +755,8 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       # subscribers have only ids
       subscribers: [
         _id: @person2._id
@@ -760,14 +776,20 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -776,6 +798,8 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -827,12 +851,18 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1a'
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2a'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
     test.instanceOf @person3, Person
     test.equal @person3.username, 'person3a'
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -850,6 +880,8 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -867,14 +899,20 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -883,6 +921,8 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -915,6 +955,8 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ]
@@ -927,10 +969,14 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -939,6 +985,8 @@ testAsyncMulti 'meteor-peerdb - references', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional: null
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
         body: 'NestedFooBar'
@@ -970,6 +1018,8 @@ testAsyncMulti 'meteor-peerdb - references', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: []
       reviewers: []
       subdocument:
@@ -1738,6 +1788,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     Person.documents.insert
       username: 'person1'
       displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
     ,
       expect (error, person1Id) =>
         test.isFalse error, error?.toString?() or error
@@ -1747,6 +1799,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     Person.documents.insert
       username: 'person2'
       displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
     ,
       expect (error, person2Id) =>
         test.isFalse error, error?.toString?() or error
@@ -1756,6 +1810,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     Person.documents.insert
       username: 'person3'
       displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
     ,
       expect (error, person3Id) =>
         test.isFalse error, error?.toString?() or error
@@ -1770,12 +1826,18 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1'
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
     test.instanceOf @person3, Person
     test.equal @person3.username, 'person3'
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     Post.documents.insert
       author:
@@ -1827,6 +1889,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -1844,14 +1908,20 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -1860,6 +1930,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -1899,14 +1971,20 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
             _id: @person2._id
             username: @person2.username
             displayName: @person2.displayName
+            field1: @person2.field1
+            field2: @person2.field2
           persons: [
             _id: @person2._id
             username: @person2.username
             displayName: @person2.displayName
+            field1: @person2.field1
+            field2: @person2.field2
           ,
             _id: @person3._id
             username: @person3.username
             displayName: @person3.displayName
+            field1: @person3.field1
+            field2: @person3.field2
           ]
 
     Person.documents.update @person2Id,
@@ -1926,6 +2004,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2a'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
 
     @postLink = PostLink.documents.findOne @postLinkId,
       transform: null # So that we can use test.equal
@@ -1940,14 +2020,20 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
             _id: @person2._id
             username: @person2.username
             displayName: @person2.displayName
+            field1: @person2.field1
+            field2: @person2.field2
           persons: [
             _id: @person2._id
             username: @person2.username
             displayName: @person2.displayName
+            field1: @person2.field1
+            field2: @person2.field2
           ,
             _id: @person3._id
             username: @person3.username
             displayName: @person3.displayName
+            field1: @person3.field1
+            field2: @person3.field2
           ]
 
     Person.documents.remove @person2Id,
@@ -1972,6 +2058,8 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
             _id: @person3._id
             username: @person3.username
             displayName: @person3.displayName
+            field1: @person3.field1
+            field2: @person3.field2
           ]
 
     Post.documents.remove @post._id,
@@ -3048,6 +3136,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Person.documents.insert
       username: 'person1'
       displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
     ,
       expect (error, person1Id) =>
         test.isFalse error, error?.toString?() or error
@@ -3057,6 +3147,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Person.documents.insert
       username: 'person2'
       displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
     ,
       expect (error, person2Id) =>
         test.isFalse error, error?.toString?() or error
@@ -3066,6 +3158,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Person.documents.insert
       username: 'person3'
       displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
     ,
       expect (error, person3Id) =>
         test.isFalse error, error?.toString?() or error
@@ -3080,12 +3174,18 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1'
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
     test.instanceOf @person3, Person
     test.equal @person3.username, 'person3'
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     Post.documents.insert
       author:
@@ -3175,6 +3275,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -3197,22 +3299,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3221,6 +3333,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3231,6 +3345,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3241,6 +3357,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3251,6 +3369,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3261,6 +3381,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3271,6 +3393,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3327,12 +3451,18 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1a'
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2a'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
     test.instanceOf @person3, Person
     test.equal @person3.username, 'person3a'
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -3348,6 +3478,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -3370,22 +3502,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3394,6 +3536,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3404,6 +3548,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3414,6 +3560,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3424,6 +3572,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3434,6 +3584,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3444,6 +3596,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3479,6 +3633,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person1, Person
     test.isUndefined @person1.username, @person1.username
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -3489,6 +3645,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -3511,22 +3669,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3535,6 +3703,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3545,6 +3715,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3555,6 +3727,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3565,6 +3739,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3575,6 +3751,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -3585,6 +3763,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3620,6 +3800,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person2, Person
     test.isUndefined @person2.username, @person2.username
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -3630,6 +3812,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -3650,20 +3834,30 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3671,6 +3865,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3680,6 +3876,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3690,6 +3888,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3699,6 +3899,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3707,6 +3909,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3716,6 +3920,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -3751,6 +3957,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person3, Person
     test.isUndefined @person3.username, @person3.username
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -3761,6 +3969,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -3779,18 +3989,28 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3798,6 +4018,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3806,6 +4028,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3814,6 +4038,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3822,6 +4048,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3830,6 +4058,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3838,6 +4068,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3872,6 +4104,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1b'
     test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1'
+    test.equal @person1.field2, 'Field 1 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -3883,6 +4117,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -3901,18 +4137,28 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         person:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -3920,6 +4166,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3928,6 +4176,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3936,6 +4186,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3944,6 +4196,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3952,6 +4206,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person2._id
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3960,6 +4216,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -3994,6 +4252,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person2, Person
     test.equal @person2.username, 'person2b'
     test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4005,6 +4265,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4025,20 +4287,30 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -4047,6 +4319,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -4056,6 +4330,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -4064,6 +4340,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4073,6 +4351,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4083,6 +4363,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4092,6 +4374,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         required:
           _id: @person3._id
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
         slug: 'nested-prefix-foobar-nestedfoobar-suffix'
@@ -4126,6 +4410,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person3, Person
     test.equal @person3.username, 'person3b'
     test.equal @person3.displayName, 'Person 3'
+    test.equal @person3.field1, 'Field 3 - 1'
+    test.equal @person3.field2, 'Field 3 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4137,6 +4423,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4159,22 +4447,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
         body: 'SubdocumentFooBar'
@@ -4183,6 +4481,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4193,6 +4493,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4203,6 +4505,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4213,6 +4517,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4223,6 +4529,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4233,6 +4541,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4273,6 +4583,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4295,22 +4607,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4319,6 +4641,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4329,6 +4653,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4339,6 +4665,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4349,6 +4677,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4359,6 +4689,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4369,6 +4701,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4409,6 +4743,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4431,22 +4767,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4455,6 +4801,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4465,6 +4813,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4475,6 +4825,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4485,6 +4837,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4495,6 +4849,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4505,6 +4861,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4545,6 +4903,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4567,22 +4927,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4591,6 +4961,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4601,6 +4973,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4611,6 +4985,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4621,6 +4997,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4631,6 +5009,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4641,6 +5021,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4681,6 +5063,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4703,22 +5087,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4727,6 +5121,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4737,6 +5133,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4747,6 +5145,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4757,6 +5157,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4767,6 +5169,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4777,6 +5181,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4816,6 +5222,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4838,22 +5246,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobar-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4862,6 +5280,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4872,6 +5292,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4882,6 +5304,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4890,6 +5314,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4900,6 +5326,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -4910,6 +5338,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -4948,6 +5378,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -4970,22 +5402,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -4994,6 +5436,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5004,6 +5448,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5014,6 +5460,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -5022,6 +5470,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -5032,6 +5482,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -5042,6 +5494,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5085,6 +5539,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person2._id
       ,
@@ -5107,22 +5563,32 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         persons: [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -5131,6 +5597,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5141,6 +5609,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5151,6 +5621,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -5159,6 +5631,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -5169,6 +5643,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person2._id
           username: @person2.username
@@ -5179,6 +5655,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5189,6 +5667,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
           username: @person2.username
           displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5224,6 +5704,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: [
         _id: @person3._id
       ]
@@ -5240,10 +5722,14 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ]
         slug: 'subdocument-prefix-foobarz-subdocumentfoobarz-suffix'
         body: 'SubdocumentFooBarZ'
@@ -5252,12 +5738,16 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional: null
       ,
         required:
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional: null
         slug: null
         body: null
@@ -5266,6 +5756,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person3._id
           username: @person3.username
           displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         optional:
           _id: @person3._id
           username: @person3.username
@@ -5297,6 +5789,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         _id: @person1._id
         username: @person1.username
         displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
       subscribers: []
       reviewers: []
       subdocument:
