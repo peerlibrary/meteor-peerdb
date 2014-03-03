@@ -1713,10 +1713,14 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
   (test, expect) ->
     intercepted = Log._intercepted()
 
-    test.equal intercepted.length, 1, intercepted
+    # One or two because we could intercepted something else as well
+    test.isTrue 1 <= intercepted.length <= 2, intercepted
 
-    test.isTrue _.isString(intercepted[0]), intercepted[0]
-    intercepted = EJSON.parse intercepted[0]
+    # Let's find it
+    for i in intercepted
+      break if i.indexOf('BadPost') isnt -1
+    test.isTrue _.isString(i), i
+    intercepted = EJSON.parse i
 
     test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost from"), 0, intercepted.message
     test.equal intercepted.level, 'error'
