@@ -56,67 +56,65 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
     selector["#{ @sourcePath }._id"] = id
 
     update = {}
-    for field, value of fields
-      selectorPath = "#{ @sourcePath }.#{ field }"
-      if @inArray
+    if @inArray
+      for field, value of fields
         path = "#{ @ancestorArray }.$#{ @arraySuffix }.#{ field }"
-      else
-        path = selectorPath
 
-      if _.isUndefined value
-        update.$unset ?= {}
-        update.$unset[path] = ''
+        if _.isUndefined value
+          update.$unset ?= {}
+          update.$unset[path] = ''
+        else
+          update.$set ?= {}
+          update.$set[path] = value
+
+        # We cannot use top-level $or with $elemMatch
+        # See: https://jira.mongodb.org/browse/SERVER-11537
+        selector[@ancestorArray] ?= {}
+        selector[@ancestorArray].$elemMatch ?=
+          $or: []
 
         s = {}
-        if @inArray
-          # We have cannot use top-level $or with $elemMatch so we do it differently than for $and below
-          # See: https://jira.mongodb.org/browse/SERVER-11537
-
-          selector[@ancestorArray] ?= {}
-          selector[@ancestorArray].$elemMatch ?=
-            $or: []
-
-          # We have to repeat id selector here as well
-          # See: https://jira.mongodb.org/browse/SERVER-11536
-          s["#{ @arraySuffix }._id".substring(1)] = id
-          # Remove initial dot with substring(1)
+        # We have to repeat id selector here as well
+        # See: https://jira.mongodb.org/browse/SERVER-11536
+        s["#{ @arraySuffix }._id".substring(1)] = id
+        # Remove initial dot with substring(1)
+        if _.isUndefined value
           s["#{ @arraySuffix }.#{ field }".substring(1)] =
             $exists: true
-
-          selector[@ancestorArray].$elemMatch.$or.push s
         else
-          s[selectorPath] =
-            $exists: true
+          s["#{ @arraySuffix }.#{ field }".substring(1)] =
+            $ne: value
 
-          selector.$or ?= []
-          selector.$or.push s
-      else
-        update.$set ?= {}
-        update.$set[path] = value
+        selector[@ancestorArray].$elemMatch.$or.push s
+
+      # $ operator updates only the first matching element in the array,
+      # so we have to loop until nothing changes
+      # See: https://jira.mongodb.org/browse/SERVER-1243
+      loop
+        break unless @sourceCollection.update selector, update, multi: true
+
+    else
+      for field, value of fields
+        path = "#{ @sourcePath }.#{ field }"
 
         s = {}
-        if @inArray
-          s[@ancestorArray] =
-            $elemMatch: {}
-          # We have to repeat id selector here as well
-          # See: https://jira.mongodb.org/browse/SERVER-11536
-          s[@ancestorArray].$elemMatch["#{ @arraySuffix }._id".substring(1)] = id
-          # Remove initial dot with substring(1)
-          s[@ancestorArray].$elemMatch["#{ @arraySuffix }.#{ field }".substring(1)] =
-            $ne: value
+        if _.isUndefined value
+          update.$unset ?= {}
+          update.$unset[path] = ''
+
+          s[path] =
+            $exists: true
         else
-          s[selectorPath] =
+          update.$set ?= {}
+          update.$set[path] = value
+
+          s[path] =
             $ne: value
 
-        selector.$and ?= []
-        selector.$and.push s
+        selector.$or ?= []
+        selector.$or.push s
 
-    # $ operator updates only the first matching element in the array.
-    # So if we are in the array, we have to loop until nothing changes.
-    # See: https://jira.mongodb.org/browse/SERVER-1243
-    loop
-      break unless @sourceCollection.update selector, update, multi: true
-      break unless @inArray
+      @sourceCollection.update selector, update, multi: true
 
   removeSource: (id) =>
     selector = {}

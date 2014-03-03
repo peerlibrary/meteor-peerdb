@@ -20,7 +20,7 @@ class Post extends Document
     name: 'Post'
     fields: =>
       # We can reference other document
-      author: @ReferenceField Person, ['username']
+      author: @ReferenceField Person, ['username', 'displayName']
       # Or an array of documents
       subscribers: [@ReferenceField Person]
       # Fields can be arbitrary MongoDB projections
@@ -238,7 +238,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.author.targetCollection._name, 'Persons'
   test.equal Post.Meta.fields.author.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.author.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Post.Meta.fields.author.fields, ['username']
+  test.equal Post.Meta.fields.author.fields, ['username', 'displayName']
   test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
   test.equal Post.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue Post.Meta.fields.subscribers.required
@@ -482,7 +482,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.author.targetCollection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.author.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.author.targetDocument.Meta.collection._name, 'Persons'
-  test.equal SpecialPost.Meta.fields.author.fields, ['username']
+  test.equal SpecialPost.Meta.fields.author.fields, ['username', 'displayName']
   test.instanceOf SpecialPost.Meta.fields.subscribers, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue SpecialPost.Meta.fields.subscribers.required
@@ -681,6 +681,9 @@ testAsyncMulti 'meteor-peerdb - references', [
     Post.documents.insert
       author:
         _id: @person1._id
+        # To test what happens if both fields are not up to date
+        username: 'wrong'
+        displayName: 'wrong'
       subscribers: [
         _id: @person2._id
       ,
@@ -688,8 +691,10 @@ testAsyncMulti 'meteor-peerdb - references', [
       ]
       reviewers: [
         _id: @person2._id
+        username: 'wrong'
       ,
         _id: @person3._id
+        username: 'wrong'
       ]
       subdocument:
         person:
@@ -703,8 +708,10 @@ testAsyncMulti 'meteor-peerdb - references', [
       nested: [
         required:
           _id: @person2._id
+          username: 'wrong'
         optional:
           _id: @person3._id
+          username: 'wrong'
         body: 'NestedFooBar'
       ]
       body: 'FooBar'
@@ -729,6 +736,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       # subscribers have only ids
       subscribers: [
         _id: @person2._id
@@ -833,6 +841,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -893,6 +902,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ]
@@ -944,6 +954,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: []
       reviewers: []
       subdocument:
@@ -1796,6 +1807,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -2039,6 +2051,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -2106,6 +2119,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -2173,6 +2187,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -2240,6 +2255,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -2303,6 +2319,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -2363,6 +2380,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3102,6 +3120,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3263,6 +3282,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3392,6 +3412,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       _schema: '1.0.0'
       author:
         _id: @person1._id
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3521,6 +3542,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       _schema: '1.0.0'
       author:
         _id: @person1._id
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3640,6 +3662,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       _schema: '1.0.0'
       author:
         _id: @person1._id
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3750,6 +3773,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3860,6 +3884,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -3980,6 +4005,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4104,6 +4130,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4228,6 +4255,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4352,6 +4380,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4476,6 +4505,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4599,6 +4629,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4719,6 +4750,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4844,6 +4876,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person2._id
       ,
@@ -4970,6 +5003,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: [
         _id: @person3._id
       ]
@@ -5037,6 +5071,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       subscribers: []
       reviewers: []
       subdocument:
@@ -5201,7 +5236,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
     test.instanceOf @post.nested[0].required, Person
     test.instanceOf @post.nested[0].optional, Person
 
-    test.equal @post.author.formatName(), "#{ @person1.username }-none"
+    test.equal @post.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
 
     test.equal plainObject(@post),
       _id: @postId
@@ -5209,6 +5244,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       # subscribers have only ids
       subscribers: [
         _id: @person2._id
@@ -5310,7 +5346,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
     test.instanceOf @post.nested[0].optional, Person
     test.instanceOf @post.special, Person
 
-    test.equal @post.author.formatName(), "#{ @person1.username }-none"
+    test.equal @post.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
 
     test.equal plainObject(@post),
       _id: @postId
@@ -5318,6 +5354,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
       author:
         _id: @person1._id
         username: @person1.username
+        displayName: @person1.displayName
       # subscribers have only ids
       subscribers: [
         _id: @person2._id
@@ -5497,6 +5534,9 @@ if Meteor.isServer
       Post.documents.insert
         author:
           _id: @person1._id
+          # To test what happens if one field is already up to date, but the other is not
+          username: @person1.username
+          displayName: 'wrong'
         subscribers: [
           _id: @person2._id
         ,
@@ -5543,6 +5583,7 @@ if Meteor.isServer
         author:
           _id: @person1._id
           username: @person1.username
+          displayName: @person1.displayName
         # subscribers have only ids
         subscribers: [
           _id: @person2._id
@@ -5618,6 +5659,7 @@ if Meteor.isServer
         author:
           _id: @person1._id
           username: @person1.username
+          displayName: @person1.displayName
         # subscribers have only ids
         subscribers: [
           _id: @person2._id
@@ -5672,6 +5714,7 @@ if Meteor.isServer
         author:
           _id: @person1._id
           username: @person1.username
+          displayName: @person1.displayName
         # subscribers have only ids
         subscribers: [
           _id: @person2._id
