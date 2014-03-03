@@ -3190,6 +3190,9 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Post.documents.insert
       author:
         _id: @person1._id
+        # To test what happens if fields are partially not up to date
+        username: 'wrong'
+        displayName: 'wrong'
       subscribers: [
         _id: @person2._id
       ,
@@ -3209,10 +3212,20 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
           _id: @person2._id
         persons: [
           _id: @person2._id
+          username: 'wrong'
+          displayName: 'wrong'
         ,
           _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: 'wrong'
         ,
           _id: @person3._id
+          # To test if the second person3 value will be updated
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
         ,
           _id: @person3._id
         ]
@@ -3220,20 +3233,18 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       nested: [
         required:
           _id: @person2._id
+          username: 'wrong'
+          displayName: 'wrong'
         optional:
           _id: @person3._id
         body: 'NestedFooBar'
       ,
         required:
           _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
         optional:
           _id: @person3._id
-        body: 'NestedFooBar'
-      ,
-        required:
-          _id: @person3._id
-        optional:
-          _id: @person2._id
         body: 'NestedFooBar'
       ,
         required:
@@ -3243,7 +3254,16 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         body: 'NestedFooBar'
       ,
         required:
+          _id: @person3._id
+        optional:
           _id: @person2._id
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: 'wrong'
         optional:
           _id: @person2._id
         body: 'NestedFooBar'
@@ -3616,6 +3636,177 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         'tag-6-prefix-foobar-nestedfoobar-suffix'
       ]
 
+  (test, expect) ->
+    Person.documents.update @person1Id,
+      $set:
+        # Updating two fields at the same time
+        field1: 'Field 1 - 1a'
+        field2: 'Field 1 - 2a'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id
+
+    test.instanceOf @person1, Person
+    test.equal @person1.username, 'person1a'
+    test.equal @person1.displayName, 'Person 1'
+    test.equal @person1.field1, 'Field 1 - 1a'
+    test.equal @person1.field2, 'Field 1 - 2a'
+
+    @post = Post.documents.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      _schema: '1.0.0'
+      author:
+        _id: @person1._id
+        username: @person1.username
+        displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        ,
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        ,
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        ,
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+        'tag-2-prefix-foobar-nestedfoobar-suffix'
+        'tag-3-prefix-foobar-nestedfoobar-suffix'
+        'tag-4-prefix-foobar-nestedfoobar-suffix'
+        'tag-5-prefix-foobar-nestedfoobar-suffix'
+        'tag-6-prefix-foobar-nestedfoobar-suffix'
+      ]
+
     Person.documents.update @person1Id,
       $unset:
         username: ''
@@ -3633,8 +3824,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person1, Person
     test.isUndefined @person1.username, @person1.username
     test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
+    test.equal @person1.field1, 'Field 1 - 1a'
+    test.equal @person1.field2, 'Field 1 - 2a'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4104,8 +4295,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.instanceOf @person1, Person
     test.equal @person1.username, 'person1b'
     test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
+    test.equal @person1.field1, 'Field 1 - 1a'
+    test.equal @person1.field2, 'Field 1 - 2a'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4412,6 +4603,336 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.equal @person3.displayName, 'Person 3'
     test.equal @person3.field1, 'Field 3 - 1'
     test.equal @person3.field2, 'Field 3 - 2'
+
+    @post = Post.documents.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      _schema: '1.0.0'
+      author:
+        _id: @person1._id
+        username: @person1.username
+        displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        ,
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        ,
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        ,
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+          field1: @person2.field1
+          field2: @person2.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+        'tag-2-prefix-foobar-nestedfoobar-suffix'
+        'tag-3-prefix-foobar-nestedfoobar-suffix'
+        'tag-4-prefix-foobar-nestedfoobar-suffix'
+        'tag-5-prefix-foobar-nestedfoobar-suffix'
+        'tag-6-prefix-foobar-nestedfoobar-suffix'
+      ]
+
+  (test, expect) ->
+    Person.documents.update @person2Id,
+      $unset:
+        # Removing two fields at the same time
+        field1: ''
+        field2: ''
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @person2 = Person.documents.findOne @person2Id
+
+    test.instanceOf @person2, Person
+    test.equal @person2.username, 'person2b'
+    test.equal @person2.displayName, 'Person 2'
+    test.isUndefined @person2.field1
+    test.isUndefined @person2.field2
+
+    @post = Post.documents.findOne @postId,
+      transform: null # So that we can use test.equal
+
+    test.equal @post,
+      _id: @postId
+      _schema: '1.0.0'
+      author:
+        _id: @person1._id
+        username: @person1.username
+        displayName: @person1.displayName
+        field1: @person1.field1
+        field2: @person1.field2
+      subscribers: [
+        _id: @person2._id
+      ,
+        _id: @person2._id
+      ,
+        _id: @person3._id
+      ]
+      reviewers: [
+        _id: @person2._id
+        username: @person2.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ,
+        _id: @person3._id
+        username: @person3.username
+      ]
+      subdocument:
+        person:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        persons: [
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        ,
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        ,
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        ,
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        ]
+        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+        body: 'SubdocumentFooBar'
+      nested: [
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person2._id
+          username: @person2.username
+          displayName: @person2.displayName
+        optional:
+          _id: @person2._id
+          username: @person2.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ,
+        required:
+          _id: @person3._id
+          username: @person3.username
+          displayName: @person3.displayName
+          field1: @person3.field1
+          field2: @person3.field2
+        optional:
+          _id: @person3._id
+          username: @person3.username
+        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+        body: 'NestedFooBar'
+      ]
+      body: 'FooBar'
+      slug: 'prefix-foobar-subdocumentfoobar-suffix'
+      tags: [
+        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+        'tag-1-prefix-foobar-nestedfoobar-suffix'
+        'tag-2-prefix-foobar-nestedfoobar-suffix'
+        'tag-3-prefix-foobar-nestedfoobar-suffix'
+        'tag-4-prefix-foobar-nestedfoobar-suffix'
+        'tag-5-prefix-foobar-nestedfoobar-suffix'
+        'tag-6-prefix-foobar-nestedfoobar-suffix'
+      ]
+
+  (test, expect) ->
+    Person.documents.update @person2Id,
+      $set:
+        # Restoring two fields at the same time
+        field1: 'Field 2 - 1'
+        field2: 'Field 2 - 2'
+    ,
+      expect (error, res) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @person2 = Person.documents.findOne @person2Id
+
+    test.instanceOf @person2, Person
+    test.equal @person2.username, 'person2b'
+    test.equal @person2.displayName, 'Person 2'
+    test.equal @person2.field1, 'Field 2 - 1'
+    test.equal @person2.field2, 'Field 2 - 2'
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
