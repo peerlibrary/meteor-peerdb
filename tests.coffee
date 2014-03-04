@@ -146,6 +146,9 @@ class Person extends Document
 
   @Meta
     name: 'Person'
+    fields: =>
+      count: @GeneratedField 'self', ['posts', 'nestedPosts'], (fields) ->
+        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0)]
 
   formatName: ->
     "#{ @username }-#{ @displayName or "none" }"
@@ -455,7 +458,7 @@ testDefinition = (test) ->
   test.isFalse Person.Meta.parent
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
-  test.equal _.size(Person.Meta.fields), 2
+  test.equal _.size(Person.Meta.fields), 3
   test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
   test.equal Person.Meta.fields.posts.ancestorArray, 'posts'
   test.isTrue Person.Meta.fields.posts.required
@@ -482,6 +485,19 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields.nestedPosts.fields, ['body', 'subdocument.body', 'nested.body']
   test.isNull Person.Meta.fields.nestedPosts.reverseName
   test.equal Person.Meta.fields.nestedPosts.reverseFields, []
+  test.instanceOf Person.Meta.fields.count, Person._GeneratedField
+  test.isNull Person.Meta.fields.count.ancestorArray, Person.Meta.fields.count.ancestorArray
+  test.isTrue _.isFunction Person.Meta.fields.count.generator
+  test.equal Person.Meta.fields.count.sourcePath, 'count'
+  test.equal Person.Meta.fields.count.sourceDocument, Person
+  test.equal Person.Meta.fields.count.targetDocument, Person
+  test.equal Person.Meta.fields.count.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.fields.count.targetCollection._name, 'Persons'
+  test.equal Person.Meta.fields.count.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.count.targetDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.count.fields, ['posts', 'nestedPosts']
+  test.isUndefined Person.Meta.fields.count.reverseName
+  test.isUndefined Person.Meta.fields.count.reverseFields
 
   test.equal Recursive.Meta._name, 'Recursive'
   test.isFalse Recursive.Meta.parent
@@ -772,6 +788,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
       field2: 'Field 1 - 2'
+      count: 0
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -779,6 +796,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      count: 0
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -786,6 +804,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      count: 0
 
     Post.documents.insert
       author:
@@ -962,6 +981,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         subdocument:
           body: 'SubdocumentFooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -978,6 +998,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         subdocument:
           body: 'SubdocumentFooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -985,6 +1006,7 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      count: 0
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -1958,6 +1980,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
       field2: 'Field 1 - 2'
+      count: 0
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -1965,6 +1988,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      count: 0
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -1972,6 +1996,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      count: 0
 
     Post.documents.insert
       author:
@@ -2152,6 +2177,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         subdocument:
           body: 'SubdocumentFooBar'
       ]
+      count: 1
 
     @postLink = PostLink.documents.findOne @postLinkId,
       transform: null # So that we can use test.equal
@@ -2267,16 +2293,19 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
+      count: 0
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
+      count: 0
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
+      count: 0
 
     Post.documents.insert
       author:
@@ -3382,6 +3411,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
       field2: 'Field 1 - 2'
+      count: 0
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -3389,6 +3419,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      count: 0
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -3396,6 +3427,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      count: 0
 
     Post.documents.insert
       author:
@@ -3707,6 +3739,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -3733,6 +3766,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -3759,6 +3793,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -3956,6 +3991,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4145,6 +4181,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4333,6 +4370,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4511,6 +4549,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4680,6 +4719,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4850,6 +4890,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5030,6 +5071,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5221,6 +5263,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5402,6 +5445,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5596,6 +5640,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -5622,6 +5667,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -5648,6 +5694,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5842,6 +5889,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -5868,6 +5916,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -5894,6 +5943,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6088,6 +6138,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -6114,6 +6165,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6140,6 +6192,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6334,6 +6387,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -6360,6 +6414,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6386,6 +6441,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6579,6 +6635,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -6605,6 +6662,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6631,6 +6689,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6821,6 +6880,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -6847,6 +6907,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6873,6 +6934,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7070,6 +7132,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
     test.equal @person2,
       _id: @person2Id
       _schema: '1.0.0'
@@ -7098,6 +7161,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -7126,6 +7190,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7317,6 +7382,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -7337,6 +7403,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7440,6 +7507,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         nested: []
         body: 'FooBarZ'
       ]
+      count: 1
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7561,16 +7629,19 @@ testAsyncMulti 'meteor-peerdb - instances', [
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
+      count: 0
     test.equal plainObject(@person2),
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
+      count: 0
     test.equal plainObject(@person3),
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
+      count: 0
 
     test.equal @person1.formatName(), 'person1-Person 1'
     test.equal @person2.formatName(), 'person2-Person 2'
