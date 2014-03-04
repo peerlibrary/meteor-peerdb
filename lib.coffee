@@ -21,6 +21,19 @@ deepExtend = (obj, args...) ->
         obj[key] = value
   obj
 
+removeUndefined = (obj) ->
+  assert isPlainObject obj
+
+  res = {}
+  for key, value of obj
+    if _.isUndefined value
+      continue
+    else if isPlainObject value
+      res[key] = removeUndefined value
+    else
+      res[key] = value
+  res
+
 startsWith = (string, start) ->
   string.lastIndexOf(start, 0) is 0
 
@@ -315,7 +328,9 @@ class globals.Document
     currentFields = meta.fields or (fs) -> fs
     parentFields = @Meta._fields
     if parentFields
-      fields = (fs) -> currentFields parentFields fs
+      fields = (fs) ->
+        newFs = parentFields fs
+        removeUndefined deepExtend fs, newFs, currentFields newFs
     else
       fields = currentFields
 

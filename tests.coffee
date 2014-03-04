@@ -103,9 +103,8 @@ class PostLink extends PostLink
   @Meta
     name: 'PostLink'
     replaceParent: true
-    fields: (fields) =>
-      fields.post = @ReferenceField Post, ['subdocument.person', 'subdocument.persons']
-      fields
+    fields: =>
+      post: @ReferenceField Post, ['subdocument.person', 'subdocument.persons']
 
 class CircularFirst extends Document
   # Other fields:
@@ -181,9 +180,8 @@ class IdentityGenerator extends Document
 class SpecialPost extends Post
   @Meta
     name: 'SpecialPost'
-    fields: (fields) =>
-      fields.special = @ReferenceField Person
-      fields
+    fields: =>
+      special: @ReferenceField Person
 
 Document.defineAll()
 
