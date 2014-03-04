@@ -133,10 +133,12 @@ class globals.Document
       throw new Error "Target document not defined (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetDocument.Meta._listIndex?
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
-    constructor: (targetDocument, fields, @required) ->
+    constructor: (targetDocument, fields, @required, @reverseName, @reverseFields) ->
       super targetDocument, fields
 
       @required ?= true
+      @reverseName ?= null
+      @reverseFields ?= []
 
     contributeToClass: (sourceDocument, sourcePath, ancestorArray) =>
       super sourceDocument, sourcePath, ancestorArray

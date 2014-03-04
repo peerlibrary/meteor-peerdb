@@ -20,7 +20,7 @@ class Post extends Document
     name: 'Post'
     fields: =>
       # We can reference other document
-      author: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2']
+      author: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'posts', ['body', 'subdocument.body', 'nested.body']
       # Or an array of documents
       subscribers: [@ReferenceField Person]
       # Fields can be arbitrary MongoDB projections
@@ -35,7 +35,7 @@ class Post extends Document
           else
             [fields._id, "subdocument-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
       nested: [
-        required: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2']
+        required: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'nestedPosts', ['body', 'subdocument.body', 'nested.body']
         optional: @ReferenceField Person, ['username'], false
         slug: @GeneratedField 'self', ['body', 'nested.body'], (fields) ->
           for nested in fields.nested or []
@@ -241,6 +241,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.author.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.author.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal Post.Meta.fields.author.reverseName, 'posts'
+  test.equal Post.Meta.fields.author.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
   test.equal Post.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue Post.Meta.fields.subscribers.required
@@ -252,6 +254,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subscribers.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subscribers.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.subscribers.fields, []
+  test.isNull Post.Meta.fields.subscribers.reverseName
+  test.equal Post.Meta.fields.subscribers.reverseFields, []
   test.instanceOf Post.Meta.fields.reviewers, Person._ReferenceField
   test.equal Post.Meta.fields.reviewers.ancestorArray, 'reviewers'
   test.isTrue Post.Meta.fields.reviewers.required
@@ -263,6 +267,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.reviewers.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.reviewers.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.reviewers.fields, [username: 1]
+  test.isNull Post.Meta.fields.reviewers.reverseName
+  test.equal Post.Meta.fields.reviewers.reverseFields, []
   test.equal _.size(Post.Meta.fields.subdocument), 3
   test.instanceOf Post.Meta.fields.subdocument.person, Person._ReferenceField
   test.isNull Post.Meta.fields.subdocument.person.ancestorArray, Post.Meta.fields.subdocument.person.ancestorArray
@@ -275,6 +281,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
+  test.isNull Post.Meta.fields.subdocument.person.reverseName
+  test.equal Post.Meta.fields.subdocument.person.reverseFields, []
   test.instanceOf Post.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue Post.Meta.fields.subdocument.persons.required
@@ -286,6 +294,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
+  test.isNull Post.Meta.fields.subdocument.persons.reverseName
+  test.equal Post.Meta.fields.subdocument.persons.reverseFields, []
   test.instanceOf Post.Meta.fields.subdocument.slug, Person._GeneratedField
   test.isNull Post.Meta.fields.subdocument.slug.ancestorArray, Post.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.subdocument.slug.generator
@@ -297,6 +307,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.slug.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.slug.targetDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined Post.Meta.fields.subdocument.slug.reverseName
+  test.isUndefined Post.Meta.fields.subdocument.slug.reverseFields
   test.equal _.size(Post.Meta.fields.nested), 3
   test.instanceOf Post.Meta.fields.nested.required, Person._ReferenceField
   test.equal Post.Meta.fields.nested.required.ancestorArray, 'nested'
@@ -309,6 +321,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.required.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.nested.required.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal Post.Meta.fields.nested.required.reverseName, 'nestedPosts'
+  test.equal Post.Meta.fields.nested.required.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf Post.Meta.fields.nested.optional, Person._ReferenceField
   test.equal Post.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse Post.Meta.fields.nested.optional.required
@@ -320,6 +334,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.optional.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.nested.optional.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.nested.optional.fields, ['username']
+  test.isNull Post.Meta.fields.nested.optional.reverseName
+  test.equal Post.Meta.fields.nested.optional.reverseFields, []
   test.instanceOf Post.Meta.fields.nested.slug, Person._GeneratedField
   test.equal Post.Meta.fields.nested.slug.ancestorArray, 'nested'
   test.isTrue _.isFunction Post.Meta.fields.nested.slug.generator
@@ -331,6 +347,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.slug.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.nested.slug.targetDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.nested.slug.fields, ['body', 'nested.body']
+  test.isUndefined Post.Meta.fields.nested.slug.reverseName
+  test.isUndefined Post.Meta.fields.nested.slug.reverseFields
   test.instanceOf Post.Meta.fields.slug, Person._GeneratedField
   test.isNull Post.Meta.fields.slug.ancestorArray, Post.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.slug.generator
@@ -342,6 +360,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.slug.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.slug.targetDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined Post.Meta.fields.slug.reverseName
+  test.isUndefined Post.Meta.fields.slug.reverseFields
   test.instanceOf Post.Meta.fields.tags, Person._GeneratedField
   test.equal Post.Meta.fields.tags.ancestorArray, 'tags'
   test.isTrue _.isFunction Post.Meta.fields.tags.generator
@@ -353,6 +373,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.tags.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.tags.targetDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isUndefined Post.Meta.fields.tags.reverseName
+  test.isUndefined Post.Meta.fields.tags.reverseFields
 
   test.equal User.Meta._name, 'User'
   test.isFalse User.Meta.parent
@@ -373,6 +395,8 @@ testDefinition = (test) ->
   test.equal UserLink.Meta.fields.user.targetCollection._name, 'users'
   test.equal UserLink.Meta.fields.user.sourceDocument.Meta.collection._name, 'UserLinks'
   test.equal UserLink.Meta.fields.user.fields, ['username']
+  test.isNull UserLink.Meta.fields.user.reverseName
+  test.equal UserLink.Meta.fields.user.reverseFields, []
 
   test.equal PostLink.Meta._name, 'PostLink'
   test.equal PostLink.Meta.parent, _TestPostLink.Meta
@@ -388,6 +412,8 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.fields.post.targetCollection._name, 'Posts'
   test.equal PostLink.Meta.fields.post.sourceDocument.Meta.collection._name, 'PostLinks'
   test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
+  test.isNull PostLink.Meta.fields.post.reverseName
+  test.equal PostLink.Meta.fields.post.reverseFields, []
 
   test.equal CircularFirst.Meta._name, 'CircularFirst'
   test.equal CircularFirst.Meta.parent, _TestCircularFirst.Meta
@@ -404,6 +430,8 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.fields.second.sourceDocument.Meta.collection._name, 'CircularFirsts'
   test.equal CircularFirst.Meta.fields.second.targetDocument.Meta.collection._name, 'CircularSeconds'
   test.equal CircularFirst.Meta.fields.second.fields, ['content']
+  test.isNull CircularFirst.Meta.fields.second.reverseName
+  test.equal CircularFirst.Meta.fields.second.reverseFields, []
 
   test.equal CircularSecond.Meta._name, 'CircularSecond'
   test.isFalse CircularSecond.Meta.parent
@@ -420,12 +448,40 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.fields.first.sourceDocument.Meta.collection._name, 'CircularSeconds'
   test.equal CircularSecond.Meta.fields.first.targetDocument.Meta.collection._name, 'CircularFirsts'
   test.equal CircularSecond.Meta.fields.first.fields, ['content']
+  test.isNull CircularSecond.Meta.fields.first.reverseName
+  test.equal CircularSecond.Meta.fields.first.reverseFields, []
 
   test.equal Person.Meta._name, 'Person'
   test.isFalse Person.Meta.parent
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.fields, {}
+  test.equal _.size(Person.Meta.fields), 2
+  test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
+  test.equal Person.Meta.fields.posts.ancestorArray, 'posts'
+  test.isTrue Person.Meta.fields.posts.required
+  test.equal Person.Meta.fields.posts.sourcePath, 'posts'
+  test.equal Person.Meta.fields.posts.sourceDocument, Person
+  test.equal Person.Meta.fields.posts.targetDocument, Post
+  test.equal Person.Meta.fields.posts.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.fields.posts.targetCollection._name, 'Posts'
+  test.equal Person.Meta.fields.posts.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.posts.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Person.Meta.fields.posts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull Person.Meta.fields.posts.reverseName
+  test.equal Person.Meta.fields.posts.reverseFields, []
+  test.instanceOf Person.Meta.fields.nestedPosts, Person._ReferenceField
+  test.equal Person.Meta.fields.nestedPosts.ancestorArray, 'nestedPosts'
+  test.isTrue Person.Meta.fields.nestedPosts.required
+  test.equal Person.Meta.fields.nestedPosts.sourcePath, 'nestedPosts'
+  test.equal Person.Meta.fields.nestedPosts.sourceDocument, Person
+  test.equal Person.Meta.fields.nestedPosts.targetDocument, Post
+  test.equal Person.Meta.fields.nestedPosts.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.fields.nestedPosts.targetCollection._name, 'Posts'
+  test.equal Person.Meta.fields.nestedPosts.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.nestedPosts.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Person.Meta.fields.nestedPosts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull Person.Meta.fields.nestedPosts.reverseName
+  test.equal Person.Meta.fields.nestedPosts.reverseFields, []
 
   test.equal Recursive.Meta._name, 'Recursive'
   test.isFalse Recursive.Meta.parent
@@ -442,6 +498,8 @@ testDefinition = (test) ->
   test.equal Recursive.Meta.fields.other.sourceDocument.Meta.collection._name, 'Recursives'
   test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection._name, 'Recursives'
   test.equal Recursive.Meta.fields.other.fields, ['content']
+  test.isNull Recursive.Meta.fields.other.reverseName
+  test.equal Recursive.Meta.fields.other.reverseFields, []
 
   test.equal IdentityGenerator.Meta._name, 'IdentityGenerator'
   test.isFalse IdentityGenerator.Meta.parent
@@ -458,6 +516,8 @@ testDefinition = (test) ->
   test.equal IdentityGenerator.Meta.fields.result.sourceDocument.Meta.collection._name, 'IdentityGenerators'
   test.equal IdentityGenerator.Meta.fields.result.targetDocument.Meta.collection._name, 'IdentityGenerators'
   test.equal IdentityGenerator.Meta.fields.result.fields, ['source']
+  test.isUndefined IdentityGenerator.Meta.fields.result.reverseName
+  test.isUndefined IdentityGenerator.Meta.fields.result.reverseFields
   test.instanceOf IdentityGenerator.Meta.fields.results, IdentityGenerator._GeneratedField
   test.equal IdentityGenerator.Meta.fields.results.ancestorArray, 'results'
   test.isTrue _.isFunction IdentityGenerator.Meta.fields.results.generator
@@ -469,6 +529,8 @@ testDefinition = (test) ->
   test.equal IdentityGenerator.Meta.fields.results.sourceDocument.Meta.collection._name, 'IdentityGenerators'
   test.equal IdentityGenerator.Meta.fields.results.targetDocument.Meta.collection._name, 'IdentityGenerators'
   test.equal IdentityGenerator.Meta.fields.results.fields, ['source']
+  test.isUndefined IdentityGenerator.Meta.fields.results.reverseName
+  test.isUndefined IdentityGenerator.Meta.fields.results.reverseFields
 
   test.equal SpecialPost.Meta._name, 'SpecialPost'
   test.equal SpecialPost.Meta.parent, _TestPost2.Meta
@@ -485,6 +547,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.author.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.author.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal SpecialPost.Meta.fields.author.reverseName, 'posts'
+  test.equal SpecialPost.Meta.fields.author.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf SpecialPost.Meta.fields.subscribers, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue SpecialPost.Meta.fields.subscribers.required
@@ -496,6 +560,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subscribers.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subscribers.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subscribers.fields, []
+  test.isNull SpecialPost.Meta.fields.subscribers.reverseName
+  test.equal SpecialPost.Meta.fields.subscribers.reverseFields, []
   test.instanceOf SpecialPost.Meta.fields.reviewers, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.reviewers.ancestorArray, 'reviewers'
   test.isTrue SpecialPost.Meta.fields.reviewers.required
@@ -507,6 +573,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.reviewers.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.reviewers.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.reviewers.fields, [username: 1]
+  test.isNull SpecialPost.Meta.fields.reviewers.reverseName
+  test.equal SpecialPost.Meta.fields.reviewers.reverseFields, []
   test.equal _.size(SpecialPost.Meta.fields.subdocument), 3
   test.instanceOf SpecialPost.Meta.fields.subdocument.person, Person._ReferenceField
   test.isNull SpecialPost.Meta.fields.subdocument.person.ancestorArray, SpecialPost.Meta.fields.subdocument.person.ancestorArray
@@ -519,6 +587,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
+  test.isNull SpecialPost.Meta.fields.subdocument.person.reverseName
+  test.equal SpecialPost.Meta.fields.subdocument.person.reverseFields, []
   test.instanceOf SpecialPost.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue SpecialPost.Meta.fields.subdocument.persons.required
@@ -530,6 +600,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
+  test.isNull SpecialPost.Meta.fields.subdocument.persons.reverseName
+  test.equal SpecialPost.Meta.fields.subdocument.persons.reverseFields, []
   test.instanceOf SpecialPost.Meta.fields.subdocument.slug, Person._GeneratedField
   test.isNull SpecialPost.Meta.fields.subdocument.slug.ancestorArray, SpecialPost.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction SpecialPost.Meta.fields.subdocument.slug.generator
@@ -541,6 +613,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.slug.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.slug.targetDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined SpecialPost.Meta.fields.subdocument.slug.reverseName
+  test.isUndefined SpecialPost.Meta.fields.subdocument.slug.reverseFields
   test.equal _.size(SpecialPost.Meta.fields.nested), 3
   test.instanceOf SpecialPost.Meta.fields.nested.required, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.nested.required.ancestorArray, 'nested'
@@ -553,6 +627,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.required.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.nested.required.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal SpecialPost.Meta.fields.nested.required.reverseName, 'nestedPosts'
+  test.equal SpecialPost.Meta.fields.nested.required.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf SpecialPost.Meta.fields.nested.optional, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse SpecialPost.Meta.fields.nested.optional.required
@@ -564,6 +640,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.optional.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.nested.optional.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.nested.optional.fields, ['username']
+  test.isNull SpecialPost.Meta.fields.nested.optional.reverseName
+  test.equal SpecialPost.Meta.fields.nested.optional.reverseFields, []
   test.instanceOf SpecialPost.Meta.fields.nested.slug, Person._GeneratedField
   test.equal SpecialPost.Meta.fields.nested.slug.ancestorArray, 'nested'
   test.isTrue _.isFunction SpecialPost.Meta.fields.nested.slug.generator
@@ -575,6 +653,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.slug.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.nested.slug.targetDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.nested.slug.fields, ['body', 'nested.body']
+  test.isUndefined SpecialPost.Meta.fields.nested.slug.reverseName
+  test.isUndefined SpecialPost.Meta.fields.nested.slug.reverseFields
   test.instanceOf SpecialPost.Meta.fields.slug, Person._GeneratedField
   test.isNull SpecialPost.Meta.fields.slug.ancestorArray, SpecialPost.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction SpecialPost.Meta.fields.slug.generator
@@ -586,6 +666,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.slug.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.slug.targetDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined SpecialPost.Meta.fields.slug.reverseName
+  test.isUndefined SpecialPost.Meta.fields.slug.reverseFields
   test.instanceOf SpecialPost.Meta.fields.tags, Person._GeneratedField
   test.equal SpecialPost.Meta.fields.tags.ancestorArray, 'tags'
   test.isTrue _.isFunction SpecialPost.Meta.fields.tags.generator
@@ -597,6 +679,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.tags.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.tags.targetDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isUndefined SpecialPost.Meta.fields.tags.reverseName
+  test.isUndefined SpecialPost.Meta.fields.tags.reverseFields
   test.instanceOf SpecialPost.Meta.fields.special, Person._ReferenceField
   test.isNull SpecialPost.Meta.fields.special.ancestorArray, SpecialPost.Meta.fields.special.ancestorArray
   test.isTrue SpecialPost.Meta.fields.special.required
@@ -608,6 +692,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.special.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.special.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.special.fields, []
+  test.isNull SpecialPost.Meta.fields.special.reverseName
+  test.equal SpecialPost.Meta.fields.special.reverseFields, []
 
   testDocumentList test, ALL
 
@@ -672,25 +758,34 @@ testAsyncMulti 'meteor-peerdb - references', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
-    @person2 = Person.documents.findOne @person2Id
-    @person3 = Person.documents.findOne @person3Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3'
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
 
     Post.documents.insert
       author:
@@ -844,25 +939,52 @@ testAsyncMulti 'meteor-peerdb - references', [
         test.isTrue res
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
-    @person2 = Person.documents.findOne @person2Id
-    @person3 = Person.documents.findOne @person3Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1a'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2a'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3a'
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1a'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+      posts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2a'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+      nestedPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3a'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -1817,27 +1939,39 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue person3Id
         @person3Id = person3Id
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
-    @person2 = Person.documents.findOne @person2Id
-    @person3 = Person.documents.findOne @person3Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3'
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
 
     Post.documents.insert
       author:
@@ -1999,13 +2133,25 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person2 = Person.documents.findOne @person2Id
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2a'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2a'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+      nestedPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
 
     @postLink = PostLink.documents.findOne @postLinkId,
       transform: null # So that we can use test.equal
@@ -2104,21 +2250,33 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue person3Id
         @person3Id = person3Id
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
-    @person2 = Person.documents.findOne @person2Id
-    @person3 = Person.documents.findOne @person3Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1'
-    test.equal @person1.displayName, 'Person 1'
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2'
-    test.equal @person2.displayName, 'Person 2'
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3'
-    test.equal @person3.displayName, 'Person 3'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
 
     Post.documents.insert
       author:
@@ -2696,6 +2854,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Second.Meta.fields.first.fields, []
+  test.isNull Second.Meta.fields.first.reverseName
+  test.equal Second.Meta.fields.first.reverseFields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
   test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
@@ -2707,6 +2867,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.second.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.second.targetDocument.Meta.collection._name, 'Persons'
   test.equal Second.Meta.fields.second.fields, []
+  test.isNull Second.Meta.fields.second.reverseName
+  test.equal Second.Meta.fields.second.reverseFields, []
 
   firstReferenceB = Post
   Document._retryDelayed()
@@ -2732,6 +2894,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Second.Meta.fields.first.fields, []
+  test.isNull Second.Meta.fields.first.reverseName
+  test.equal Second.Meta.fields.first.reverseFields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
   test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
@@ -2743,6 +2907,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.second.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.second.targetDocument.Meta.collection._name, 'Persons'
   test.equal Second.Meta.fields.second.fields, []
+  test.isNull Second.Meta.fields.second.reverseName
+  test.equal Second.Meta.fields.second.reverseFields, []
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
@@ -2759,6 +2925,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.fields.first.sourceDocument.Meta.collection._name, 'Firsts'
   test.equal First.Meta.fields.first.targetDocument.Meta.collection._name, 'Persons'
   test.equal First.Meta.fields.first.fields, []
+  test.isNull First.Meta.fields.first.reverseName
+  test.equal First.Meta.fields.first.reverseFields, []
 
   secondReferenceA = First
   Document._retryDelayed()
@@ -2783,6 +2951,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Second.Meta.fields.first.fields, []
+  test.isNull Second.Meta.fields.first.reverseName
+  test.equal Second.Meta.fields.first.reverseFields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
   test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
@@ -2794,6 +2964,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.second.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.second.targetDocument.Meta.collection._name, 'Persons'
   test.equal Second.Meta.fields.second.fields, []
+  test.isNull Second.Meta.fields.second.reverseName
+  test.equal Second.Meta.fields.second.reverseFields, []
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
@@ -2810,6 +2982,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.fields.first.sourceDocument.Meta.collection._name, 'Firsts'
   test.equal First.Meta.fields.first.targetDocument.Meta.collection._name, 'Persons'
   test.equal First.Meta.fields.first.fields, []
+  test.isNull First.Meta.fields.first.reverseName
+  test.equal First.Meta.fields.first.reverseFields, []
 
   secondReferenceB = Post
   Document._retryDelayed()
@@ -2832,6 +3006,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Second.Meta.fields.first.fields, []
+  test.isNull Second.Meta.fields.first.reverseName
+  test.equal Second.Meta.fields.first.reverseFields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
   test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
@@ -2843,6 +3019,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.second.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.second.targetDocument.Meta.collection._name, 'Persons'
   test.equal Second.Meta.fields.second.fields, []
+  test.isNull Second.Meta.fields.second.reverseName
+  test.equal Second.Meta.fields.second.reverseFields, []
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
@@ -2859,6 +3037,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.fields.first.sourceDocument.Meta.collection._name, 'Firsts'
   test.equal First.Meta.fields.first.targetDocument.Meta.collection._name, 'Persons'
   test.equal First.Meta.fields.first.fields, []
+  test.isNull First.Meta.fields.first.reverseName
+  test.equal First.Meta.fields.first.reverseFields, []
 
   test.equal Third.Meta._name, 'Third'
   test.equal Third.Meta.parent, _TestThird2.Meta
@@ -2875,6 +3055,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.sourceDocument.Meta.collection._name, 'Thirds'
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Third.Meta.fields.first.fields, []
+  test.isNull Third.Meta.fields.first.reverseName
+  test.equal Third.Meta.fields.first.reverseFields, []
   test.instanceOf Third.Meta.fields.second, Third._ReferenceField
   test.isFalse Third.Meta.fields.second.ancestorArray, Third.Meta.fields.second.ancestorArray
   test.isTrue Third.Meta.fields.second.required
@@ -2886,6 +3068,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.second.sourceDocument.Meta.collection._name, 'Thirds'
   test.equal Third.Meta.fields.second.targetDocument.Meta.collection._name, 'Posts'
   test.equal Third.Meta.fields.second.fields, []
+  test.isNull Third.Meta.fields.second.reverseName
+  test.equal Third.Meta.fields.second.reverseFields, []
   test.instanceOf Third.Meta.fields.third, Third._ReferenceField
   test.isFalse Third.Meta.fields.third.ancestorArray, Third.Meta.fields.third.ancestorArray
   test.isTrue Third.Meta.fields.third.required
@@ -2897,6 +3081,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.third.sourceDocument.Meta.collection._name, 'Thirds'
   test.equal Third.Meta.fields.third.targetDocument.Meta.collection._name, 'Persons'
   test.equal Third.Meta.fields.third.fields, []
+  test.isNull Third.Meta.fields.third.reverseName
+  test.equal Third.Meta.fields.third.reverseFields, []
 
   Document.defineAll()
 
@@ -2915,6 +3101,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.first.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Second.Meta.fields.first.fields, []
+  test.isNull Second.Meta.fields.first.reverseName
+  test.equal Second.Meta.fields.first.reverseFields, []
   test.instanceOf Second.Meta.fields.second, Second._ReferenceField
   test.isFalse Second.Meta.fields.second.ancestorArray, Second.Meta.fields.second.ancestorArray
   test.isTrue Second.Meta.fields.second.required
@@ -2926,6 +3114,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Second.Meta.fields.second.sourceDocument.Meta.collection._name, 'Seconds'
   test.equal Second.Meta.fields.second.targetDocument.Meta.collection._name, 'Persons'
   test.equal Second.Meta.fields.second.fields, []
+  test.isNull Second.Meta.fields.second.reverseName
+  test.equal Second.Meta.fields.second.reverseFields, []
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
@@ -2942,6 +3132,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal First.Meta.fields.first.sourceDocument.Meta.collection._name, 'Firsts'
   test.equal First.Meta.fields.first.targetDocument.Meta.collection._name, 'Persons'
   test.equal First.Meta.fields.first.fields, []
+  test.isNull First.Meta.fields.first.reverseName
+  test.equal First.Meta.fields.first.reverseFields, []
 
   test.equal Third.Meta._name, 'Third'
   test.equal Third.Meta.parent, _TestThird2.Meta
@@ -2958,6 +3150,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.first.sourceDocument.Meta.collection._name, 'Thirds'
   test.equal Third.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
   test.equal Third.Meta.fields.first.fields, []
+  test.isNull Third.Meta.fields.first.reverseName
+  test.equal Third.Meta.fields.first.reverseFields, []
   test.instanceOf Third.Meta.fields.second, Third._ReferenceField
   test.isFalse Third.Meta.fields.second.ancestorArray, Third.Meta.fields.second.ancestorArray
   test.isTrue Third.Meta.fields.second.required
@@ -2969,6 +3163,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.second.sourceDocument.Meta.collection._name, 'Thirds'
   test.equal Third.Meta.fields.second.targetDocument.Meta.collection._name, 'Posts'
   test.equal Third.Meta.fields.second.fields, []
+  test.isNull Third.Meta.fields.second.reverseName
+  test.equal Third.Meta.fields.second.reverseFields, []
   test.instanceOf Third.Meta.fields.third, Third._ReferenceField
   test.isFalse Third.Meta.fields.third.ancestorArray, Third.Meta.fields.third.ancestorArray
   test.isTrue Third.Meta.fields.third.required
@@ -2980,6 +3176,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Third.Meta.fields.third.sourceDocument.Meta.collection._name, 'Thirds'
   test.equal Third.Meta.fields.third.targetDocument.Meta.collection._name, 'Persons'
   test.equal Third.Meta.fields.third.fields, []
+  test.isNull Third.Meta.fields.third.reverseName
+  test.equal Third.Meta.fields.third.reverseFields, []
 
   # Restore
   Document.list = list
@@ -3165,27 +3363,39 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue person3Id
         @person3Id = person3Id
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
-    @person2 = Person.documents.findOne @person2Id
-    @person3 = Person.documents.findOne @person3Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3'
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
 
     Post.documents.insert
       author:
@@ -3464,25 +3674,91 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         test.isTrue res
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
-    @person2 = Person.documents.findOne @person2Id
-    @person3 = Person.documents.findOne @person3Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1a'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1'
-    test.equal @person1.field2, 'Field 1 - 2'
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2a'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3a'
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1a'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2a'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3a'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -3651,13 +3927,35 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1a'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1a'
-    test.equal @person1.field2, 'Field 1 - 2a'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1a'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -3819,13 +4117,34 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.isUndefined @person1.username, @person1.username
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1a'
-    test.equal @person1.field2, 'Field 1 - 2a'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -3986,13 +4305,34 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person2 = Person.documents.findOne @person2Id
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person2, Person
-    test.isUndefined @person2.username, @person2.username
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4143,13 +4483,34 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person3 = Person.documents.findOne @person3Id
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person3, Person
-    test.isUndefined @person3.username, @person3.username
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4290,13 +4651,35 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1b'
-    test.equal @person1.displayName, 'Person 1'
-    test.equal @person1.field1, 'Field 1 - 1a'
-    test.equal @person1.field2, 'Field 1 - 2a'
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4438,13 +4821,35 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person2 = Person.documents.findOne @person2Id
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2b'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1'
+      field2: 'Field 2 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4596,13 +5001,35 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person3 = Person.documents.findOne @person3Id
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3b'
-    test.equal @person3.displayName, 'Person 3'
-    test.equal @person3.field1, 'Field 3 - 1'
-    test.equal @person3.field2, 'Field 3 - 2'
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4767,13 +5194,33 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person2 = Person.documents.findOne @person2Id
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2b'
-    test.equal @person2.displayName, 'Person 2'
-    test.isUndefined @person2.field1
-    test.isUndefined @person2.field2
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4915,8 +5362,8 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Person.documents.update @person2Id,
       $set:
         # Restoring two fields at the same time
-        field1: 'Field 2 - 1'
-        field2: 'Field 2 - 2'
+        field1: 'Field 2 - 1b'
+        field2: 'Field 2 - 2b'
     ,
       expect (error, res) =>
         test.isFalse error, error?.toString?() or error
@@ -4926,13 +5373,35 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    @person2 = Person.documents.findOne @person2Id
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
 
-    test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2b'
-    test.equal @person2.displayName, 'Person 2'
-    test.equal @person2.field1, 'Field 2 - 1'
-    test.equal @person2.field2, 'Field 2 - 2'
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5094,6 +5563,92 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -5254,6 +5809,92 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -5414,6 +6055,92 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -5574,6 +6301,92 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -5733,6 +6546,92 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -5889,6 +6788,92 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -6050,6 +7035,98 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NewFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+    test.equal @person2,
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2b'
+      displayName: 'Person 2'
+      field1: 'Field 2 - 1b'
+      field2: 'Field 2 - 2b'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NewFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NewFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -6215,6 +7292,52 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+    test.equal @person3,
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3b'
+      displayName: 'Person 3'
+      field1: 'Field 3 - 1'
+      field2: 'Field 3 - 2'
+      nestedPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -6300,6 +7423,24 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1b'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1a'
+      field2: 'Field 1 - 2a'
+      posts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: []
+        body: 'FooBarZ'
+      ]
+
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
 
@@ -6403,6 +7544,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
         test.isTrue person3Id
         @person3Id = person3Id
 
+    # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
@@ -6411,16 +7553,28 @@ testAsyncMulti 'meteor-peerdb - instances', [
     @person3 = Person.documents.findOne @person3Id
 
     test.instanceOf @person1, Person
-    test.equal @person1.username, 'person1'
-    test.equal @person1.displayName, 'Person 1'
     test.instanceOf @person2, Person
-    test.equal @person2.username, 'person2'
-    test.equal @person2.displayName, 'Person 2'
     test.instanceOf @person3, Person
-    test.equal @person3.username, 'person3'
-    test.equal @person3.displayName, 'Person 3'
+
+    test.equal plainObject(@person1),
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+    test.equal plainObject(@person2),
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+    test.equal plainObject(@person3),
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
 
     test.equal @person1.formatName(), 'person1-Person 1'
+    test.equal @person2.formatName(), 'person2-Person 2'
+    test.equal @person3.formatName(), 'person3-Person 3'
 
     Post.documents.insert
       author:
@@ -6772,6 +7926,7 @@ if Meteor.isServer
           test.isTrue person3Id
           @person3Id = person3Id
 
+      # Sleep so that observers have time to update documents
       Meteor.setTimeout expect(), WAIT_TIME
   ,
     (test, expect) ->

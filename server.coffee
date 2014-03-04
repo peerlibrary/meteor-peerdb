@@ -180,6 +180,24 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
     # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
     @updateSource target._id, _.omit target, '_id'
 
+    return unless @reverseName
+
+    reverseFields = fieldsToProjection @reverseFields
+    source = @sourceCollection.findOne id,
+      fields: reverseFields
+      transform: null
+
+    selector =
+      _id: value._id
+    selector["#{ @reverseName }._id"] =
+      $ne: id
+
+    update = {}
+    update[@reverseName] = source
+
+    @targetCollection.update selector,
+      $addToSet: update
+
 class globals.Document._GeneratedField extends globals.Document._GeneratedField
   _updateSourceField: (id, fields) =>
     [selector, sourceValue] = @generator fields
