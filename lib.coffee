@@ -1,6 +1,6 @@
 globals = @
 
-RESERVED_FIELDS = ['parent']
+RESERVED_FIELDS = ['document', 'parent']
 INVALID_TARGET = "Invalid target document"
 
 isPlainObject = (obj) ->
@@ -109,6 +109,11 @@ class globals.Document
       throw new Error "Missing source collection (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceCollection
       throw new Error "Source document not defined (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceDocument.Meta._listIndex?
 
+      assert not @sourceDocument.Meta._replaced
+      assert not @sourceDocument.Meta._delayIndex?
+      assert.equal @sourceDocument.Meta.document, @sourceDocument
+      assert.equal @sourceDocument.Meta.document.Meta, @sourceDocument.Meta
+
   @_ObservingField: class extends @_Field
 
   @_TargetedFieldsObservingField: class extends @_ObservingField
@@ -144,6 +149,11 @@ class globals.Document
       throw new Error "Missing target document (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetDocument
       throw new Error "Missing target collection (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetCollection
       throw new Error "Target document not defined (for #{ @sourcePath } from #{ @_metaLocation })" unless @targetDocument.Meta._listIndex?
+
+      assert not @targetDocument.Meta._replaced
+      assert not @targetDocument.Meta._delayIndex?
+      assert.equal @targetDocument.Meta.document, @targetDocument
+      assert.equal @targetDocument.Meta.document.Meta, @targetDocument.Meta
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
     constructor: (targetDocument, fields, @required, @reverseName, @reverseFields) ->
@@ -339,6 +349,7 @@ class globals.Document
     meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
     # For easier debugging and better error messages
     meta._location = getCurrentLocation()
+    meta.document = @
 
     if _.isString meta.collection
       meta.collection = getCollection meta.collection, @

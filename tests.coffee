@@ -229,6 +229,7 @@ testDocumentList = (test, list) ->
 testDefinition = (test) ->
   test.equal Post.Meta._name, 'Post'
   test.equal Post.Meta.parent, _TestPost.Meta
+  test.equal Post.Meta.document, Post
   test.equal Post.Meta.collection._name, 'Posts'
   test.equal _.size(Post.Meta.fields), 7
   test.instanceOf Post.Meta.fields.author, Person._ReferenceField
@@ -379,11 +380,13 @@ testDefinition = (test) ->
 
   test.equal User.Meta._name, 'User'
   test.isFalse User.Meta.parent
+  test.equal User.Meta.document, User
   test.equal User.Meta.collection._name, 'users'
   test.equal _.size(User.Meta.fields), 0
 
   test.equal UserLink.Meta._name, 'UserLink'
   test.isFalse UserLink.Meta.parent
+  test.equal UserLink.Meta.document, UserLink
   test.equal UserLink.Meta.collection._name, 'UserLinks'
   test.equal _.size(UserLink.Meta.fields), 1
   test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
@@ -401,6 +404,7 @@ testDefinition = (test) ->
 
   test.equal PostLink.Meta._name, 'PostLink'
   test.equal PostLink.Meta.parent, _TestPostLink.Meta
+  test.equal PostLink.Meta.document, PostLink
   test.equal PostLink.Meta.collection._name, 'PostLinks'
   test.equal _.size(PostLink.Meta.fields), 1
   test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
@@ -418,6 +422,7 @@ testDefinition = (test) ->
 
   test.equal CircularFirst.Meta._name, 'CircularFirst'
   test.equal CircularFirst.Meta.parent, _TestCircularFirst.Meta
+  test.equal CircularFirst.Meta.document, CircularFirst
   test.equal CircularFirst.Meta.collection._name, 'CircularFirsts'
   test.equal _.size(CircularFirst.Meta.fields), 1
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
@@ -436,6 +441,7 @@ testDefinition = (test) ->
 
   test.equal CircularSecond.Meta._name, 'CircularSecond'
   test.isFalse CircularSecond.Meta.parent
+  test.equal CircularSecond.Meta.document, CircularSecond
   test.equal CircularSecond.Meta.collection._name, 'CircularSeconds'
   test.equal _.size(CircularSecond.Meta.fields), 1
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
@@ -454,6 +460,7 @@ testDefinition = (test) ->
 
   test.equal Person.Meta._name, 'Person'
   test.isFalse Person.Meta.parent
+  test.equal Person.Meta.document, Person
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
   test.equal _.size(Person.Meta.fields), 3
@@ -499,6 +506,7 @@ testDefinition = (test) ->
 
   test.equal Recursive.Meta._name, 'Recursive'
   test.isFalse Recursive.Meta.parent
+  test.equal Recursive.Meta.document, Recursive
   test.equal Recursive.Meta.collection._name, 'Recursives'
   test.equal _.size(Recursive.Meta.fields), 1
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
@@ -517,6 +525,7 @@ testDefinition = (test) ->
 
   test.equal IdentityGenerator.Meta._name, 'IdentityGenerator'
   test.isFalse IdentityGenerator.Meta.parent
+  test.equal IdentityGenerator.Meta.document, IdentityGenerator
   test.equal IdentityGenerator.Meta.collection._name, 'IdentityGenerators'
   test.equal _.size(IdentityGenerator.Meta.fields), 2
   test.instanceOf IdentityGenerator.Meta.fields.result, IdentityGenerator._GeneratedField
@@ -548,6 +557,7 @@ testDefinition = (test) ->
 
   test.equal SpecialPost.Meta._name, 'SpecialPost'
   test.equal SpecialPost.Meta.parent, _TestPost2.Meta
+  test.equal SpecialPost.Meta.document, SpecialPost
   test.equal SpecialPost.Meta.collection._name, 'SpecialPosts'
   test.equal _.size(SpecialPost.Meta.fields), 8
   test.instanceOf SpecialPost.Meta.fields.author, Person._ReferenceField
@@ -2868,6 +2878,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
+  test.equal Second.Meta.document, Second
   test.equal Second.Meta.collection._name, 'Seconds'
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
@@ -2908,6 +2919,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
+  test.equal Second.Meta.document, Second
   test.equal Second.Meta.collection._name, 'Seconds'
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
@@ -2939,6 +2951,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
+  test.equal First.Meta.document, First
   test.equal First.Meta.collection._name, 'Firsts'
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
@@ -2965,6 +2978,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
+  test.equal Second.Meta.document, Second
   test.equal Second.Meta.collection._name, 'Seconds'
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
@@ -2996,6 +3010,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
+  test.equal First.Meta.document, First
   test.equal First.Meta.collection._name, 'Firsts'
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
@@ -3020,6 +3035,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
+  test.equal Second.Meta.document, Second
   test.equal Second.Meta.collection._name, 'Seconds'
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
@@ -3051,6 +3067,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
+  test.equal First.Meta.document, First
   test.equal First.Meta.collection._name, 'Firsts'
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
@@ -3069,6 +3086,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Third.Meta._name, 'Third'
   test.equal Third.Meta.parent, _TestThird2.Meta
+  test.equal Third.Meta.document, Third
   test.equal Third.Meta.collection._name, 'Thirds'
   test.equal _.size(Third.Meta.fields), 3
   test.instanceOf Third.Meta.fields.first, Third._ReferenceField
@@ -3115,6 +3133,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
+  test.equal Second.Meta.document, Second
   test.equal Second.Meta.collection._name, 'Seconds'
   test.equal _.size(Second.Meta.fields), 2
   test.instanceOf Second.Meta.fields.first, Second._ReferenceField
@@ -3146,6 +3165,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal First.Meta._name, 'First'
   test.equal First.Meta.parent, _TestFirst2.Meta
+  test.equal First.Meta.document, First
   test.equal First.Meta.collection._name, 'Firsts'
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
@@ -3164,6 +3184,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   test.equal Third.Meta._name, 'Third'
   test.equal Third.Meta.parent, _TestThird2.Meta
+  test.equal Third.Meta.document, Third
   test.equal Third.Meta.collection._name, 'Thirds'
   test.equal _.size(Third.Meta.fields), 3
   test.instanceOf Third.Meta.fields.first, Third._ReferenceField
@@ -3309,6 +3330,7 @@ Tinytest.add 'meteor-peerdb - tricky references', (test) ->
 
   test.equal First.Meta._name, 'First'
   test.isFalse First.Meta.parent
+  test.equal First.Meta.document, First
   test.equal First.Meta.collection._name, 'Firsts'
   test.equal _.size(First.Meta.fields), 1
   test.instanceOf First.Meta.fields.first, First._ReferenceField
