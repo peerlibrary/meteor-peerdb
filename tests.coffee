@@ -2784,9 +2784,9 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   testDocumentList test, ALL
   test.equal Document._delayed.length, 3
-  test.equal Document._delayed[0][0], First
-  test.equal Document._delayed[1][0], Second
-  test.equal Document._delayed[2][0], Third
+  test.equal Document._delayed[0], First
+  test.equal Document._delayed[1], Second
+  test.equal Document._delayed[2], Third
 
   _TestFirst = First
 
@@ -2819,12 +2819,12 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   testDocumentList test, ALL
   test.equal Document._delayed.length, 6
-  test.equal Document._delayed[0][0], _TestFirst
-  test.equal Document._delayed[1][0], _TestSecond
-  test.equal Document._delayed[2][0], _TestThird
-  test.equal Document._delayed[3][0], First
-  test.equal Document._delayed[4][0], Second
-  test.equal Document._delayed[5][0], Third
+  test.equal Document._delayed[0], _TestFirst
+  test.equal Document._delayed[1], _TestSecond
+  test.equal Document._delayed[2], _TestThird
+  test.equal Document._delayed[3], First
+  test.equal Document._delayed[4], Second
+  test.equal Document._delayed[5], Third
 
   _TestThird2 = Third
 
@@ -2837,13 +2837,13 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   testDocumentList test, ALL
   test.equal Document._delayed.length, 7
-  test.equal Document._delayed[0][0], _TestFirst
-  test.equal Document._delayed[1][0], _TestSecond
-  test.equal Document._delayed[2][0], _TestThird
-  test.equal Document._delayed[3][0], First
-  test.equal Document._delayed[4][0], Second
-  test.equal Document._delayed[5][0], _TestThird2
-  test.equal Document._delayed[6][0], Third
+  test.equal Document._delayed[0], _TestFirst
+  test.equal Document._delayed[1], _TestSecond
+  test.equal Document._delayed[2], _TestThird
+  test.equal Document._delayed[3], First
+  test.equal Document._delayed[4], Second
+  test.equal Document._delayed[5], _TestThird2
+  test.equal Document._delayed[6], Third
 
   _TestFirst2 = First
 
@@ -2856,25 +2856,25 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   testDocumentList test, ALL
   test.equal Document._delayed.length, 8
-  test.equal Document._delayed[0][0], _TestFirst
-  test.equal Document._delayed[1][0], _TestSecond
-  test.equal Document._delayed[2][0], _TestThird
-  test.equal Document._delayed[3][0], _TestFirst2
-  test.equal Document._delayed[4][0], Second
-  test.equal Document._delayed[5][0], _TestThird2
-  test.equal Document._delayed[6][0], Third
-  test.equal Document._delayed[7][0], First
+  test.equal Document._delayed[0], _TestFirst
+  test.equal Document._delayed[1], _TestSecond
+  test.equal Document._delayed[2], _TestThird
+  test.equal Document._delayed[3], _TestFirst2
+  test.equal Document._delayed[4], Second
+  test.equal Document._delayed[5], _TestThird2
+  test.equal Document._delayed[6], Third
+  test.equal Document._delayed[7], First
 
   firstReferenceA = First
   Document._retryDelayed()
 
   testDocumentList test, ALL.concat [_TestFirst, _TestSecond, Second]
   test.equal Document._delayed.length, 5
-  test.equal Document._delayed[0][0], _TestThird
-  test.equal Document._delayed[1][0], _TestFirst2
-  test.equal Document._delayed[2][0], _TestThird2
-  test.equal Document._delayed[3][0], Third
-  test.equal Document._delayed[4][0], First
+  test.equal Document._delayed[0], _TestThird
+  test.equal Document._delayed[1], _TestFirst2
+  test.equal Document._delayed[2], _TestThird2
+  test.equal Document._delayed[3], Third
+  test.equal Document._delayed[4], First
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
@@ -2913,9 +2913,9 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   testDocumentList test, ALL.concat [_TestSecond, Second, _TestFirst2, First]
   test.equal Document._delayed.length, 3
-  test.equal Document._delayed[0][0], _TestThird
-  test.equal Document._delayed[1][0], _TestThird2
-  test.equal Document._delayed[2][0], Third
+  test.equal Document._delayed[0], _TestThird
+  test.equal Document._delayed[1], _TestThird2
+  test.equal Document._delayed[2], Third
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
@@ -2973,8 +2973,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
 
   testDocumentList test, ALL.concat [_TestSecond, Second, _TestFirst2, First, _TestThird]
   test.equal Document._delayed.length, 2
-  test.equal Document._delayed[0][0], _TestThird2
-  test.equal Document._delayed[1][0], Third
+  test.equal Document._delayed[0], _TestThird2
+  test.equal Document._delayed[1], Third
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta

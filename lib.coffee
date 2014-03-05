@@ -207,7 +207,7 @@ class globals.Document
     globals.Document._delayedCheckTimeout = Meteor.setTimeout ->
       if globals.Document._delayed.length
         delayed = [] # Display friendly list of delayed documents
-        for [document, fields] in globals.Document._delayed
+        for document in globals.Document._delayed
           delayed.push "#{ document.Meta._name } from #{ document.Meta._location }"
         Log.error "Not all delayed document definitions were successfully retried:\n#{ delayed.join('\n') }"
     , 1000 # ms
@@ -257,21 +257,21 @@ class globals.Document
     # And set it back to the empty list, we will add to it again as necessary
     globals.Document._delayed = []
 
-    for [document, fieldsFunction] in delayed
+    for document in delayed
       delete document.Meta._delayIndex
 
-    for [document, fieldsFunction] in delayed
+    for document in delayed
       assert not document.Meta._listIndex
 
       if document.Meta._replaced
         continue
 
       try
-        fields = fieldsFunction.call document, {}
+        fields = document.Meta._fields.call document, {}
         document.Meta.fields = document._processFields fields if fields and isPlainObject fields
       catch e
         if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
-          @_addDelayed document, fieldsFunction
+          @_addDelayed document
           continue
         else
           throw new Error "Invalid fields (from #{ document.Meta._location }): #{ if e.stack then "#{ e.stack }\n---" else e.stringOf?() or e }"
@@ -298,7 +298,7 @@ class globals.Document
           delete document.Meta.parent._delayIndex
 
           # Renumber documents
-          for [doc, fields], i in globals.Document._delayed
+          for doc, i in globals.Document._delayed
             doc.Meta._delayIndex = i
 
       globals.Document.list.push document
@@ -309,13 +309,13 @@ class globals.Document
 
     @_setDelayedCheck()
 
-  @_addDelayed: (document, fields) ->
+  @_addDelayed: (document) ->
     @_clearDelayedCheck()
 
     assert not document.Meta._replaced
     assert not document.Meta._listIndex
 
-    globals.Document._delayed.push [document, fields]
+    globals.Document._delayed.push document
     document.Meta._delayIndex = globals.Document._delayed.length - 1
 
     @_setDelayedCheck()
@@ -366,7 +366,7 @@ class globals.Document
 
     @documents = new @_Manager @Meta
 
-    @_addDelayed @, fields
+    @_addDelayed @
     @_retryDelayed()
 
   @list = []
