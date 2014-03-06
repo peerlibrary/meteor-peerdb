@@ -388,7 +388,7 @@ migrations = ->
   setupMigrations()
 
 Meteor.startup ->
-  # To try delayed references one last time, this time we throw any exceptions
+  # To try delayed references one last time, throwing any exceptions
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   globals.Document.defineAll()
 
