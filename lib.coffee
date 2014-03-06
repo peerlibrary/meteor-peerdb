@@ -249,6 +249,35 @@ class globals.Document
 
     res
 
+  @_fieldsUseDocument: (fields, document) ->
+    assert fields
+    assert isPlainObject fields
+
+    for name, field of fields
+      if field instanceof globals.Document._TargetedFieldsObservingField
+        return true if field.sourceDocument is document
+        return true if field.targetDocument is document
+      else if field instanceof globals.Document._Field
+        return true if field.sourceDocument is document
+      else
+        assert isPlainObject field
+        return true if @_fieldsUseDocument field, document
+
+    false
+
+  @_retryAllUsing: (document) ->
+    documents = globals.Document.list
+    globals.Document.list = []
+
+    for doc in documents
+      if @_fieldsUseDocument doc.Meta.fields, document
+        delete doc.Meta._replaced
+        delete doc.Meta._listIndex
+        @_addDelayed doc
+      else
+        globals.Document.list.push doc
+        doc.Meta._listIndex = globals.Document.list.length - 1
+
   @_retryDelayed: (throwErrors) ->
     @_clearDelayedCheck()
 
@@ -279,10 +308,9 @@ class globals.Document
       throw new Error "No fields returned (from #{ document.Meta._location })" unless fields
       throw new Error "Returned fields should be a plain object (from #{ document.Meta._location })" unless isPlainObject fields
 
-      if document.Meta.replaceParent
+      if document.Meta.replaceParent and not document.Meta.parent?._replaced
         throw new Error "Replace parent set, but no parent known (from #{ document.Meta._location })" unless document.Meta.parent
 
-        assert not document.Meta.parent._replaced
         document.Meta.parent._replaced = true
 
         if document.Meta.parent._listIndex?
@@ -300,6 +328,8 @@ class globals.Document
           # Renumber documents
           for doc, i in globals.Document._delayed
             doc.Meta._delayIndex = i
+
+        @_retryAllUsing document.Meta.parent.document
 
       globals.Document.list.push document
       document.Meta._listIndex = globals.Document.list.length - 1

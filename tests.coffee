@@ -183,6 +183,12 @@ class SpecialPost extends Post
     fields: =>
       special: @ReferenceField Person
 
+# To test redefinig after fields already have a reference to an old document
+class Post extends Post
+  @Meta
+    name: 'Post'
+    replaceParent: true
+
 Document.defineAll()
 
 # Just to make sure things are sane
@@ -221,14 +227,14 @@ if Meteor.isServer
   Meteor.publish null, ->
     SpecialPost.documents.find()
 
-ALL = [User, UserLink, PostLink, CircularSecond, CircularFirst, Person, Post, Recursive, IdentityGenerator, SpecialPost]
+ALL = [User, UserLink, CircularSecond, CircularFirst, Recursive, IdentityGenerator, SpecialPost, Post, PostLink, Person]
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
 
 testDefinition = (test) ->
   test.equal Post.Meta._name, 'Post'
-  test.equal Post.Meta.parent, _TestPost.Meta
+  test.equal Post.Meta.parent, _TestPost2.Meta
   test.equal Post.Meta.document, Post
   test.equal Post.Meta.collection._name, 'Posts'
   test.equal _.size(Post.Meta.fields), 7
