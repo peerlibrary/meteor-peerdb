@@ -168,6 +168,36 @@ class globals.Document
 
       throw new Error "Reference field directly in an array cannot be optional (for #{ @sourcePath } from #{ @_metaLocation })" if @ancestorArray and @sourcePath is @ancestorArray and not @required
 
+      return unless @reverseName
+
+      # We return now because contributeToClass will be retried sooner or later with replaced document again
+      return if @targetDocument.Meta._replaced
+
+      reverseFs = {}
+      reverseFs[@reverseName] = [globals.Document.ReferenceField @sourceDocument, @reverseFields]
+
+      targetReverseFields = @targetDocument.Meta._reverseFields
+      @targetDocument.Meta._reverseFields = (fs) ->
+        _.extend targetReverseFields(fs), reverseFs
+
+      # If target document is already defined, we queue it for a retry.
+      # We do not queue children, because or children replace a parent
+      # (and reverse fields will be defined there), or reference is
+      # pointing to this target document and we want reverse defined
+      # only once and only on exact target document and not its
+      # children.
+      if @targetDocument.Meta._listIndex?
+        globals.Document.list.splice @targetDocument.Meta._listIndex, 1
+
+        delete @targetDocument.Meta._replaced
+        delete @targetDocument.Meta._listIndex
+
+        # Renumber documents
+        for doc, i in globals.Document.list
+          doc.Meta._listIndex = i
+
+        globals.Document._addDelayed @targetDocument
+
   @ReferenceField: (args...) ->
     new @_ReferenceField args...
 
@@ -290,14 +320,19 @@ class globals.Document
       delete document.Meta._delayIndex
 
     for document in delayed
-      assert not document.Meta._listIndex
+      assert not document.Meta._listIndex?
 
       if document.Meta._replaced
         continue
 
       try
         fields = document.Meta._fields.call document, {}
-        document.Meta.fields = document._processFields fields if fields and isPlainObject fields
+        reverseFields = document.Meta._reverseFields.call document, {}
+
+        assert reverseFields
+        assert isPlainObject reverseFields
+
+        document.Meta.fields = document._processFields _.extend(fields, reverseFields) if fields and isPlainObject fields
       catch e
         if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed document
@@ -343,7 +378,7 @@ class globals.Document
     @_clearDelayedCheck()
 
     assert not document.Meta._replaced
-    assert not document.Meta._listIndex
+    assert not document.Meta._listIndex?
 
     globals.Document._delayed.push document
     document.Meta._delayIndex = globals.Document._delayed.length - 1
@@ -366,16 +401,7 @@ class globals.Document
 
     name = meta.name
     currentFields = meta.fields or (fs) -> fs
-    parentFields = @Meta._fields
-    if parentFields
-      fields = (fs) ->
-        newFs = parentFields fs
-        removeUndefined deepExtend fs, newFs, currentFields newFs
-    else
-      fields = currentFields
-
     meta = _.omit meta, 'name', 'fields'
-    meta._fields = fields # Fields function
     meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
     # For easier debugging and better error messages
     meta._location = getCurrentLocation()
@@ -386,13 +412,30 @@ class globals.Document
     else if not meta.collection
       meta.collection = getCollection "#{ name }s", @
 
-    if @Meta._name
-      meta.parent = @Meta
-
     parentMeta = @Meta
+
+    if @Meta._name
+      meta.parent = parentMeta
+
+    if parentMeta._fields
+      fields = (fs) ->
+        newFs = parentMeta._fields fs
+        removeUndefined deepExtend fs, newFs, currentFields newFs
+    else
+      fields = currentFields
+
+    meta._fields = fields # Fields function
+
+    if not meta.replaceParent
+      # If we are not replacing the parent, we override _reverseFields with an empty initial function
+      # because we want reverse fields only on exact target document and not its children.
+      meta._reverseFields = (fs) -> fs
+
     clonedParentMeta = -> parentMeta.apply @, arguments
     filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent'
     @Meta = _.extend clonedParentMeta, filteredParentMeta, meta
+
+    assert @Meta._reverseFields
 
     @documents = new @_Manager @Meta
 

@@ -149,8 +149,25 @@ class Person extends Document
       count: @GeneratedField 'self', ['posts', 'nestedPosts'], (fields) ->
         [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0)]
 
+# Store away for testing
+_TestPerson = Person
+
+# To test if reverse fields *are* added to the extended class which replaces the parent
+class Person extends Person
+  @Meta
+    name: 'Person'
+    replaceParent: true
+
   formatName: ->
     "#{ @username }-#{ @displayName or "none" }"
+
+# To test if reverse fields are *not* added to the extended class which replaces the parent
+class SpecialPerson extends Person
+  @Meta
+    name: 'SpecialPerson'
+    fields: =>
+      # posts and nestedPosts don't exist, so we remove count field as well
+      count: undefined
 
 class Recursive extends Document
   # Other fields:
@@ -227,7 +244,7 @@ if Meteor.isServer
   Meteor.publish null, ->
     SpecialPost.documents.find()
 
-ALL = [User, UserLink, CircularSecond, CircularFirst, Recursive, IdentityGenerator, SpecialPost, Post, PostLink, Person]
+ALL = [User, UserLink, CircularSecond, CircularFirst, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
@@ -465,7 +482,7 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.fields.first.reverseFields, []
 
   test.equal Person.Meta._name, 'Person'
-  test.isFalse Person.Meta.parent
+  test.equal Person.Meta.parent, _TestPerson.Meta
   test.equal Person.Meta.document, Person
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
@@ -509,6 +526,13 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields.count.fields, ['posts', 'nestedPosts']
   test.isUndefined Person.Meta.fields.count.reverseName
   test.isUndefined Person.Meta.fields.count.reverseFields
+
+  test.equal SpecialPerson.Meta._name, 'SpecialPerson'
+  test.equal SpecialPerson.Meta.parent, Person.Meta
+  test.equal SpecialPerson.Meta.document, SpecialPerson
+  test.equal SpecialPerson.Meta._name, 'SpecialPerson'
+  test.equal SpecialPerson.Meta.collection._name, 'SpecialPersons'
+  test.equal _.size(SpecialPerson.Meta.fields), 0
 
   test.equal Recursive.Meta._name, 'Recursive'
   test.isFalse Recursive.Meta.parent
