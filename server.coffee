@@ -18,34 +18,26 @@ catchErrors = (f) ->
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
 
-class globals.Document._TargetedFieldsObservingField extends globals.Document._TargetedFieldsObservingField
-  setupTargetObservers: (updateAll) =>
-    initializing = true
+# Cannot use => here because we are not in the globals.Document._TargetedFieldsObservingField context
+globals.Document._TargetedFieldsObservingField::setupTargetObservers = (updateAll) ->
+  initializing = true
 
-    referenceFields = fieldsToProjection @fields
-    handle = @targetCollection.find({}, fields: referenceFields).observeChanges
-      added: catchErrors (id, fields) =>
-        @updateSource id, fields if updateAll or not initializing
+  referenceFields = fieldsToProjection @fields
+  handle = @targetCollection.find({}, fields: referenceFields).observeChanges
+    added: catchErrors (id, fields) =>
+      @updateSource id, fields if updateAll or not initializing
 
-      changed: catchErrors (id, fields) =>
-        @updateSource id, fields
+    changed: catchErrors (id, fields) =>
+      @updateSource id, fields
 
-      removed: catchErrors (id) =>
-        @removeSource id
+    removed: catchErrors (id) =>
+      @removeSource id
 
-    if updateAll
-      handle.stop()
-      return
+  if updateAll
+    handle.stop()
+    return
 
-    initializing = false
-
-# Have to refresh with new methods from TargetedFieldsObservingField
-_.extend globals.Document._ReferenceField.prototype,
-  _.omit(globals.Document._TargetedFieldsObservingField.prototype, 'constructor'),
-  _.omit(globals.Document._ReferenceField.prototype, 'constructor')
-_.extend globals.Document._GeneratedField.prototype,
-  _.omit(globals.Document._TargetedFieldsObservingField.prototype, 'constructor'),
-  _.omit(globals.Document._GeneratedField.prototype, 'constructor')
+  initializing = false
 
 class globals.Document._ReferenceField extends globals.Document._ReferenceField
   updateSource: (id, fields) =>
@@ -368,7 +360,7 @@ setupObservers = (updateAll) ->
   setupTargetObservers = (fields) ->
     for name, field of fields
       # There are no arrays anymore here, just objects (for subdocuments) or fields
-      if field instanceof globals.Document._ObservingField
+      if field instanceof globals.Document._TargetedFieldsObservingField
         field.setupTargetObservers updateAll
       else if field not instanceof globals.Document._Field
         setupTargetObservers field
@@ -405,3 +397,6 @@ Meteor.startup ->
   setupObservers()
 
 Document = globals.Document
+
+assert globals.Document._ReferenceField.prototype instanceof globals.Document._TargetedFieldsObservingField
+assert globals.Document._GeneratedField.prototype instanceof globals.Document._TargetedFieldsObservingField

@@ -125,7 +125,7 @@ class globals.Document
       if targetDocument is 'self'
         @targetDocument = 'self'
         @targetCollection = null
-      else if _.isFunction(targetDocument) and new targetDocument() instanceof globals.Document
+      else if _.isFunction(targetDocument) and targetDocument.prototype instanceof globals.Document
         @targetDocument = targetDocument
         @targetCollection = targetDocument.Meta.collection
       else
@@ -385,3 +385,6 @@ class globals.Document
     assert dontThrowDelayedErrors or globals.Document._delayed.length is 0
 
 Document = globals.Document
+
+assert globals.Document._ReferenceField.prototype instanceof globals.Document._TargetedFieldsObservingField
+assert globals.Document._GeneratedField.prototype instanceof globals.Document._TargetedFieldsObservingField
