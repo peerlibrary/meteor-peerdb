@@ -2,6 +2,7 @@ globals = @
 
 RESERVED_FIELDS = ['document', 'parent']
 INVALID_TARGET = "Invalid target document"
+MAX_RETRIES = 1000
 
 isPlainObject = (obj) ->
   if not _.isObject(obj) or _.isArray(obj) or _.isFunction(obj)
@@ -60,6 +61,11 @@ getCollection = (name, document) ->
     collections[name] = collection
 
   collection
+
+loopMax = (f) ->
+  for i in [0..MAX_RETRIES]
+    throw "Possible infinite loop" if i is MAX_RETRIES
+    break unless f()
 
 class globals.Document
   # TODO: When we will require all fields to be specified and have validator support to validate new objects, we can also run validation here and check all data, reference fields and others
@@ -319,6 +325,8 @@ class globals.Document
     for document in delayed
       delete document.Meta._delayIndex
 
+    processedCount = 0
+
     for document in delayed
       assert not document.Meta._listIndex?
 
@@ -372,7 +380,11 @@ class globals.Document
 
       assert not document.Meta._replaced
 
+      processedCount++
+
     @_setDelayedCheck()
+
+    processedCount
 
   @_addDelayed: (document) ->
     @_clearDelayedCheck()
@@ -440,7 +452,8 @@ class globals.Document
     @documents = new @_Manager @Meta
 
     @_addDelayed @
-    @_retryDelayed()
+    loopMax =>
+      @_retryDelayed()
 
   @list = []
   @_delayed = []
@@ -452,7 +465,8 @@ class globals.Document
       @_validateFields document.Meta.fields
 
   @defineAll: (dontThrowDelayedErrors) ->
-    globals.Document._retryDelayed not dontThrowDelayedErrors
+    loopMax =>
+      globals.Document._retryDelayed not dontThrowDelayedErrors
     globals.Document.validateAll()
 
     assert dontThrowDelayedErrors or globals.Document._delayed.length is 0
