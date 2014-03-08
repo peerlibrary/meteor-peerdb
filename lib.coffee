@@ -62,11 +62,6 @@ getCollection = (name, document) ->
 
   collection
 
-loopMax = (f) ->
-  for i in [0..MAX_RETRIES]
-    throw "Possible infinite loop" if i is MAX_RETRIES
-    break unless f()
-
 class globals.Document
   # TODO: When we will require all fields to be specified and have validator support to validate new objects, we can also run validation here and check all data, reference fields and others
   @objectify: (parent, ancestorArray, obj, fields) ->
@@ -452,8 +447,7 @@ class globals.Document
     @documents = new @_Manager @Meta
 
     @_addDelayed @
-    loopMax =>
-      @_retryDelayed()
+    @_retryDelayed()
 
   @list = []
   @_delayed = []
@@ -465,8 +459,15 @@ class globals.Document
       @_validateFields document.Meta.fields
 
   @defineAll: (dontThrowDelayedErrors) ->
-    loopMax =>
+    for i in [0..MAX_RETRIES]
+      if i is MAX_RETRIES
+        throw new Error "Possible infinite loop" unless dontThrowDelayedErrors
+        break
+
       globals.Document._retryDelayed not dontThrowDelayedErrors
+
+      break unless globals.Document._delayed.length
+
     globals.Document.validateAll()
 
     assert dontThrowDelayedErrors or globals.Document._delayed.length is 0
