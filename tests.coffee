@@ -123,7 +123,7 @@ class CircularFirst extends CircularFirst
     replaceParent:  true
     fields: (fields) =>
       # We can reference circular documents
-      fields.second = @ReferenceField CircularSecond, ['content']
+      fields.second = @ReferenceField CircularSecond, ['content'], true, 'reverseFirsts', ['content']
       fields
 
 class CircularSecond extends Document
@@ -134,7 +134,7 @@ class CircularSecond extends Document
     name: 'CircularSecond'
     fields: =>
       # But of course one should not be required so that we can insert without warnings
-      first: @ReferenceField CircularFirst, ['content'], false
+      first: @ReferenceField CircularFirst, ['content'], false, 'reverseSeconds', ['content']
 
 class Person extends Document
   # Other fields:
@@ -244,7 +244,7 @@ if Meteor.isServer
   Meteor.publish null, ->
     SpecialPost.documents.find()
 
-ALL = [User, UserLink, CircularSecond, CircularFirst, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
+ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
@@ -447,7 +447,7 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.parent, _TestCircularFirst.Meta
   test.equal CircularFirst.Meta.document, CircularFirst
   test.equal CircularFirst.Meta.collection._name, 'CircularFirsts'
-  test.equal _.size(CircularFirst.Meta.fields), 1
+  test.equal _.size(CircularFirst.Meta.fields), 2
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
   test.isNull CircularFirst.Meta.fields.second.ancestorArray, CircularFirst.Meta.fields.second.ancestorArray
   test.isTrue CircularFirst.Meta.fields.second.required
@@ -459,14 +459,27 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.fields.second.sourceDocument.Meta.collection._name, 'CircularFirsts'
   test.equal CircularFirst.Meta.fields.second.targetDocument.Meta.collection._name, 'CircularSeconds'
   test.equal CircularFirst.Meta.fields.second.fields, ['content']
-  test.isNull CircularFirst.Meta.fields.second.reverseName
-  test.equal CircularFirst.Meta.fields.second.reverseFields, []
+  test.equal CircularFirst.Meta.fields.second.reverseName, 'reverseFirsts'
+  test.equal CircularFirst.Meta.fields.second.reverseFields, ['content']
+  test.instanceOf CircularFirst.Meta.fields.reverseSeconds, CircularFirst._ReferenceField
+  test.equal CircularFirst.Meta.fields.reverseSeconds.ancestorArray, 'reverseSeconds'
+  test.isTrue CircularFirst.Meta.fields.reverseSeconds.required
+  test.equal CircularFirst.Meta.fields.reverseSeconds.sourcePath, 'reverseSeconds'
+  test.equal CircularFirst.Meta.fields.reverseSeconds.sourceDocument, CircularFirst
+  test.equal CircularFirst.Meta.fields.reverseSeconds.targetDocument, CircularSecond
+  test.equal CircularFirst.Meta.fields.reverseSeconds.sourceCollection._name, 'CircularFirsts'
+  test.equal CircularFirst.Meta.fields.reverseSeconds.targetCollection._name, 'CircularSeconds'
+  test.equal CircularFirst.Meta.fields.reverseSeconds.sourceDocument.Meta.collection._name, 'CircularFirsts'
+  test.equal CircularFirst.Meta.fields.reverseSeconds.targetDocument.Meta.collection._name, 'CircularSeconds'
+  test.equal CircularFirst.Meta.fields.reverseSeconds.fields, ['content']
+  test.isNull CircularFirst.Meta.fields.reverseSeconds.reverseName
+  test.equal CircularFirst.Meta.fields.reverseSeconds.reverseFields, []
 
   test.equal CircularSecond.Meta._name, 'CircularSecond'
   test.isFalse CircularSecond.Meta.parent
   test.equal CircularSecond.Meta.document, CircularSecond
   test.equal CircularSecond.Meta.collection._name, 'CircularSeconds'
-  test.equal _.size(CircularSecond.Meta.fields), 1
+  test.equal _.size(CircularSecond.Meta.fields), 2
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
   test.isNull CircularSecond.Meta.fields.first.ancestorArray, CircularSecond.Meta.fields.first.ancestorArray
   test.isFalse CircularSecond.Meta.fields.first.required
@@ -478,8 +491,21 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.fields.first.sourceDocument.Meta.collection._name, 'CircularSeconds'
   test.equal CircularSecond.Meta.fields.first.targetDocument.Meta.collection._name, 'CircularFirsts'
   test.equal CircularSecond.Meta.fields.first.fields, ['content']
-  test.isNull CircularSecond.Meta.fields.first.reverseName
-  test.equal CircularSecond.Meta.fields.first.reverseFields, []
+  test.equal CircularSecond.Meta.fields.first.reverseName, 'reverseSeconds'
+  test.equal CircularSecond.Meta.fields.first.reverseFields, ['content']
+  test.instanceOf CircularSecond.Meta.fields.reverseFirsts, CircularSecond._ReferenceField
+  test.equal CircularSecond.Meta.fields.reverseFirsts.ancestorArray, 'reverseFirsts'
+  test.isTrue CircularSecond.Meta.fields.reverseFirsts.required
+  test.equal CircularSecond.Meta.fields.reverseFirsts.sourcePath, 'reverseFirsts'
+  test.equal CircularSecond.Meta.fields.reverseFirsts.sourceDocument, CircularSecond
+  test.equal CircularSecond.Meta.fields.reverseFirsts.targetDocument, CircularFirst
+  test.equal CircularSecond.Meta.fields.reverseFirsts.sourceCollection._name, 'CircularSeconds'
+  test.equal CircularSecond.Meta.fields.reverseFirsts.targetCollection._name, 'CircularFirsts'
+  test.equal CircularSecond.Meta.fields.reverseFirsts.sourceDocument.Meta.collection._name, 'CircularSeconds'
+  test.equal CircularSecond.Meta.fields.reverseFirsts.targetDocument.Meta.collection._name, 'CircularFirsts'
+  test.equal CircularSecond.Meta.fields.reverseFirsts.fields, ['content']
+  test.isNull CircularSecond.Meta.fields.reverseFirsts.reverseName
+  test.equal CircularSecond.Meta.fields.reverseFirsts.reverseFields, []
 
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.parent, _TestPerson.Meta
@@ -1363,6 +1389,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
+      reverseFirsts: [
+        _id: @circularFirstId
+        content: 'FooBar 1'
+      ]
 
     CircularSecond.documents.update @circularSecondId,
       $set:
@@ -1389,6 +1419,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
+      reverseSeconds: [
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      ]
     test.equal @circularSecond,
       _id: @circularSecondId
       _schema: '1.0.0'
@@ -1396,6 +1430,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularFirstId
         content: 'FooBar 1'
       content: 'FooBar 2'
+      reverseFirsts: [
+        _id: @circularFirstId
+        content: 'FooBar 1'
+      ]
 
     CircularFirst.documents.update @circularFirstId,
       $set:
@@ -1421,6 +1459,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1a'
+      reverseSeconds: [
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      ]
     test.equal @circularSecond,
       _id: @circularSecondId
       _schema: '1.0.0'
@@ -1428,6 +1470,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularFirstId
         content: 'FooBar 1a'
       content: 'FooBar 2'
+      reverseFirsts: [
+        _id: @circularFirstId
+        content: 'FooBar 1a'
+      ]
 
     CircularSecond.documents.update @circularSecondId,
       $set:
@@ -1453,6 +1499,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularSecondId
         content: 'FooBar 2a'
       content: 'FooBar 1a'
+      reverseSeconds: [
+        _id: @circularSecondId
+        content: 'FooBar 2a'
+      ]
     test.equal @circularSecond,
       _id: @circularSecondId
       _schema: '1.0.0'
@@ -1460,6 +1510,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularFirstId
         content: 'FooBar 1a'
       content: 'FooBar 2a'
+      reverseFirsts: [
+        _id: @circularFirstId
+        content: 'FooBar 1a'
+      ]
 
     CircularSecond.documents.remove @circularSecondId,
       expect (error) =>
@@ -1527,6 +1581,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
+      reverseFirsts: [
+        _id: @circularFirstId
+        content: 'FooBar 1'
+      ]
 
     CircularSecond.documents.update @circularSecondId,
       $set:
@@ -1553,6 +1611,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
+      reverseSeconds: [
+        _id: @circularSecondId
+        content: 'FooBar 2'
+      ]
     test.equal @circularSecond,
       _id: @circularSecondId
       _schema: '1.0.0'
@@ -1560,6 +1622,10 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
         _id: @circularFirstId
         content: 'FooBar 1'
       content: 'FooBar 2'
+      reverseFirsts: [
+        _id: @circularFirstId
+        content: 'FooBar 1'
+      ]
 
     CircularFirst.documents.remove @circularFirstId,
       expect (error) =>
@@ -1582,6 +1648,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
+      reverseFirsts: []
 ]
 
 testAsyncMulti 'meteor-peerdb - recursive two', [

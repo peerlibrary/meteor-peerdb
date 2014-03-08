@@ -174,12 +174,10 @@ class globals.Document
       # We return now because contributeToClass will be retried sooner or later with replaced document again
       return if @targetDocument.Meta._replaced
 
-      reverseFs = {}
-      reverseFs[@reverseName] = [globals.Document.ReferenceField @sourceDocument, @reverseFields]
+      for reverse in @targetDocument.Meta._reverseFields
+        return if _.isEqual(reverse.reverseName, @reverseName) and _.isEqual(reverse.reverseFields, @reverseFields) and reverse.sourceDocument is @sourceDocument
 
-      targetReverseFields = @targetDocument.Meta._reverseFields
-      @targetDocument.Meta._reverseFields = (fs) ->
-        _.extend targetReverseFields(fs), reverseFs
+      @targetDocument.Meta._reverseFields.push @
 
       # If target document is already defined, we queue it for a retry.
       # We do not queue children, because or children replace a parent
@@ -330,10 +328,9 @@ class globals.Document
 
       try
         fields = document.Meta._fields.call document, {}
-        reverseFields = document.Meta._reverseFields.call document, {}
-
-        assert reverseFields
-        assert isPlainObject reverseFields
+        reverseFields = {}
+        for reverse in document.Meta._reverseFields
+          reverseFields[reverse.reverseName] = [globals.Document.ReferenceField reverse.sourceDocument, reverse.reverseFields]
 
         document.Meta.fields = document._processFields _.extend(fields, reverseFields) if fields and isPlainObject fields
       catch e
@@ -405,6 +402,7 @@ class globals.Document
 
     throw new Error "Missing document name" unless meta.name
     throw new Error "Document name does not match class name" if @name and @name isnt meta.name
+    throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
 
     name = meta.name
     currentFields = meta.fields or (fs) -> fs
@@ -434,9 +432,11 @@ class globals.Document
     meta._fields = fields # Fields function
 
     if not meta.replaceParent
-      # If we are not replacing the parent, we override _reverseFields with an empty initial function
+      # If we are not replacing the parent, we override _reverseFields with an empty set
       # because we want reverse fields only on exact target document and not its children.
-      meta._reverseFields = (fs) -> fs
+      meta._reverseFields = []
+    else
+      meta._reverseFields = _.clone parentMeta._reverseFields
 
     clonedParentMeta = -> parentMeta.apply @, arguments
     filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent'
