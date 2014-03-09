@@ -3871,6 +3871,9 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       expect (error, res) =>
         test.isFalse error, error?.toString?() or error
         test.isTrue res
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
