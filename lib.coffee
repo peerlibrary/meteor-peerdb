@@ -328,11 +328,16 @@ class globals.Document
 
       try
         fields = document.Meta._fields.call document, {}
-        reverseFields = {}
-        for reverse in document.Meta._reverseFields
-          reverseFields[reverse.reverseName] = [globals.Document.ReferenceField reverse.sourceDocument, reverse.reverseFields]
+        if fields and isPlainObject fields
+          # We run _processFields first, so that _reverseFields for this document is populated as well
+          document._processFields fields
 
-        document.Meta.fields = document._processFields _.extend(fields, reverseFields) if fields and isPlainObject fields
+          reverseFields = {}
+          for reverse in document.Meta._reverseFields
+            reverseFields[reverse.reverseName] = [globals.Document.ReferenceField reverse.sourceDocument, reverse.reverseFields]
+
+          # And now we run _reverseFields for real on all fields
+          document.Meta.fields = document._processFields _.extend fields, reverseFields
       catch e
         if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed document

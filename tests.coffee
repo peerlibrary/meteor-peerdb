@@ -176,7 +176,7 @@ class Recursive extends Document
   @Meta
     name: 'Recursive'
     fields: =>
-      other: @ReferenceField 'self', ['content'], false
+      other: @ReferenceField 'self', ['content'], false, 'reverse', ['content']
 
 class IdentityGenerator extends Document
   # Other fields:
@@ -564,7 +564,7 @@ testDefinition = (test) ->
   test.isFalse Recursive.Meta.parent
   test.equal Recursive.Meta.document, Recursive
   test.equal Recursive.Meta.collection._name, 'Recursives'
-  test.equal _.size(Recursive.Meta.fields), 1
+  test.equal _.size(Recursive.Meta.fields), 2
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
   test.isNull Recursive.Meta.fields.other.ancestorArray, Recursive.Meta.fields.other.ancestorArray
   test.isFalse Recursive.Meta.fields.other.required
@@ -576,8 +576,21 @@ testDefinition = (test) ->
   test.equal Recursive.Meta.fields.other.sourceDocument.Meta.collection._name, 'Recursives'
   test.equal Recursive.Meta.fields.other.targetDocument.Meta.collection._name, 'Recursives'
   test.equal Recursive.Meta.fields.other.fields, ['content']
-  test.isNull Recursive.Meta.fields.other.reverseName
-  test.equal Recursive.Meta.fields.other.reverseFields, []
+  test.equal Recursive.Meta.fields.other.reverseName, 'reverse'
+  test.equal Recursive.Meta.fields.other.reverseFields, ['content']
+  test.instanceOf Recursive.Meta.fields.reverse, Recursive._ReferenceField
+  test.equal Recursive.Meta.fields.reverse.ancestorArray, 'reverse'
+  test.isTrue Recursive.Meta.fields.reverse.required
+  test.equal Recursive.Meta.fields.reverse.sourcePath, 'reverse'
+  test.equal Recursive.Meta.fields.reverse.sourceDocument, Recursive
+  test.equal Recursive.Meta.fields.reverse.targetDocument, Recursive
+  test.equal Recursive.Meta.fields.reverse.sourceCollection._name, 'Recursives'
+  test.equal Recursive.Meta.fields.reverse.targetCollection._name, 'Recursives'
+  test.equal Recursive.Meta.fields.reverse.sourceDocument.Meta.collection._name, 'Recursives'
+  test.equal Recursive.Meta.fields.reverse.targetDocument.Meta.collection._name, 'Recursives'
+  test.equal Recursive.Meta.fields.reverse.fields, ['content']
+  test.isNull Recursive.Meta.fields.reverse.reverseName
+  test.equal Recursive.Meta.fields.reverse.reverseFields, []
 
   test.equal IdentityGenerator.Meta._name, 'IdentityGenerator'
   test.isFalse IdentityGenerator.Meta.parent
@@ -1721,6 +1734,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
       _schema: '1.0.0'
       other: null
       content: 'FooBar 2'
+      reverse: [
+        _id: @recursive1Id
+        content: 'FooBar 1'
+      ]
 
     Recursive.documents.update @recursive2Id,
       $set:
@@ -1747,6 +1764,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         _id: @recursive2Id
         content: 'FooBar 2'
       content: 'FooBar 1'
+      reverse: [
+        _id: @recursive2Id
+        content: 'FooBar 2'
+      ]
     test.equal @recursive2,
       _id: @recursive2Id
       _schema: '1.0.0'
@@ -1754,6 +1775,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         _id: @recursive1Id
         content: 'FooBar 1'
       content: 'FooBar 2'
+      reverse: [
+        _id: @recursive1Id
+        content: 'FooBar 1'
+      ]
 
     Recursive.documents.update @recursive1Id,
       $set:
@@ -1779,6 +1804,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         _id: @recursive2Id
         content: 'FooBar 2'
       content: 'FooBar 1a'
+      reverse: [
+        _id: @recursive2Id
+        content: 'FooBar 2'
+      ]
     test.equal @recursive2,
       _id: @recursive2Id
       _schema: '1.0.0'
@@ -1786,6 +1815,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         _id: @recursive1Id
         content: 'FooBar 1a'
       content: 'FooBar 2'
+      reverse: [
+        _id: @recursive1Id
+        content: 'FooBar 1a'
+      ]
 
     Recursive.documents.update @recursive2Id,
       $set:
@@ -1811,6 +1844,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         _id: @recursive2Id
         content: 'FooBar 2a'
       content: 'FooBar 1a'
+      reverse: [
+        _id: @recursive2Id
+        content: 'FooBar 2a'
+      ]
     test.equal @recursive2,
       _id: @recursive2Id
       _schema: '1.0.0'
@@ -1818,6 +1855,10 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
         _id: @recursive1Id
         content: 'FooBar 1a'
       content: 'FooBar 2a'
+      reverse: [
+        _id: @recursive1Id
+        content: 'FooBar 1a'
+      ]
 
     Recursive.documents.remove @recursive2Id,
       expect (error) =>
@@ -1839,6 +1880,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
       _schema: '1.0.0'
       other: null
       content: 'FooBar 1a'
+      reverse: []
 ]
 
 testAsyncMulti 'meteor-peerdb - recursive one', [
@@ -1888,6 +1930,10 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         _id: @recursiveId
         content: 'FooBar'
       content: 'FooBar'
+      reverse: [
+        _id: @recursiveId
+        content: 'FooBar'
+      ]
 
     Recursive.documents.update @recursiveId,
       $set:
@@ -1911,6 +1957,10 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
         _id: @recursiveId
         content: 'FooBara'
       content: 'FooBara'
+      reverse: [
+        _id: @recursiveId
+        content: 'FooBara'
+      ]
 
     Recursive.documents.remove @recursiveId,
       expect (error) =>
