@@ -26,7 +26,7 @@ class Post extends Document
       # Fields can be arbitrary MongoDB projections
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
-        person: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], false
+        person: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], false, 'subdocumentPosts', ['body', 'subdocument.body', 'nested.body']
         slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
           if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
             [fields._id, undefined]
@@ -73,7 +73,7 @@ class Post extends Post
     name: 'Post'
     replaceParent: true
     fields: (fields) =>
-      fields.subdocument.persons = [@ReferenceField Person, ['username', 'displayName', 'field1', 'field2']]
+      fields.subdocument.persons = [@ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'subdocumentsPosts', ['body', 'subdocument.body', 'nested.body']]
       fields
 
 # Store away for testing
@@ -146,8 +146,8 @@ class Person extends Document
   @Meta
     name: 'Person'
     fields: =>
-      count: @GeneratedField 'self', ['posts', 'nestedPosts'], (fields) ->
-        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0)]
+      count: @GeneratedField 'self', ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
+        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocumentPosts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
 
 # Store away for testing
 _TestPerson = Person
@@ -323,8 +323,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
-  test.isNull Post.Meta.fields.subdocument.person.reverseName
-  test.equal Post.Meta.fields.subdocument.person.reverseFields, []
+  test.equal Post.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
+  test.equal Post.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf Post.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue Post.Meta.fields.subdocument.persons.required
@@ -336,8 +336,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
-  test.isNull Post.Meta.fields.subdocument.persons.reverseName
-  test.equal Post.Meta.fields.subdocument.persons.reverseFields, []
+  test.equal Post.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
+  test.equal Post.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf Post.Meta.fields.subdocument.slug, Person._GeneratedField
   test.isNull Post.Meta.fields.subdocument.slug.ancestorArray, Post.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.subdocument.slug.generator
@@ -529,7 +529,7 @@ testDefinition = (test) ->
   test.equal Person.Meta.document, Person
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
-  test.equal _.size(Person.Meta.fields), 3
+  test.equal _.size(Person.Meta.fields), 5
   test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
   test.equal Person.Meta.fields.posts.ancestorArray, 'posts'
   test.isTrue Person.Meta.fields.posts.required
@@ -566,9 +566,35 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields.count.targetCollection._name, 'Persons'
   test.equal Person.Meta.fields.count.sourceDocument.Meta.collection._name, 'Persons'
   test.equal Person.Meta.fields.count.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.fields.count.fields, ['posts', 'nestedPosts']
+  test.equal Person.Meta.fields.count.fields, ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts']
   test.isUndefined Person.Meta.fields.count.reverseName
   test.isUndefined Person.Meta.fields.count.reverseFields
+  test.instanceOf Person.Meta.fields.subdocumentPosts, Person._ReferenceField
+  test.equal Person.Meta.fields.subdocumentPosts.ancestorArray, 'subdocumentPosts'
+  test.isTrue Person.Meta.fields.subdocumentPosts.required
+  test.equal Person.Meta.fields.subdocumentPosts.sourcePath, 'subdocumentPosts'
+  test.equal Person.Meta.fields.subdocumentPosts.sourceDocument, Person
+  test.equal Person.Meta.fields.subdocumentPosts.targetDocument, Post
+  test.equal Person.Meta.fields.subdocumentPosts.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.fields.subdocumentPosts.targetCollection._name, 'Posts'
+  test.equal Person.Meta.fields.subdocumentPosts.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.subdocumentPosts.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Person.Meta.fields.subdocumentPosts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull Person.Meta.fields.subdocumentPosts.reverseName
+  test.equal Person.Meta.fields.subdocumentPosts.reverseFields, []
+  test.instanceOf Person.Meta.fields.subdocumentsPosts, Person._ReferenceField
+  test.equal Person.Meta.fields.subdocumentsPosts.ancestorArray, 'subdocumentsPosts'
+  test.isTrue Person.Meta.fields.subdocumentsPosts.required
+  test.equal Person.Meta.fields.subdocumentsPosts.sourcePath, 'subdocumentsPosts'
+  test.equal Person.Meta.fields.subdocumentsPosts.sourceDocument, Person
+  test.equal Person.Meta.fields.subdocumentsPosts.targetDocument, Post
+  test.equal Person.Meta.fields.subdocumentsPosts.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.fields.subdocumentsPosts.targetCollection._name, 'Posts'
+  test.equal Person.Meta.fields.subdocumentsPosts.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.subdocumentsPosts.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Person.Meta.fields.subdocumentsPosts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull Person.Meta.fields.subdocumentsPosts.reverseName
+  test.equal Person.Meta.fields.subdocumentsPosts.reverseFields, []
 
   test.equal SpecialPerson.Meta._name, 'SpecialPerson'
   test.equal SpecialPerson.Meta.parent, Person.Meta
@@ -697,8 +723,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
-  test.isNull SpecialPost.Meta.fields.subdocument.person.reverseName
-  test.equal SpecialPost.Meta.fields.subdocument.person.reverseFields, []
+  test.equal SpecialPost.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
+  test.equal SpecialPost.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf SpecialPost.Meta.fields.subdocument.persons, Person._ReferenceField
   test.equal SpecialPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue SpecialPost.Meta.fields.subdocument.persons.required
@@ -710,8 +736,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
-  test.isNull SpecialPost.Meta.fields.subdocument.persons.reverseName
-  test.equal SpecialPost.Meta.fields.subdocument.persons.reverseFields, []
+  test.equal SpecialPost.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
+  test.equal SpecialPost.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf SpecialPost.Meta.fields.subdocument.slug, Person._GeneratedField
   test.isNull SpecialPost.Meta.fields.subdocument.slug.ancestorArray, SpecialPost.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction SpecialPost.Meta.fields.subdocument.slug.generator
@@ -1083,6 +1109,24 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      subdocumentPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
       nestedPosts: [
         _id: @postId
         body: 'FooBar'
@@ -1092,7 +1136,7 @@ testAsyncMulti 'meteor-peerdb - references', [
         subdocument:
           body: 'SubdocumentFooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -1100,7 +1144,16 @@ testAsyncMulti 'meteor-peerdb - references', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
-      count: 0
+      subdocumentsPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
+      count: 1
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -2340,6 +2393,24 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      subdocumentPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ]
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
       nestedPosts: [
         _id: @postId
         body: 'FooBar'
@@ -2349,7 +2420,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
         subdocument:
           body: 'SubdocumentFooBar'
       ]
-      count: 1
+      count: 3
 
     @postLink = PostLink.documents.findOne @postLinkId,
       transform: null # So that we can use test.equal
@@ -3934,6 +4005,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -3953,7 +4062,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -3961,6 +4070,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -3980,7 +4108,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     # Sleep so that observers have time to update documents
     Meteor.setTimeout expect(), WAIT_TIME
@@ -4538,6 +4666,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -4557,7 +4723,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -4717,6 +4883,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -4736,7 +4921,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5058,6 +5243,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -5077,7 +5300,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5239,6 +5462,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -5258,7 +5500,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5431,6 +5673,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -5450,7 +5730,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5613,6 +5893,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBar'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -5632,7 +5950,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -5835,6 +6153,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -5854,7 +6210,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -5862,6 +6218,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -5881,7 +6256,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6084,6 +6459,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6103,7 +6516,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6111,6 +6524,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6130,7 +6562,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6333,6 +6765,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6352,7 +6822,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6360,6 +6830,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6379,7 +6868,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6582,6 +7071,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6601,7 +7128,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6609,6 +7136,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6628,7 +7174,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -6830,6 +7376,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6849,7 +7433,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -6857,6 +7441,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBar'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -6876,7 +7479,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7075,6 +7678,44 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -7094,7 +7735,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -7102,6 +7743,25 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -7121,7 +7781,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7327,6 +7987,48 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
+      subdocumentPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NewFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NewFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -7348,7 +8050,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
-      count: 1
+      count: 3
     test.equal @person3,
       _id: @person3Id
       _schema: '1.0.0'
@@ -7356,6 +8058,27 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          body: 'NestedFooBarZ'
+        ,
+          body: 'NestedFooBar'
+        ,
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBarA'
+        ,
+          body: 'NestedFooBar'
+        ,
+          body: 'NewFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -7377,7 +8100,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
@@ -7577,6 +8300,19 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
+      subdocumentsPosts: [
+        _id: @postId
+        subdocument:
+          body: 'SubdocumentFooBarZ'
+        nested: [
+          {}
+        ,
+          body: null
+        ,
+          body: 'NestedFooBar'
+        ]
+        body: 'FooBarZ'
+      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -7590,7 +8326,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
         ]
         body: 'FooBarZ'
       ]
-      count: 1
+      count: 2
 
     @post = Post.documents.findOne @postId,
       transform: null # So that we can use test.equal
