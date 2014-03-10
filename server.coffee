@@ -18,6 +18,12 @@ catchErrors = (f) ->
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
 
+extractValue = (obj, path) ->
+  while path.length
+    obj = obj[path[0]]
+    path = path[1..]
+  obj
+
 # Cannot use => here because we are not in the globals.Document._TargetedFieldsObservingField context
 globals.Document._TargetedFieldsObservingField::setupTargetObservers = (updateAll) ->
   initializing = true
@@ -274,7 +280,31 @@ class globals.Document._GeneratedField extends globals.Document._GeneratedField
     # Do nothing. Code should not be updating generated field by itself anyway.
 
 class globals.Document extends globals.Document
-  @_sourceFieldUpdated: (id, name, value, field) ->
+  @_sourceFieldProcessDeleted: (field, id, ancestorSegments, pathSegments, value) ->
+    if ancestorSegments.length
+      assert ancestorSegments[0] is pathSegments[0]
+      @_sourceFieldProcessDeleted field, id, ancestorSegments[1..], pathSegments[1..], value[ancestorSegments[0]]
+    else
+      assert _.isArray value
+
+      ids = (extractValue(v, pathSegments)._id for v in value)
+
+      assert field.reverseName
+
+      update = {}
+      update[field.reverseName] =
+        _id: id
+
+      field.targetCollection.update
+        _id:
+          $nin:
+            ids
+      ,
+        $pull: update
+      ,
+        multi: true
+
+  @_sourceFieldUpdated: (id, name, value, field, originalValue) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     return if _.isUndefined value
 
@@ -282,6 +312,8 @@ class globals.Document extends globals.Document
 
     # We should be subscribed only to those updates which are defined in @Meta.fields
     assert field
+
+    originalValue = originalValue or value
 
     if field instanceof globals.Document._ObservingField
       if field.ancestorArray and name is field.ancestorArray
@@ -294,6 +326,15 @@ class globals.Document extends globals.Document
       for v in value
         field.updatedWithValue id, v
 
+      # TODO: For now we support only arrays
+      if field.reverseName and field.ancestorArray
+        ancestorSegments = field.ancestorArray.split('.')
+        pathSegments = name.split('.')
+
+        assert ancestorSegments[0] is pathSegments[0]
+
+        @_sourceFieldProcessDeleted field, id, ancestorSegments[1..], pathSegments[1..], originalValue
+
     else if field not instanceof globals.Document._Field
       value = [value] unless _.isArray value
 
@@ -302,7 +343,7 @@ class globals.Document extends globals.Document
       for v in value
         for n, f of field
           # TODO: Should we skip calling @_sourceFieldUpdated if we already called it with exactly the same parameters this run?
-          @_sourceFieldUpdated id, "#{ name }.#{ n }", v[n], f
+          @_sourceFieldUpdated id, "#{ name }.#{ n }", v[n], f, originalValue
 
   @_sourceUpdated: (id, fields) ->
     for name, value of fields

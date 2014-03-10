@@ -1,7 +1,7 @@
 if Meteor.isServer
-  __meteor_runtime_config__.WAIT_TIME = WAIT_TIME = process?.env?.WAIT_TIME or 500
+  __meteor_runtime_config__.WAIT_TIME = WAIT_TIME = process?.env?.WAIT_TIME or 1000
 else
-  WAIT_TIME = __meteor_runtime_config__?.WAIT_TIME or 500
+  WAIT_TIME = __meteor_runtime_config__?.WAIT_TIME or 1000
 
 # The order of documents here tests delayed definitions
 
@@ -248,6 +248,23 @@ ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, 
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
+
+intersectionObjects = (array, rest...) ->
+  _.filter _.uniq(array), (item) ->
+    _.every rest, (other) ->
+      _.any other, (element) -> _.isEqual element, item
+
+testSetEqual = (test, a, b) ->
+  a ||= []
+  b ||= []
+
+  if a.length is b.length and intersectionObjects(a, b).length is a.length
+    test.ok()
+  else
+    test.fail
+      type: 'assert_set_equal'
+      actual: JSON.stringify a
+      expected: JSON.stringify b
 
 testDefinition = (test) ->
   test.equal Post.Meta._name, 'Post'
@@ -8415,3 +8432,1300 @@ if Meteor.isServer
           'tag-1-prefix-foobar-nestedfoobar-suffix'
         ]
   ]
+
+testAsyncMulti 'meteor-peerdb - reverse posts', [
+  (test, expect) ->
+    Person.documents.insert
+      username: 'person1'
+      displayName: 'Person 1'
+    ,
+      expect (error, person1Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person1Id
+        @person1Id = person1Id
+
+    Person.documents.insert
+      username: 'person2'
+      displayName: 'Person 2'
+    ,
+      expect (error, person2Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person2Id
+        @person2Id = person2Id
+
+    Person.documents.insert
+      username: 'person3'
+      displayName: 'Person 3'
+    ,
+      expect (error, person3Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person3Id
+        @person3Id = person3Id
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    Post.documents.insert
+      author:
+        _id: @person1Id
+      nested: [
+        required:
+          _id: @person2Id
+        body: 'NestedFooBar1'
+      ]
+      subdocument:
+        body: 'SubdocumentFooBar1'
+      body: 'FooBar1'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId1 = postId
+
+    Post.documents.insert
+      author:
+        _id: @person1Id
+      nested: [
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar2'
+      ]
+      subdocument:
+        body: 'SubdocumentFooBar2'
+      body: 'FooBar2'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId2 = postId
+
+    Post.documents.insert
+      author:
+        _id: @person1Id
+      nested: [
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar3'
+      ]
+      subdocument:
+        body: 'SubdocumentFooBar3'
+      body: 'FooBar3'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId3 = postId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @post1 = Post.documents.findOne @postId1,
+      transform: null # So that we can use test.equal
+    @post2 = Post.documents.findOne @postId2,
+      transform: null # So that we can use test.equal
+    @post3 = Post.documents.findOne @postId3,
+      transform: null # So that we can use test.equal
+
+    test.equal @post1,
+      _id: @postId1
+      _schema: '1.0.0'
+      author:
+        _id: @person1Id
+        username: 'person1'
+        displayName: 'Person 1'
+      subdocument:
+        slug: 'subdocument-prefix-foobar1-subdocumentfoobar1-suffix'
+        body: 'SubdocumentFooBar1'
+      nested: [
+        required:
+          _id: @person2Id
+          username: 'person2'
+          displayName: 'Person 2'
+        slug: 'nested-prefix-foobar1-nestedfoobar1-suffix'
+        body: 'NestedFooBar1'
+      ]
+      body: 'FooBar1'
+      slug: 'prefix-foobar1-subdocumentfoobar1-suffix'
+      tags: [
+        'tag-0-prefix-foobar1-subdocumentfoobar1-suffix'
+        'tag-1-prefix-foobar1-nestedfoobar1-suffix'
+      ]
+
+    test.equal @post2,
+      _id: @postId2
+      _schema: '1.0.0'
+      author:
+        _id: @person1Id
+        username: 'person1'
+        displayName: 'Person 1'
+      subdocument:
+        slug: 'subdocument-prefix-foobar2-subdocumentfoobar2-suffix'
+        body: 'SubdocumentFooBar2'
+      nested: [
+        required:
+          _id: @person3Id
+          username: 'person3'
+          displayName: 'Person 3'
+        slug: 'nested-prefix-foobar2-nestedfoobar2-suffix'
+        body: 'NestedFooBar2'
+      ]
+      body: 'FooBar2'
+      slug: 'prefix-foobar2-subdocumentfoobar2-suffix'
+      tags: [
+        'tag-0-prefix-foobar2-subdocumentfoobar2-suffix'
+        'tag-1-prefix-foobar2-nestedfoobar2-suffix'
+      ]
+
+    test.equal @post3,
+      _id: @postId3
+      _schema: '1.0.0'
+      author:
+        _id: @person1Id
+        username: 'person1'
+        displayName: 'Person 1'
+      subdocument:
+        slug: 'subdocument-prefix-foobar3-subdocumentfoobar3-suffix'
+        body: 'SubdocumentFooBar3'
+      nested: [
+        required:
+          _id: @person3Id
+          username: 'person3'
+          displayName: 'Person 3'
+        slug: 'nested-prefix-foobar3-nestedfoobar3-suffix'
+        body: 'NestedFooBar3'
+      ]
+      body: 'FooBar3'
+      slug: 'prefix-foobar3-subdocumentfoobar3-suffix'
+      tags: [
+        'tag-0-prefix-foobar3-subdocumentfoobar3-suffix'
+        'tag-1-prefix-foobar3-nestedfoobar3-suffix'
+      ]
+
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      count: 3
+
+    testSetEqual test, @person1.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ]
+    testSetEqual test, @person1.nestedPosts, []
+
+    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      count: 1
+
+    testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.nestedPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ]
+
+    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      count: 2
+
+    testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.nestedPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ]
+
+    Post.documents.insert
+      author:
+        _id: @person1Id
+      nested: [
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person1Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person2Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person1Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person2Id
+        body: 'NestedFooBar4'
+      ,
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar4'
+      ]
+      subdocument:
+        body: 'SubdocumentFooBar4'
+      body: 'FooBar4'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId4 = postId
+
+    Post.documents.insert
+      author:
+        _id: @person1Id
+      nested: [
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar5'
+      ,
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar5'
+      ,
+        required:
+          _id: @person3Id
+        body: 'NestedFooBar5'
+      ]
+      subdocument:
+        body: 'SubdocumentFooBar5'
+      body: 'FooBar5'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId5 = postId
+
+    # Sleep so that observers have time to update documents
+    Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      count: 6
+
+    testSetEqual test, @person1.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5'
+      ]
+    testSetEqual test, @person1.nestedPosts,
+      [
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ]
+
+    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      count: 2
+
+    testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.nestedPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ]
+
+    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      count: 4
+
+    testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.nestedPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5'
+      ]
+
+      Post.documents.update @postId1,
+        $set:
+          'body': 'FooBar1a'
+          'subdocument.body': 'SubdocumentFooBar1a'
+          'nested.0.body': 'NestedFooBar1a'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      Post.documents.update @postId2,
+        $set:
+          'body': 'FooBar2a'
+          'subdocument.body': 'SubdocumentFooBar2a'
+          'nested.0.body': 'NestedFooBar2a'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      Post.documents.update @postId3,
+        $set:
+          'body': 'FooBar3a'
+          'subdocument.body': 'SubdocumentFooBar3a'
+          'nested.0.body': 'NestedFooBar3a'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      Post.documents.update @postId4,
+        $set:
+          'body': 'FooBar4a'
+          'subdocument.body': 'SubdocumentFooBar4a'
+          'nested.1.body': 'NestedFooBar4a'
+          'nested.3.body': 'NestedFooBar4a'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      Post.documents.update @postId5,
+        $set:
+          'body': 'FooBar5a'
+          'subdocument.body': 'SubdocumentFooBar5a'
+          'nested.1.body': 'NestedFooBar5a'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      count: 6
+
+    testSetEqual test, @person1.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+    testSetEqual test, @person1.nestedPosts,
+      [
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+
+    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      count: 2
+
+    testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.nestedPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+
+    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      count: 4
+
+    testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.nestedPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+
+      Post.documents.update @postId2,
+        $push:
+          nested:
+            required:
+              _id: @person2Id
+            body: 'NestedFooBarNew'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @post2 = Post.documents.findOne @postId2,
+      transform: null # So that we can use test.equal
+
+    test.equal @post2,
+      _id: @postId2
+      _schema: '1.0.0'
+      author:
+        _id: @person1Id
+        username: 'person1'
+        displayName: 'Person 1'
+      subdocument:
+        slug: 'subdocument-prefix-foobar2a-subdocumentfoobar2a-suffix'
+        body: 'SubdocumentFooBar2a'
+      nested: [
+        required:
+          _id: @person3Id
+          username: 'person3'
+          displayName: 'Person 3'
+        slug: 'nested-prefix-foobar2a-nestedfoobar2a-suffix'
+        body: 'NestedFooBar2a'
+      ,
+        required:
+          _id: @person2Id
+          username: 'person2'
+          displayName: 'Person 2'
+        slug: 'nested-prefix-foobar2a-nestedfoobarnew-suffix'
+        body: 'NestedFooBarNew'
+      ]
+      body: 'FooBar2a'
+      slug: 'prefix-foobar2a-subdocumentfoobar2a-suffix'
+      tags: [
+        'tag-0-prefix-foobar2a-subdocumentfoobar2a-suffix'
+        'tag-1-prefix-foobar2a-nestedfoobar2a-suffix'
+        'tag-2-prefix-foobar2a-nestedfoobarnew-suffix'
+      ]
+
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      count: 6
+
+    testSetEqual test, @person1.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+    testSetEqual test, @person1.nestedPosts,
+      [
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+
+    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      count: 3
+
+    testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.nestedPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ]
+
+    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      count: 4
+
+    testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.nestedPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+
+      Post.documents.update @postId2,
+        $pop:
+          nested: 1
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+,
+  (test, expect) ->
+    @post2 = Post.documents.findOne @postId2,
+      transform: null # So that we can use test.equal
+
+    test.equal @post2,
+      _id: @postId2
+      _schema: '1.0.0'
+      author:
+        _id: @person1Id
+        username: 'person1'
+        displayName: 'Person 1'
+      subdocument:
+        slug: 'subdocument-prefix-foobar2a-subdocumentfoobar2a-suffix'
+        body: 'SubdocumentFooBar2a'
+      nested: [
+        required:
+          _id: @person3Id
+          username: 'person3'
+          displayName: 'Person 3'
+        slug: 'nested-prefix-foobar2a-nestedfoobar2a-suffix'
+        body: 'NestedFooBar2a'
+      ]
+      body: 'FooBar2a'
+      slug: 'prefix-foobar2a-subdocumentfoobar2a-suffix'
+      tags: [
+        'tag-0-prefix-foobar2a-subdocumentfoobar2a-suffix'
+        'tag-1-prefix-foobar2a-nestedfoobar2a-suffix'
+      ]
+
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+      _id: @person1Id
+      _schema: '1.0.0'
+      username: 'person1'
+      displayName: 'Person 1'
+      count: 6
+
+    testSetEqual test, @person1.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+    testSetEqual test, @person1.nestedPosts,
+      [
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+
+    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+      _id: @person2Id
+      _schema: '1.0.0'
+      username: 'person2'
+      displayName: 'Person 2'
+      count: 2
+
+    testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.nestedPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+
+    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+      _id: @person3Id
+      _schema: '1.0.0'
+      username: 'person3'
+      displayName: 'Person 3'
+      count: 4
+
+    testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.nestedPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+]
