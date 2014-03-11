@@ -9211,6 +9211,21 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'NestedFooBar1'
       ]
       subdocument:
+        person:
+          _id: @person1Id
+        persons: [
+          _id: @person1Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person3Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person3Id
+        ]
         body: 'SubdocumentFooBar1'
       body: 'FooBar1'
     ,
@@ -9228,6 +9243,21 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'NestedFooBar2'
       ]
       subdocument:
+        person:
+          _id: @person2Id
+        persons: [
+          _id: @person2Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person3Id
+        ]
         body: 'SubdocumentFooBar2'
       body: 'FooBar2'
     ,
@@ -9245,6 +9275,21 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'NestedFooBar3'
       ]
       subdocument:
+        person:
+          _id: @person1Id
+        persons: [
+          _id: @person1Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person3Id
+        ]
         body: 'SubdocumentFooBar3'
       body: 'FooBar3'
     ,
@@ -9272,6 +9317,35 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         username: 'person1'
         displayName: 'Person 1'
       subdocument:
+        person:
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        persons: [
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person3Id
+          displayName: 'Person 3'
+          username: 'person3'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person3Id
+          displayName: 'Person 3'
+          username: 'person3'
+        ]
         slug: 'subdocument-prefix-foobar1-subdocumentfoobar1-suffix'
         body: 'SubdocumentFooBar1'
       nested: [
@@ -9297,6 +9371,35 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         username: 'person1'
         displayName: 'Person 1'
       subdocument:
+        person:
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        persons: [
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person3Id
+          displayName: 'Person 3'
+          username: 'person3'
+        ]
         slug: 'subdocument-prefix-foobar2-subdocumentfoobar2-suffix'
         body: 'SubdocumentFooBar2'
       nested: [
@@ -9322,6 +9425,35 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         username: 'person1'
         displayName: 'Person 1'
       subdocument:
+        person:
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        persons: [
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person3Id
+          displayName: 'Person 3'
+          username: 'person3'
+        ]
         slug: 'subdocument-prefix-foobar3-subdocumentfoobar3-suffix'
         body: 'SubdocumentFooBar3'
       nested: [
@@ -9346,12 +9478,12 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
-      count: 3
+      count: 8
 
     testSetEqual test, @person1.posts,
       [
@@ -9379,16 +9511,96 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         ]
         body: 'FooBar3'
       ]
+    testSetEqual test, @person1.subdocumentPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ]
+    testSetEqual test, @person1.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ]
     testSetEqual test, @person1.nestedPosts, []
 
-    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
-      count: 1
+      count: 5
 
     testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.subdocumentPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ]
+    testSetEqual test, @person2.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ]
     testSetEqual test, @person2.nestedPosts,
       [
         _id: @postId1
@@ -9400,14 +9612,41 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar1'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
-      count: 2
+      count: 5
 
     testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ]
     testSetEqual test, @person3.nestedPosts,
       [
         _id: @postId2
@@ -9464,6 +9703,21 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'NestedFooBar4'
       ]
       subdocument:
+        person:
+          _id: @person1Id
+        persons: [
+          _id: @person1Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person1Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person2Id
+        ]
         body: 'SubdocumentFooBar4'
       body: 'FooBar4'
     ,
@@ -9489,6 +9743,21 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'NestedFooBar5'
       ]
       subdocument:
+        person:
+          _id: @person3Id
+        persons: [
+          _id: @person3Id
+        ,
+          _id: @person3Id
+        ,
+          _id: @person3Id
+        ,
+          _id: @person3Id
+        ,
+          _id: @person2Id
+        ,
+          _id: @person3Id
+        ]
         body: 'SubdocumentFooBar5'
       body: 'FooBar5'
     ,
@@ -9508,12 +9777,12 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
-      count: 6
+      count: 13
 
     testSetEqual test, @person1.posts,
       [
@@ -9575,6 +9844,94 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         ]
         body: 'FooBar5'
       ]
+    testSetEqual test, @person1.subdocumentPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ]
+    testSetEqual test, @person1.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ]
     testSetEqual test, @person1.nestedPosts,
       [
         _id: @postId4
@@ -9600,14 +9957,84 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
-      count: 2
+      count: 8
 
     testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.subdocumentPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ]
+    testSetEqual test, @person2.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5'
+      ]
     testSetEqual test, @person2.nestedPosts,
       [
         _id: @postId1
@@ -9641,14 +10068,66 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
-      count: 4
+      count: 9
 
     testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.subdocumentPosts,
+      [
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5'
+      ]
+    testSetEqual test, @person3.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1'
+        nested: [
+          body: 'NestedFooBar1'
+        ]
+        body: 'FooBar1'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2'
+        nested: [
+          body: 'NestedFooBar2'
+        ]
+        body: 'FooBar2'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3'
+        nested: [
+          body: 'NestedFooBar3'
+        ]
+        body: 'FooBar3'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5'
+      ]
     testSetEqual test, @person3.nestedPosts,
       [
         _id: @postId2
@@ -9764,12 +10243,12 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
-      count: 6
+      count: 13
 
     testSetEqual test, @person1.posts,
       [
@@ -9831,6 +10310,94 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
+    testSetEqual test, @person1.subdocumentPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person1.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
     testSetEqual test, @person1.nestedPosts,
       [
         _id: @postId4
@@ -9856,14 +10423,84 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
-      count: 2
+      count: 8
 
     testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.subdocumentPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ]
+    testSetEqual test, @person2.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
     testSetEqual test, @person2.nestedPosts,
       [
         _id: @postId1
@@ -9897,14 +10534,66 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
-      count: 4
+      count: 9
 
     testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.subdocumentPosts,
+      [
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+    testSetEqual test, @person3.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
     testSetEqual test, @person3.nestedPosts,
       [
         _id: @postId2
@@ -9984,6 +10673,35 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         username: 'person1'
         displayName: 'Person 1'
       subdocument:
+        person:
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        persons: [
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person3Id
+          displayName: 'Person 3'
+          username: 'person3'
+        ]
         slug: 'subdocument-prefix-foobar2a-subdocumentfoobar2a-suffix'
         body: 'SubdocumentFooBar2a'
       nested: [
@@ -10016,12 +10734,12 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
-      count: 6
+      count: 13
 
     testSetEqual test, @person1.posts,
       [
@@ -10085,6 +10803,96 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
+    testSetEqual test, @person1.subdocumentPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person1.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
     testSetEqual test, @person1.nestedPosts,
       [
         _id: @postId4
@@ -10110,14 +10918,88 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
-      count: 3
+      count: 9
 
     testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.subdocumentPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ]
+    testSetEqual test, @person2.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
     testSetEqual test, @person2.nestedPosts,
       [
         _id: @postId1
@@ -10161,14 +11043,68 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar2a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
-      count: 4
+      count: 9
 
     testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.subdocumentPosts,
+      [
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+    testSetEqual test, @person3.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ,
+          body: 'NestedFooBarNew'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
     testSetEqual test, @person3.nestedPosts,
       [
         _id: @postId2
@@ -10247,6 +11183,35 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         username: 'person1'
         displayName: 'Person 1'
       subdocument:
+        person:
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        persons: [
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person1Id
+          displayName: 'Person 1'
+          username: 'person1'
+        ,
+          _id: @person2Id
+          displayName: 'Person 2'
+          username: 'person2'
+        ,
+          _id: @person3Id
+          displayName: 'Person 3'
+          username: 'person3'
+        ]
         slug: 'subdocument-prefix-foobar2a-subdocumentfoobar2a-suffix'
         body: 'SubdocumentFooBar2a'
       nested: [
@@ -10271,12 +11236,12 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
-      count: 6
+      count: 13
 
     testSetEqual test, @person1.posts,
       [
@@ -10338,6 +11303,94 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
+    testSetEqual test, @person1.subdocumentPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person1.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ]
     testSetEqual test, @person1.nestedPosts,
       [
         _id: @postId4
@@ -10363,14 +11416,84 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
-      count: 2
+      count: 8
 
     testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.subdocumentPosts,
+      [
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ]
+    testSetEqual test, @person2.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: [
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4a'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ,
+          body: 'NestedFooBar4'
+        ]
+        body: 'FooBar4a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
     testSetEqual test, @person2.nestedPosts,
       [
         _id: @postId1
@@ -10404,14 +11527,66 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
-      count: 4
+      count: 9
 
     testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.subdocumentPosts,
+      [
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
+    testSetEqual test, @person3.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: [
+          body: 'NestedFooBar1a'
+        ]
+        body: 'FooBar1a'
+      ,
+        _id: @postId2
+        subdocument:
+          body: 'SubdocumentFooBar2a'
+        nested: [
+          body: 'NestedFooBar2a'
+        ]
+        body: 'FooBar2a'
+      ,
+        _id: @postId3
+        subdocument:
+          body: 'SubdocumentFooBar3a'
+        nested: [
+          body: 'NestedFooBar3a'
+        ]
+        body: 'FooBar3a'
+      ,
+        _id: @postId5
+        subdocument:
+          body: 'SubdocumentFooBar5a'
+        nested: [
+          body: 'NestedFooBar5'
+        ,
+          body: 'NestedFooBar5a'
+        ,
+          body: 'NestedFooBar5'
+        ]
+        body: 'FooBar5a'
+      ]
     testSetEqual test, @person3.nestedPosts,
       [
         _id: @postId2
