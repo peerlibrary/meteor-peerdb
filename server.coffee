@@ -17,6 +17,7 @@ catchErrors = (f) ->
       f args...
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
+      Log.debug e.stack
 
 extractValue = (obj, path) ->
   while path.length
@@ -285,9 +286,9 @@ class globals.Document extends globals.Document
       assert ancestorSegments[0] is pathSegments[0]
       @_sourceFieldProcessDeleted field, id, ancestorSegments[1..], pathSegments[1..], value[ancestorSegments[0]]
     else
-      assert _.isArray value
+      value = [value] unless _.isArray value
 
-      ids = (extractValue(v, pathSegments)._id for v in value)
+      ids = (extractValue(v, pathSegments)._id for v in value when extractValue(v, pathSegments)?._id)
 
       assert field.reverseName
 
@@ -306,7 +307,10 @@ class globals.Document extends globals.Document
 
   @_sourceFieldUpdated: (id, name, value, field, originalValue) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
-    return if _.isUndefined value
+    if _.isUndefined value
+      if field?.reverseName
+        @_sourceFieldProcessDeleted field, id, [], name.split('.')[1..], originalValue
+      return
 
     field = field or @Meta.fields[name]
 
@@ -326,14 +330,17 @@ class globals.Document extends globals.Document
       for v in value
         field.updatedWithValue id, v
 
-      # TODO: For now we support only arrays
-      if field.reverseName and field.ancestorArray
-        ancestorSegments = field.ancestorArray.split('.')
+      if field.reverseName
         pathSegments = name.split('.')
 
-        assert ancestorSegments[0] is pathSegments[0]
+        if field.ancestorArray
+          ancestorSegments = field.ancestorArray.split('.')
 
-        @_sourceFieldProcessDeleted field, id, ancestorSegments[1..], pathSegments[1..], originalValue
+          assert ancestorSegments[0] is pathSegments[0]
+
+          @_sourceFieldProcessDeleted field, id, ancestorSegments[1..], pathSegments[1..], originalValue
+        else
+          @_sourceFieldProcessDeleted field, id, [], pathSegments[1..], originalValue
 
     else if field not instanceof globals.Document._Field
       value = [value] unless _.isArray value
