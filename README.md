@@ -77,7 +77,7 @@ Circular references are possible as well:
           first: @ReferenceField CircularFirst, ['content'], false
 
 If the `fields` function throws an exception that a variable is not yet defined, PeerDB will retry later. You should
-also call `Document.redefineAll()` after all your definitions to assure all your delayed definitions are
+also call `Document.defineAll()` after all your definitions to assure all your delayed definitions are
 processed. It should be called last after all definitions, so put it in the filename which is loaded last.
 
 If you want to reference the same document recursively, use string `'self'` as an argument to `@ReferenceField`.
