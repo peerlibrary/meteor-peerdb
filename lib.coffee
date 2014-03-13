@@ -53,12 +53,18 @@ collections = {}
 getCollection = (name, document) ->
   transform = (doc) => new document doc
 
-  if collections[name]
-    collection = _.clone collections[name]
-    collection._transform = Deps._makeNonreactive transform
-  else
+  if _.isString(name)
+    if collections[name]
+      collection = _.clone collections[name]
+      collection._transform = Deps._makeNonreactive transform
+    else
+      collection = new Meteor.Collection name, transform: transform
+      collections[name] = collection
+  else if name is null
     collection = new Meteor.Collection name, transform: transform
-    collections[name] = collection
+  else
+    collection = _.clone name
+    collection._transform = Deps._makeNonreactive transform
 
   collection
 
@@ -417,9 +423,9 @@ class globals.Document
     meta._location = getCurrentLocation()
     meta.document = @
 
-    if _.isString meta.collection
+    if meta.collection is null or meta.collection
       meta.collection = getCollection meta.collection, @
-    else if not meta.collection
+    else
       meta.collection = getCollection "#{ name }s", @
 
     parentMeta = @Meta

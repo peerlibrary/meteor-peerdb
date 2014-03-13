@@ -3470,6 +3470,31 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   # Verify we are back to normal
   testDefinition test
 
+Tinytest.add 'meteor-peerdb - local collections', (test) ->
+  list = _.clone Document.list
+
+  class Local extends Document
+    @Meta
+      name: 'Local'
+      collection: null
+
+  testDocumentList test, ALL.concat [Local]
+  test.equal Document._delayed.length, 0
+
+  test.equal Local.Meta._name, 'Local'
+  test.isFalse Local.Meta.parent
+  test.equal Local.Meta.document, Local
+  test.equal Local.Meta.collection._name, null
+  test.equal _.size(Local.Meta.fields), 0
+
+  # Restore
+  Document.list = list
+  Document._delayed = []
+  Document._clearDelayedCheck()
+
+  # Verify we are back to normal
+  testDefinition test
+
 testAsyncMulti 'meteor-peerdb - errors for generated fields', [
   (test, expect) ->
     Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
@@ -8796,6 +8821,27 @@ testAsyncMulti 'meteor-peerdb - instances', [
       ]
       special:
         _id: @person1._id
+
+    @username = Random.id()
+
+    if Meteor.isServer
+      @userId = Accounts.createUser
+        username: @username
+        password: 'test'
+    else
+      Accounts.createUser
+        username: @username
+        password: 'test'
+      ,
+        expect (error) =>
+          test.isFalse error, error?.toString?() or error
+          @userId = Meteor.userId() unless error
+,
+  (test, expect) ->
+    @user = User.documents.findOne @userId
+
+    test.instanceOf @user, User
+    test.equal @user.username, @username
 ]
 
 Tinytest.add 'meteor-peerdb - bad instances', (test) ->
