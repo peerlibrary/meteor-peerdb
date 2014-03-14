@@ -50,21 +50,33 @@ getCurrentLocation = ->
   assert false
 
 collections = {}
-getCollection = (name, document) ->
+getCollection = (name, document, replaceParent) ->
   transform = (doc) => new document doc
 
   if _.isString(name)
     if collections[name]
-      collection = _.clone collections[name]
-      collection._transform = Deps._makeNonreactive transform
-    else
-      collection = new Meteor.Collection name, transform: transform
-      collections[name] = collection
+      methodHandlers = collections[name]._connection.method_handlers or collections[name]._connection._methodHandlers
+      for method of methodHandlers
+        if startsWith method, collections[name]._prefix
+          if replaceParent
+            delete methodHandlers[method]
+          else
+            throw new Error "Reuse of a collection without replaceParent set"
+      if collections[name]._connection.registerStore
+        if replaceParent
+          delete collections[name]._connection._stores[name]
+        else
+          throw new Error "Reuse of a collection without replaceParent set"
+    collection = new Meteor.Collection name, transform: transform
+    collections[name] = collection
   else if name is null
     collection = new Meteor.Collection name, transform: transform
   else
-    collection = _.clone name
+    collection = name
+    if collection._peerdb and not replaceParent
+      throw new Error "Reuse of a collection without replaceParent set"
     collection._transform = Deps._makeNonreactive transform
+    collection._peerdb = true
 
   collection
 
@@ -424,9 +436,9 @@ class globals.Document
     meta.document = @
 
     if meta.collection is null or meta.collection
-      meta.collection = getCollection meta.collection, @
+      meta.collection = getCollection meta.collection, @, meta.replaceParent
     else
-      meta.collection = getCollection "#{ name }s", @
+      meta.collection = getCollection "#{ name }s", @, meta.replaceParent
 
     parentMeta = @Meta
 
