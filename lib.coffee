@@ -49,26 +49,25 @@ getCurrentLocation = ->
     return line.trim().replace(/^at\s*/, '')
   assert false
 
-collections = {}
 getCollection = (name, document, replaceParent) ->
   transform = (doc) => new document doc
 
   if _.isString(name)
-    if collections[name]
-      methodHandlers = collections[name]._connection.method_handlers or collections[name]._connection._methodHandlers
+    if Document._collections[name]
+      methodHandlers = Document._collections[name]._connection.method_handlers or Document._collections[name]._connection._methodHandlers
       for method of methodHandlers
-        if startsWith method, collections[name]._prefix
+        if startsWith method, Document._collections[name]._prefix
           if replaceParent
             delete methodHandlers[method]
           else
             throw new Error "Reuse of a collection without replaceParent set"
-      if collections[name]._connection.registerStore
+      if Document._collections[name]._connection.registerStore
         if replaceParent
-          delete collections[name]._connection._stores[name]
+          delete Document._collections[name]._connection._stores[name]
         else
           throw new Error "Reuse of a collection without replaceParent set"
     collection = new Meteor.Collection name, transform: transform
-    collections[name] = collection
+    Document._collections[name] = collection
   else if name is null
     collection = new Meteor.Collection name, transform: transform
   else
@@ -475,6 +474,7 @@ class globals.Document
   @list = []
   @_delayed = []
   @_delayedCheckTimeout = null
+  @_collections = {}
 
   @validateAll: ->
     for document in globals.Document.list

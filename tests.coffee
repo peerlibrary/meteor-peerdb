@@ -7,6 +7,8 @@ else
 
 # Just to make sure things are sane
 assert.equal Document._delayed.length, 0
+assert _.isEqual Document.list, []
+assert _.isEqual Document._collections, {}
 
 class Post extends Document
   # Other fields:
@@ -1342,9 +1344,9 @@ testAsyncMulti 'meteor-peerdb - references', [
 
 Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   test.throws ->
-    class BadPost extends Document
+    class BadPost1 extends Document
       @Meta
-        name: 'BadPost'
+        name: 'BadPost1'
         fields: =>
           reviewers: [@ReferenceField Person, ['username'], false]
   , /Reference field directly in an array cannot be optional/
@@ -1357,9 +1359,9 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
 
 Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   test.throws ->
-    class BadPost extends Document
+    class BadPost2 extends Document
       @Meta
-        name: 'BadPost'
+        name: 'BadPost2'
         fields: =>
           nested: [
             many: [@ReferenceField Person, ['username']]
@@ -1374,7 +1376,7 @@ Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
 
 Tinytest.add 'meteor-peerdb - invalid name', (test) ->
   test.throws ->
-    class BadPost extends Document
+    class BadPost3 extends Document
       @Meta
         name: 'Post'
   , /Document name does not match class name/
@@ -2118,9 +2120,9 @@ if Meteor.isServer
 
 testAsyncMulti 'meteor-peerdb - delayed defintion', [
   (test, expect) ->
-    class BadPost extends Document
+    class BadPost4 extends Document
       @Meta
-        name: 'BadPost'
+        name: 'BadPost4'
         fields: =>
           author: @ReferenceField undefined, ['username']
 
@@ -2137,11 +2139,11 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
 
     # Let's find it
     for i in intercepted
-      break if i.indexOf('BadPost') isnt -1
+      break if i.indexOf('BadPost4') isnt -1
     test.isTrue _.isString(i), i
     intercepted = EJSON.parse i
 
-    test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost from"), 0, intercepted.message
+    test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost4 from"), 0, intercepted.message
     test.equal intercepted.level, 'error'
 
     testDocumentList test, ALL
@@ -3038,6 +3040,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   class Second extends Second
     @Meta
       name: 'Second'
+      replaceParent: true
       fields: (fields) =>
         fields.second = @ReferenceField Person # Not undefined, but overall meta will still be delayed
         fields
@@ -3066,6 +3069,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   class Third extends Third
     @Meta
       name: 'Third'
+      replaceParent: true
       fields: (fields) =>
         fields.third = @ReferenceField Person
         fields
@@ -3085,6 +3089,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   class First extends First
     @Meta
       name: 'First'
+      replaceParent: true
       fields: (fields) =>
         fields.first = @ReferenceField Person
         fields
@@ -3103,7 +3108,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   firstReferenceA = First
   Document._retryDelayed()
 
-  testDocumentList test, ALL.concat [_TestFirst, _TestSecond, Second]
+  testDocumentList test, ALL.concat [_TestFirst, Second]
   test.equal Document._delayed.length, 5
   test.equal Document._delayed[0], _TestThird
   test.equal Document._delayed[1], _TestFirst2
@@ -3146,7 +3151,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   firstReferenceB = Post
   Document._retryDelayed()
 
-  testDocumentList test, ALL.concat [_TestSecond, Second, _TestFirst2, First]
+  testDocumentList test, ALL.concat [Second, First]
   test.equal Document._delayed.length, 3
   test.equal Document._delayed[0], _TestThird
   test.equal Document._delayed[1], _TestThird2
@@ -3206,7 +3211,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   secondReferenceA = First
   Document._retryDelayed()
 
-  testDocumentList test, ALL.concat [_TestSecond, Second, _TestFirst2, First, _TestThird]
+  testDocumentList test, ALL.concat [Second, First, _TestThird]
   test.equal Document._delayed.length, 2
   test.equal Document._delayed[0], _TestThird2
   test.equal Document._delayed[1], Third
@@ -3265,7 +3270,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   secondReferenceB = Post
   Document._retryDelayed()
 
-  testDocumentList test, ALL.concat [_TestSecond, Second, _TestFirst2, First, _TestThird2, Third]
+  testDocumentList test, ALL.concat [Second, First, Third]
   test.equal Document._delayed.length, 0
 
   test.equal Second.Meta._name, 'Second'
@@ -3580,47 +3585,47 @@ Tinytest.add 'meteor-peerdb - tricky references', (test) ->
 
   # You can in fact use class name instead of "self", but you have to
   # make sure things work out at the end and class is really defined
-  class First extends Document
+  class First1 extends Document
     @Meta
-      name: 'First'
+      name: 'First1'
       fields: =>
-        first: @ReferenceField First
+        first: @ReferenceField First1
 
   Document.defineAll()
 
-  test.equal First.Meta._name, 'First'
-  test.isFalse First.Meta.parent
-  test.equal First.Meta.document, First
-  test.equal First.Meta.collection._name, 'Firsts'
-  test.equal _.size(First.Meta.fields), 1
-  test.instanceOf First.Meta.fields.first, First._ReferenceField
-  test.isFalse First.Meta.fields.first.ancestorArray, First.Meta.fields.first.ancestorArray
-  test.isTrue First.Meta.fields.first.required
-  test.equal First.Meta.fields.first.sourcePath, 'first'
-  test.equal First.Meta.fields.first.sourceDocument, First
-  test.equal First.Meta.fields.first.targetDocument, First
-  test.equal First.Meta.fields.first.sourceCollection._name, 'Firsts'
-  test.equal First.Meta.fields.first.targetCollection._name, 'Firsts'
-  test.equal First.Meta.fields.first.sourceDocument.Meta.collection._name, 'Firsts'
-  test.equal First.Meta.fields.first.targetDocument.Meta.collection._name, 'Firsts'
-  test.equal First.Meta.fields.first.fields, []
+  test.equal First1.Meta._name, 'First1'
+  test.isFalse First1.Meta.parent
+  test.equal First1.Meta.document, First1
+  test.equal First1.Meta.collection._name, 'First1s'
+  test.equal _.size(First1.Meta.fields), 1
+  test.instanceOf First1.Meta.fields.first, First1._ReferenceField
+  test.isFalse First1.Meta.fields.first.ancestorArray, First1.Meta.fields.first.ancestorArray
+  test.isTrue First1.Meta.fields.first.required
+  test.equal First1.Meta.fields.first.sourcePath, 'first'
+  test.equal First1.Meta.fields.first.sourceDocument, First1
+  test.equal First1.Meta.fields.first.targetDocument, First1
+  test.equal First1.Meta.fields.first.sourceCollection._name, 'First1s'
+  test.equal First1.Meta.fields.first.targetCollection._name, 'First1s'
+  test.equal First1.Meta.fields.first.sourceDocument.Meta.collection._name, 'First1s'
+  test.equal First1.Meta.fields.first.targetDocument.Meta.collection._name, 'First1s'
+  test.equal First1.Meta.fields.first.fields, []
 
   # Restore
   Document.list = _.clone list
   Document._delayed = []
   Document._clearDelayedCheck()
 
-  class First extends Document
+  class First2 extends Document
     @Meta
-      name: 'First'
+      name: 'First2'
       fields: =>
         first: @ReferenceField undefined # To force delayed
 
-  class Second extends Document
+  class Second2 extends Document
     @Meta
-      name: 'Second'
+      name: 'Second2'
       fields: =>
-        first: @ReferenceField First
+        first: @ReferenceField First2
 
   test.throws ->
     Document.defineAll true
