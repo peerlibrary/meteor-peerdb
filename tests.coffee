@@ -246,7 +246,7 @@ if Meteor.isServer
   Meteor.publish null, ->
     SpecialPost.documents.find()
 
-ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
+ALL = @ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
@@ -273,6 +273,8 @@ testDefinition = (test) ->
   test.equal Post.Meta.parent, _TestPost2.Meta
   test.equal Post.Meta.document, Post
   test.equal Post.Meta.collection._name, 'Posts'
+  test.equal Post.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal Post.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Post.Meta.fields), 7
   test.instanceOf Post.Meta.fields.author, Person._ReferenceField
   test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
@@ -424,12 +426,16 @@ testDefinition = (test) ->
   test.isFalse User.Meta.parent
   test.equal User.Meta.document, User
   test.equal User.Meta.collection._name, 'users'
+  test.equal User.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal User.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(User.Meta.fields), 0
 
   test.equal UserLink.Meta._name, 'UserLink'
   test.isFalse UserLink.Meta.parent
   test.equal UserLink.Meta.document, UserLink
   test.equal UserLink.Meta.collection._name, 'UserLinks'
+  test.equal UserLink.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal UserLink.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(UserLink.Meta.fields), 1
   test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
   test.isNull UserLink.Meta.fields.user.ancestorArray, UserLink.Meta.fields.user.ancestorArray
@@ -448,6 +454,8 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.parent, _TestPostLink.Meta
   test.equal PostLink.Meta.document, PostLink
   test.equal PostLink.Meta.collection._name, 'PostLinks'
+  test.equal PostLink.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal PostLink.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(PostLink.Meta.fields), 1
   test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
   test.isNull PostLink.Meta.fields.post.ancestorArray, PostLink.Meta.fields.post.ancestorArray
@@ -466,6 +474,8 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.parent, _TestCircularFirst.Meta
   test.equal CircularFirst.Meta.document, CircularFirst
   test.equal CircularFirst.Meta.collection._name, 'CircularFirsts'
+  test.equal CircularFirst.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal CircularFirst.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(CircularFirst.Meta.fields), 2
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
   test.isNull CircularFirst.Meta.fields.second.ancestorArray, CircularFirst.Meta.fields.second.ancestorArray
@@ -498,6 +508,8 @@ testDefinition = (test) ->
   test.isFalse CircularSecond.Meta.parent
   test.equal CircularSecond.Meta.document, CircularSecond
   test.equal CircularSecond.Meta.collection._name, 'CircularSeconds'
+  test.equal CircularSecond.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal CircularSecond.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(CircularSecond.Meta.fields), 2
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
   test.isNull CircularSecond.Meta.fields.first.ancestorArray, CircularSecond.Meta.fields.first.ancestorArray
@@ -531,6 +543,8 @@ testDefinition = (test) ->
   test.equal Person.Meta.document, Person
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal Person.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Person.Meta.fields), 5
   test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
   test.equal Person.Meta.fields.posts.ancestorArray, 'posts'
@@ -603,12 +617,16 @@ testDefinition = (test) ->
   test.equal SpecialPerson.Meta.document, SpecialPerson
   test.equal SpecialPerson.Meta._name, 'SpecialPerson'
   test.equal SpecialPerson.Meta.collection._name, 'SpecialPersons'
+  test.equal SpecialPerson.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal SpecialPerson.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(SpecialPerson.Meta.fields), 0
 
   test.equal Recursive.Meta._name, 'Recursive'
   test.isFalse Recursive.Meta.parent
   test.equal Recursive.Meta.document, Recursive
   test.equal Recursive.Meta.collection._name, 'Recursives'
+  test.equal Recursive.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal Recursive.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Recursive.Meta.fields), 2
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
   test.isNull Recursive.Meta.fields.other.ancestorArray, Recursive.Meta.fields.other.ancestorArray
@@ -641,6 +659,8 @@ testDefinition = (test) ->
   test.isFalse IdentityGenerator.Meta.parent
   test.equal IdentityGenerator.Meta.document, IdentityGenerator
   test.equal IdentityGenerator.Meta.collection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal IdentityGenerator.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(IdentityGenerator.Meta.fields), 2
   test.instanceOf IdentityGenerator.Meta.fields.result, IdentityGenerator._GeneratedField
   test.isNull IdentityGenerator.Meta.fields.result.ancestorArray, IdentityGenerator.Meta.fields.result.ancestorArray
@@ -673,6 +693,8 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.parent, _TestPost2.Meta
   test.equal SpecialPost.Meta.document, SpecialPost
   test.equal SpecialPost.Meta.collection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.schema, '1.0.0' if Meteor.isServer
+  test.equal SpecialPost.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(SpecialPost.Meta.fields), 8
   test.instanceOf SpecialPost.Meta.fields.author, Person._ReferenceField
   test.isNull SpecialPost.Meta.fields.author.ancestorArray, SpecialPost.Meta.fields.author.ancestorArray
@@ -3116,6 +3138,8 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   test.equal Document._delayed[3], Third
   test.equal Document._delayed[4], First
 
+  # These documents do not have schema version set because they are created after Meteor.startup
+
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
   test.equal Second.Meta.document, Second
@@ -3486,6 +3510,8 @@ Tinytest.add 'meteor-peerdb - local collections', (test) ->
   testDocumentList test, ALL.concat [Local]
   test.equal Document._delayed.length, 0
 
+  # This document does not have schema version set because it is created after Meteor.startup
+
   test.equal Local.Meta._name, 'Local'
   test.isFalse Local.Meta.parent
   test.equal Local.Meta.document, Local
@@ -3592,6 +3618,8 @@ Tinytest.add 'meteor-peerdb - tricky references', (test) ->
         first: @ReferenceField First1
 
   Document.defineAll()
+
+  # These documents do not have schema version set because they are created after Meteor.startup
 
   test.equal First1.Meta._name, 'First1'
   test.isFalse First1.Meta.parent

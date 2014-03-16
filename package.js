@@ -23,4 +23,8 @@ Package.on_test(function (api) {
     'tests_defined.js',
     'tests.coffee'
   ], ['client', 'server']);
+
+  api.add_files([
+    'tests_migrations.coffee'
+  ], 'server');
 });

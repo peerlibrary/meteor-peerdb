@@ -1,6 +1,6 @@
 globals = @
 
-RESERVED_FIELDS = ['document', 'parent']
+RESERVED_FIELDS = ['document', 'parent', 'schema', 'migrations']
 INVALID_TARGET = "Invalid target document"
 MAX_RETRIES = 1000
 
@@ -459,6 +459,10 @@ class globals.Document
       meta._reverseFields = []
     else
       meta._reverseFields = _.clone parentMeta._reverseFields
+
+    if not meta.replaceParent
+      # If we are not replacing the parent, we create a new list of migrations
+      meta.migrations = []
 
     clonedParentMeta = -> parentMeta.apply @, arguments
     filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent'

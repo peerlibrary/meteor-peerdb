@@ -6,10 +6,10 @@ Meteor smart package which provides database support for collaborative documents
  * reactive auto-generated fields from other fields
  * reactive reverse references between documents
  * embedded documents are objectified
+ * schema migrations
 
 Planned features are:
  * versioning of all changes to documents
- * schema migrations
  * integration with [full-text search](http://www.elasticsearch.org/)
  * [strict-typed schema validation](https://github.com/balderdashy/anchor)
 

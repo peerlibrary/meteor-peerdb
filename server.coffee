@@ -1,4 +1,19 @@
+semver = Npm.require 'semver'
+Future = Npm.require 'fibers/future'
+
 globals = @
+
+# Fields:
+#   serial
+#   migrationName
+#   oldCollectionName
+#   newCollectionName
+#   oldVersion
+#   newVersion
+#   timestamp
+#   migrated
+# We use a lower case collection name to signal it is a system collection
+globals.Document.Migrations = new Meteor.Collection 'migrations'
 
 fieldsToProjection = (fields) ->
   projection =
@@ -385,9 +400,203 @@ class globals.Document extends globals.Document
 
     initializing = false
 
+  @_Migration: class
+    forward: (db, collectionName, currentSchema, newSchema, callback) =>
+      db.collection collectionName, (error, collection) =>
+        return callback error if error
+        collection.find({}).count callback
+
+    backward: (db, collectionName, currentSchema, oldSchema, callback) =>
+      db.collection collectionName, (error, collection) =>
+        return callback error if error
+        collection.find({}).count callback
+
+  @PatchMigration: class extends @_Migration
+
+  @MinorMigration: class extends @_Migration
+
+  @MajorMigration: class extends @_Migration
+
+  @_RenameMigration: class extends @MajorMigration
+    constructor: (@oldName, @newName) ->
+      @name = "Renaming collection from '#{ @oldName }' to '#{ @newName }'"
+
+  @addMigration: (migration) ->
+    throw new Error "Migration is missing a name" unless migration.name
+    throw new Error "Migration is not a migration instance" unless migration instanceof @_Migration
+
+    @Meta.migrations.push migration
+
+  @renameCollectionMigration: (oldName, newName) ->
+    @Meta.migrations.push new @_RenameMigration oldName, newName
+
+  @migrateForward: (untilName) ->
+    # TODO: Implement
+    throw new Error "Not implemented yet"
+
+  @migrateBackward: (untilName) ->
+    # TODO: Implement
+    throw new Error "Not implemented yet"
+
+  @migrate: ->
+    schemas = ['1.0.0']
+    currentSchema = '1.0.0'
+    currentSerial = 0
+
+    initialName = @Meta.collection._name
+    for migration in @Meta.migrations by -1 when migration instanceof @_RenameMigration
+      throw new Error "Incosistent document renaming, renaming from '#{ migration.oldName }' to '#{ migration.newName }', but current name is '#{ initialName }' (new name and current name should match)" if migration.newName isnt initialName
+      initialName = migration.oldName
+
+    migrationsPending = Number.POSITIVE_INFINITY
+    currentName = initialName
+    for migration, i in @Meta.migrations
+      if migration instanceof @PatchMigration
+        newSchema = semver.inc currentSchema, 'patch'
+      else if migration instanceof @MinorMigration
+        newSchema = semver.inc currentSchema, 'minor'
+      else if migration instanceof @MajorMigration
+        newSchema = semver.inc currentSchema, 'major'
+
+      if migration instanceof @_RenameMigration
+        newName = migration.newName
+      else
+        newName = currentName
+
+      migrations = globals.Document.Migrations.find(
+        serial:
+          $gt: currentSerial
+        oldCollectionName:
+          $in: [currentName, newName]
+      ,
+        sort: [
+          ['serial', 'asc']
+        ]
+      ).fetch()
+
+      if migrations[0]
+        throw new Error "Unexpected migration recorded: #{ migrations[0] }" if migrationsPending < Number.POSITIVE_INFINITY
+
+        if migrations[0].migrationName is migration.name and migrations[0].oldCollectionName is currentName and migrations[0].newCollectionName is newName and migrations[0].oldVersion is currentSchema and migrations[0].newVersion is newSchema
+          currentSerial = migrations[0].serial
+        else
+          throw new Error "Incosistent migration recorded, expected migrationName='#{ migration.name }', oldCollectionName='#{ currentName }', newCollectionName='#{ newName }', oldVersion='#{ currentSchema }', newVersion='#{ newSchema }', got: #{ migrations[0] }"
+      else if migrationsPending is Number.POSITIVE_INFINITY
+        # This is the collection name recorded as the last, so we start with it
+        initialName = currentName
+        migrationsPending = i
+
+      currentSchema = newSchema
+      schemas.push currentSchema
+      currentName = newName
+
+    unknownSchema = _.pluck @Meta.collection.find(
+      _schema:
+        $nin: schemas
+        $exists: true
+    ,
+      fields:
+        _id: 1
+    ).fetch(), '_id'
+
+    throw new Error "Documents with unknown schema version: #{ unknownSchema }" if unknownSchema.length
+
+    # We know MongoDB connection is established because setupMigrations are run from Meteor.startup
+    db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
+    assert db
+
+    currentSchema = '1.0.0'
+    currentSerial = 0
+    currentName = initialName
+    for migration, i in @Meta.migrations
+      if migration instanceof @PatchMigration
+        newSchema = semver.inc currentSchema, 'patch'
+      else if migration instanceof @MinorMigration
+        newSchema = semver.inc currentSchema, 'minor'
+      else if migration instanceof @MajorMigration
+        newSchema = semver.inc currentSchema, 'major'
+
+      if i < migrationsPending and migration instanceof @_RenameMigration
+        # We skip all already done rename migrations (but we run other old migrations again, just with the last known collection name)
+        currentSchema = newSchema
+        currentName = migration.newName
+        continue
+
+      if migration instanceof @_RenameMigration
+        newName = migration.newName
+      else
+        newName = currentName
+
+      future = new Future()
+      migration.forward db, currentName, currentSchema, newSchema, future.resolver()
+      migrated = future.wait()
+
+      if i < migrationsPending
+        count = globals.Document.Migrations.update
+          migrationName: migration.name
+          oldCollectionName: currentName
+          newCollectionName: newName
+          oldVersion: currentSchema
+          newVersion: newSchema
+        ,
+          $inc:
+            migrated: migrated
+        ,
+          multi: true # To catch any errors
+
+        throw new Error "Incosistent migration record state, missing migrationName='#{ migration.name }', oldCollectionName='#{ currentName }', newCollectionName='#{ newName }', oldVersion='#{ currentSchema }', newVersion='#{ newSchema }'" unless count is 1
+      else
+        count = globals.Document.Migrations.find(
+          migrationName: migration.name
+          oldCollectionName: currentName
+          newCollectionName: newName
+          oldVersion: currentSchema
+          newVersion: newSchema
+        ).count()
+
+        throw new Error "Incosistent migration record state, unexpected migrationName='#{ migration.name }', oldCollectionName='#{ currentName }', newCollectionName='#{ newName }', oldVersion='#{ currentSchema }', newVersion='#{ newSchema }'" unless count is 0
+
+        globals.Document.Migrations.insert
+          # Things should not be running in parallel here anyway, so we can get next serial in this way
+          serial: globals.Document.Migrations.findOne({}, {sort: [['serial', 'desc']]}).serial + 1
+          migrationName: migration.name
+          oldCollectionName: currentName
+          newCollectionName: newName
+          oldVersion: currentSchema
+          newVersion: newSchema
+          migrated: migrated
+
+      currentSchema = newSchema
+      currentName = newName
+
+    # For all those documents which lack schema information we assume they have the last schema
+    @Meta.collection.update
+      _schema:
+        $exists: false
+    ,
+      $set:
+        _schema: currentSchema
+    ,
+      multi: true
+
+    notMigrated = _.pluck @Meta.collection.find(
+      _schema:
+        $ne: currentSchema
+    ,
+      fields:
+        _id: 1
+    ).fetch(), '_id'
+
+    throw new Error "Not all documents migrated to the latest schema version (#{ currentSchema }): #{ notMigrated }" if notMigrated.length
+
+    @Meta.schema = currentSchema
+
   @setupMigrations: ->
+    @migrate()
+
     @Meta.collection.find(
-      _schema: null
+      _schema:
+        $exists: false
     ,
       fields:
         _id: 1
@@ -398,11 +607,12 @@ class globals.Document extends globals.Document
 
         @Meta.collection.update id,
           $set:
-            _schema: '1.0.0'
+            _schema: @Meta.schema
 
   @updateAll: ->
     setupObservers true
 
+# TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupObservers = (updateAll) ->
   setupTargetObservers = (fields) ->
     for name, field of fields
@@ -416,20 +626,21 @@ setupObservers = (updateAll) ->
     setupTargetObservers document.Meta.fields
     document.setupSourceObservers updateAll
 
+# TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupMigrations = ->
   for document in globals.Document.list
     document.setupMigrations()
 
 migrations = ->
-  # We use a lower case collection name to signal it is a system collection
-  Migrations = new Meteor.Collection 'migrations'
-
-  # We fake support for migrations which will come in later versions
-  if Migrations.find({}, limit: 1).count() == 0
-    Migrations.insert
+  if globals.Document.Migrations.find({}, limit: 1).count() == 0
+    globals.Document.Migrations.insert
       serial: 1
+      migrationName: null
+      oldCollectionName: null
+      newCollectionName: null
+      oldVersion: null
+      newVersion: null
       timestamp: moment.utc().toDate()
-      all: 0
       migrated: 0
 
   setupMigrations()
