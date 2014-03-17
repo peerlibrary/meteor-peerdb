@@ -446,11 +446,12 @@ class globals.Document extends globals.Document
   @addMigration: (migration) ->
     throw new Error "Migration is missing a name" unless migration.name
     throw new Error "Migration is not a migration instance" unless migration instanceof @_Migration
+    throw new Error "Migration with the name '#{ migration.name }' already exists" if migration.name in _.pluck @Meta.migrations, 'name'
 
     @Meta.migrations.push migration
 
   @renameCollectionMigration: (oldName, newName) ->
-    @Meta.migrations.push new @_RenameMigration oldName, newName
+    @addMigration new @_RenameMigration oldName, newName
 
   @migrateForward: (untilName) ->
     # TODO: Implement
