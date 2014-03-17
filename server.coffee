@@ -498,12 +498,12 @@ class globals.Document extends globals.Document
       ).fetch()
 
       if migrations[0]
-        throw new Error "Unexpected migration recorded: #{ migrations[0] }" if migrationsPending < Number.POSITIVE_INFINITY
+        throw new Error "Unexpected migration recorded: #{ util.inspect migrations[0], depth: 10 }" if migrationsPending < Number.POSITIVE_INFINITY
 
         if migrations[0].migrationName is migration.name and migrations[0].oldCollectionName is currentName and migrations[0].newCollectionName is newName and migrations[0].oldVersion is currentSchema and migrations[0].newVersion is newSchema
           currentSerial = migrations[0].serial
         else
-          throw new Error "Incosistent migration recorded, expected migrationName='#{ migration.name }', oldCollectionName='#{ currentName }', newCollectionName='#{ newName }', oldVersion='#{ currentSchema }', newVersion='#{ newSchema }', got: #{ migrations[0] }"
+          throw new Error "Incosistent migration recorded, expected migrationName='#{ migration.name }', oldCollectionName='#{ currentName }', newCollectionName='#{ newName }', oldVersion='#{ currentSchema }', newVersion='#{ newSchema }', got: #{ util.inspect migrations[0], depth: 10 }"
       else if migrationsPending is Number.POSITIVE_INFINITY
         # This is the collection name recorded as the last, so we start with it
         initialName = currentName
