@@ -404,12 +404,12 @@ class globals.Document extends globals.Document
     forward: (db, collectionName, currentSchema, newSchema, callback) =>
       db.collection collectionName, (error, collection) =>
         return callback error if error
-        collection.find({}).count callback
+        collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}, callback
 
     backward: (db, collectionName, currentSchema, oldSchema, callback) =>
       db.collection collectionName, (error, collection) =>
         return callback error if error
-        collection.find({}).count callback
+        collection.update {_schema: currentSchema}, {$set: _schema: oldSchema}, {multi: true}, callback
 
   @PatchMigration: class extends @_Migration
 
@@ -420,6 +420,28 @@ class globals.Document extends globals.Document
   @_RenameMigration: class extends @MajorMigration
     constructor: (@oldName, @newName) ->
       @name = "Renaming collection from '#{ @oldName }' to '#{ @newName }'"
+
+    forward: (db, collectionName, currentSchema, newSchema, callback) =>
+      assert.equal collectionName, @oldName
+
+      db.collection collectionName, (error, collection) =>
+        return callback error if error
+        collection.rename @newName, (error, collection) =>
+          if error
+            return callback error unless /source namespace does not exist/.test "#{ error }"
+            return callback null, 0 unless collection
+          super db, @newName, currentSchema, newSchema, callback
+
+    backward: (db, collectionName, currentSchema, oldSchema, callback) =>
+      assert.equal collectionName, @newName
+
+      db.collection collectionName, (error, collection) =>
+        return callback error if error
+        collection.rename @oldName, (error, collection) =>
+          if error
+            return callback error unless /source namespace does not exist/.test "#{ error }"
+            return callback null, 0 unless collection
+          super db, @newName, currentSchema, oldSchema, callback
 
   @addMigration: (migration) ->
     throw new Error "Migration is missing a name" unless migration.name
@@ -565,6 +587,13 @@ class globals.Document extends globals.Document
           oldVersion: currentSchema
           newVersion: newSchema
           migrated: migrated
+          timestamp: moment.utc().toDate()
+
+      if migration instanceof @_RenameMigration
+        Log.warn "Renamed collection '#{ currentName }' to '#{ newName }'"
+        Log.warn "Migrated #{ migrated } document(s) (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if migrated
+      else
+        Log.warn "Migrated #{ migrated } document(s) in '#{ currentName }' collection (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if migrated
 
       currentSchema = newSchema
       currentName = newName
