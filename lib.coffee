@@ -42,12 +42,19 @@ removePrefix = (string, prefix) ->
   string.substring prefix.length
 
 getCurrentLocation = ->
-  # TODO: Does this work on the client side as well? Should we use Log._getCallerDetails?
-  lines = (new Error().stack).split('\n')
-  thisFile = (lines[1].match(/\((.*\/.+\.(coffee|js)).*\)$/))[1]
-  for line in lines[2..] when line.indexOf(thisFile) is -1
-    return line.trim().replace(/^at\s*/, '')
-  assert false
+  if Meteor.isServer
+    lines = (new Error().stack).split('\n')
+    thisFile = (lines[1].match(/\((.*\/.+\.(coffee|js)).*\)$/))[1]
+    for line in lines[2..] when line.indexOf(thisFile) is -1
+      return line.trim().replace(/^at\s*/, '')
+    assert false
+  else
+    # printStackTrace is from stacktrace.js
+    lines = printStackTrace()
+    thisFile = (lines[0].match(/@(.*\/.+\.(coffee|js)).*$/))[1]
+    for line in lines[1..] when line.indexOf(thisFile) is -1
+      return line
+    assert false
 
 getCollection = (name, document, replaceParent) ->
   transform = (doc) => new document doc

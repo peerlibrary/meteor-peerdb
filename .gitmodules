@@ -1,0 +1,3 @@
+[submodule "stacktrace"]
+	path = stacktrace
+	url = https://github.com/peerlibrary/stacktrace.js.git

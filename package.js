@@ -8,6 +8,7 @@ Package.on_use(function (api) {
   api.export('Document');
 
   api.add_files([
+    'stacktrace/stacktrace.js',
     'lib.coffee'
   ], 'client');
 
