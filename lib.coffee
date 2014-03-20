@@ -81,7 +81,7 @@ getCollection = (name, document, replaceParent) ->
     collection = name
     if collection._peerdb and not replaceParent
       throw new Error "Reuse of a collection without replaceParent set"
-    collection._transform = Deps._makeNonreactive transform
+    collection._transform = LocalCollection.wrapTransform transform
     collection._peerdb = true
 
   collection
