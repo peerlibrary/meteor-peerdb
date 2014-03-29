@@ -171,14 +171,18 @@ class SpecialPerson extends Person
       # posts and nestedPosts don't exist, so we remove count field as well
       count: undefined
 
-class Recursive extends Document
+class RecursiveBase extends Document
+  @Meta
+    abstract: true
+    fields: =>
+      other: @ReferenceField 'self', ['content'], false, 'reverse', ['content']
+
+class Recursive extends RecursiveBase
   # Other fields:
   #   content
 
   @Meta
     name: 'Recursive'
-    fields: =>
-      other: @ReferenceField 'self', ['content'], false, 'reverse', ['content']
 
 class IdentityGenerator extends Document
   # Other fields:

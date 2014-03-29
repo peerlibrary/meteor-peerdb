@@ -429,27 +429,20 @@ class globals.Document
     for field in RESERVED_FIELDS or startsWith field, '_'
       throw "Reserved meta field name: #{ field }" if field of meta
 
-    throw new Error "Missing document name" unless meta.name
-    throw new Error "Document name does not match class name" if @name and @name isnt meta.name
-    throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
+    if meta.abstract
+      throw new Error "name cannot be set in abstract document" if meta.name
+      throw new Error "replaceParent cannot be set in abstract document" if meta.replaceParent
+      throw new Error "Abstract document with a parent" if @Meta._name
+    else
+      throw new Error "Missing document name" unless meta.name
+      throw new Error "Document name does not match class name" if @name and @name isnt meta.name
+      throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
 
     name = meta.name
     currentFields = meta.fields or (fs) -> fs
     meta = _.omit meta, 'name', 'fields'
-    meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
-    # For easier debugging and better error messages
-    meta._location = getCurrentLocation()
-    meta.document = @
-
-    if meta.collection is null or meta.collection
-      meta.collection = getCollection meta.collection, @, meta.replaceParent
-    else
-      meta.collection = getCollection "#{ name }s", @, meta.replaceParent
 
     parentMeta = @Meta
-
-    if @Meta._name
-      meta.parent = parentMeta
 
     if parentMeta._fields
       fields = (fs) ->
@@ -460,27 +453,42 @@ class globals.Document
 
     meta._fields = fields # Fields function
 
-    if not meta.replaceParent
-      # If we are not replacing the parent, we override _reverseFields with an empty set
-      # because we want reverse fields only on exact target document and not its children.
-      meta._reverseFields = []
-    else
-      meta._reverseFields = _.clone parentMeta._reverseFields
+    if not meta.abstract
+      meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
+      # For easier debugging and better error messages
+      meta._location = getCurrentLocation()
+      meta.document = @
 
-    if not meta.replaceParent
-      # If we are not replacing the parent, we create a new list of migrations
-      meta.migrations = []
+      if meta.collection is null or meta.collection
+        meta.collection = getCollection meta.collection, @, meta.replaceParent
+      else
+        meta.collection = getCollection "#{ name }s", @, meta.replaceParent
+
+      if @Meta._name
+        meta.parent = parentMeta
+
+      if not meta.replaceParent
+        # If we are not replacing the parent, we override _reverseFields with an empty set
+        # because we want reverse fields only on exact target document and not its children.
+        meta._reverseFields = []
+      else
+        meta._reverseFields = _.clone parentMeta._reverseFields
+
+      if not meta.replaceParent
+        # If we are not replacing the parent, we create a new list of migrations
+        meta.migrations = []
 
     clonedParentMeta = -> parentMeta.apply @, arguments
-    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent'
+    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent', 'abstract'
     @Meta = _.extend clonedParentMeta, filteredParentMeta, meta
 
-    assert @Meta._reverseFields
+    if not meta.abstract
+      assert @Meta._reverseFields
 
-    @documents = new @_Manager @Meta
+      @documents = new @_Manager @Meta
 
-    @_addDelayed @
-    @_retryDelayed()
+      @_addDelayed @
+      @_retryDelayed()
 
   @list = []
   @_delayed = []
