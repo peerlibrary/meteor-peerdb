@@ -1413,6 +1413,19 @@ Tinytest.add 'meteor-peerdb - invalid name', (test) ->
   # Should not try to define invalid document again
   Document.defineAll()
 
+Tinytest.add 'meteor-peerdb - abstract with parent', (test) ->
+  test.throws ->
+    class BadPost4 extends Post
+      @Meta
+        abstract: true
+  , /Abstract document with a parent/
+
+  # Invalid document should not be added to the list
+  testDocumentList test, ALL
+
+  # Should not try to define invalid document again
+  Document.defineAll()
+
 testAsyncMulti 'meteor-peerdb - circular changes', [
   (test, expect) ->
     Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
@@ -2146,9 +2159,9 @@ if Meteor.isServer
 
 testAsyncMulti 'meteor-peerdb - delayed defintion', [
   (test, expect) ->
-    class BadPost4 extends Document
+    class BadPost5 extends Document
       @Meta
-        name: 'BadPost4'
+        name: 'BadPost5'
         fields: =>
           author: @ReferenceField undefined, ['username']
 
@@ -2165,11 +2178,11 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
 
     # Let's find it
     for i in intercepted
-      break if i.indexOf('BadPost4') isnt -1
+      break if i.indexOf('BadPost5') isnt -1
     test.isTrue _.isString(i), i
     intercepted = EJSON.parse i
 
-    test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost4 from"), 0, intercepted.message
+    test.equal intercepted.message.lastIndexOf("Not all delayed document definitions were successfully retried:\nBadPost5 from"), 0, intercepted.message
     test.equal intercepted.level, 'error'
 
     testDocumentList test, ALL
