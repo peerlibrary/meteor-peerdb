@@ -367,7 +367,7 @@ class globals.Document
           @_addDelayed document
           continue
         else
-          throw new Error "Invalid fields (from #{ document.Meta._location }): #{ if e.stack then "#{ e.stack }\n---" else e.stringOf?() or e }"
+          throw new Error "Invalid fields (from #{ document.Meta._location }): #{ e.stringOf?() or e }\n---#{ if e.stack then "#{ e.stack }\n---" else '' }"
 
       throw new Error "No fields returned (from #{ document.Meta._location })" unless fields
       throw new Error "Returned fields should be a plain object (from #{ document.Meta._location })" unless isPlainObject fields
