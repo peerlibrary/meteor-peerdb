@@ -4,6 +4,10 @@ RESERVED_FIELDS = ['document', 'parent', 'schema', 'migrations']
 INVALID_TARGET = "Invalid target document"
 MAX_RETRIES = 1000
 
+class codeMinimizedTest
+
+@CODE_MINIMIZED = codeMinimizedTest.name and codeMinimizedTest.name isnt 'codeMinimizedTest'
+
 isPlainObject = (obj) ->
   if not _.isObject(obj) or _.isArray(obj) or _.isFunction(obj)
     return false
@@ -54,7 +58,8 @@ getCurrentLocation = ->
     thisFile = (lines[0].match(/@(.*\/.+\.(coffee|js)).*$/))[1]
     for line in lines[1..] when line.indexOf(thisFile) is -1
       return line
-    assert false
+    assert CODE_MINIMIZED
+    return '<code_minimized>'
 
 getCollection = (name, document, replaceParent) ->
   transform = (doc) => new document doc
@@ -435,7 +440,7 @@ class globals.Document
       throw new Error "Abstract document with a parent" if @Meta._name
     else
       throw new Error "Missing document name" unless meta.name
-      throw new Error "Document name does not match class name" if @name and @name isnt meta.name
+      throw new Error "Document name does not match class name" if not CODE_MINIMIZED and @name and @name isnt meta.name
       throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
 
     name = meta.name

@@ -1400,18 +1400,19 @@ Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   # Should not try to define invalid document again
   Document.defineAll()
 
-Tinytest.add 'meteor-peerdb - invalid name', (test) ->
-  test.throws ->
-    class BadPost3 extends Document
-      @Meta
-        name: 'Post'
-  , /Document name does not match class name/
+unless CODE_MINIMIZED
+  Tinytest.add 'meteor-peerdb - invalid name', (test) ->
+    test.throws ->
+      class BadPost3 extends Document
+        @Meta
+          name: 'Post'
+    , /Document name does not match class name/
 
-  # Invalid document should not be added to the list
-  testDocumentList test, ALL
+    # Invalid document should not be added to the list
+    testDocumentList test, ALL
 
-  # Should not try to define invalid document again
-  Document.defineAll()
+    # Should not try to define invalid document again
+    Document.defineAll()
 
 Tinytest.add 'meteor-peerdb - abstract with parent', (test) ->
   test.throws ->
