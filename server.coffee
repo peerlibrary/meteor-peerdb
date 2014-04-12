@@ -401,6 +401,9 @@ class globals.Document extends globals.Document
     initializing = false
 
   @_Migration: class
+    updateAll: =>
+      @_updateAll = true
+
     forward: (db, collectionName, currentSchema, newSchema, callback) =>
       db.collection collectionName, (error, collection) =>
         return callback error if error
@@ -528,6 +531,8 @@ class globals.Document extends globals.Document
     db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
     assert db
 
+    updateAll = false
+
     currentSchema = '1.0.0'
     currentSerial = 0
     currentName = initialName
@@ -550,9 +555,13 @@ class globals.Document extends globals.Document
       else
         newName = currentName
 
+      migration._updateAll = false
+
       future = new Future()
       migration.forward db, currentName, currentSchema, newSchema, future.resolver()
       migrated = future.wait()
+
+      updateAll = true if migrated and migration._updateAll
 
       if i < migrationsPending
         count = globals.Document.Migrations.update
@@ -621,8 +630,11 @@ class globals.Document extends globals.Document
 
     @Meta.schema = currentSchema
 
+    # Return if updateAll should be called
+    updateAll
+
   @setupMigrations: ->
-    @migrate()
+    updateAll = @migrate()
 
     @Meta.collection.find(
       _schema:
@@ -638,6 +650,9 @@ class globals.Document extends globals.Document
         @Meta.collection.update id,
           $set:
             _schema: @Meta.schema
+
+    # Return if updateAll should be called
+    updateAll
 
   @updateAll: ->
     setupObservers true
@@ -658,8 +673,16 @@ setupObservers = (updateAll) ->
 
 # TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupMigrations = ->
-  for document in globals.Document.list
-    document.setupMigrations()
+  updateAll = false
+  # Migrate all except local collections
+  for document in globals.Document.list when document.Meta.collection._name isnt null
+    # Always run setupMigrations, don't short circuit
+    updateAll = document.setupMigrations() or updateAll
+
+  if updateAll
+    Log.warn "Migrations requested updating all references..."
+    globals.Document.updateAll()
+    Log.warn "Done."
 
 migrations = ->
   if globals.Document.Migrations.find({}, limit: 1).count() == 0
