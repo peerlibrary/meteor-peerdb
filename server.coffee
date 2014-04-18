@@ -44,22 +44,23 @@ extractValue = (obj, path) ->
 globals.Document._TargetedFieldsObservingField::setupTargetObservers = (updateAll) ->
   initializing = true
 
-  referenceFields = fieldsToProjection @fields
-  handle = @targetCollection.find({}, fields: referenceFields).observeChanges
+  observers =
     added: catchErrors (id, fields) =>
       @updateSource id, fields if updateAll or not initializing
 
-    changed: catchErrors (id, fields) =>
+  unless updateAll
+    observers.changed = catchErrors (id, fields) =>
       @updateSource id, fields
 
-    removed: catchErrors (id) =>
+    observers.removed = catchErrors (id) =>
       @removeSource id
 
-  if updateAll
-    handle.stop()
-    return
+  referenceFields = fieldsToProjection @fields
+  handle = @targetCollection.find({}, fields: referenceFields).observeChanges observers
 
   initializing = false
+
+  handle.stop() if updateAll
 
 class globals.Document._ReferenceField extends globals.Document._ReferenceField
   updateSource: (id, fields) =>
@@ -387,18 +388,19 @@ class globals.Document extends globals.Document
 
     initializing = true
 
-    handle = @Meta.collection.find({}, fields: sourceFields).observeChanges
+    observers =
       added: catchErrors (id, fields) =>
         @_sourceUpdated id, fields if updateAll or not initializing
 
-      changed: catchErrors (id, fields) =>
+    unless updateAll
+      observers.changed = catchErrors (id, fields) =>
         @_sourceUpdated id, fields
 
-    if updateAll
-      handle.stop()
-      return
+    handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
 
     initializing = false
+
+    handle.stop() if updateAll
 
   @_Migration: class
     updateAll: =>
