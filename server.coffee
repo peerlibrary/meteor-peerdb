@@ -3,6 +3,22 @@ Future = Npm.require 'fibers/future'
 
 globals = @
 
+# From Meteor's random/random.js
+UNMISTAKABLE_CHARS = '23456789ABCDEFGHJKLMNPQRSTWXYZabcdefghijkmnopqrstuvwxyz'
+
+INSTANCES = parseInt(process.env.PEERDB_INSTANCES ? 1)
+INSTANCE = parseInt(process.env.PEERDB_INSTANCE ? 0)
+
+throw new Error "Invalid number of instances: #{ INSTANCES }" unless 0 <= INSTANCES <= UNMISTAKABLE_CHARS.length
+throw new Error "Invalid instance index: #{ INSTANCE }" unless (INSTANCES is 0 and INSTANCE is 0) or 0 <= INSTANCE < INSTANCES
+
+# TODO: Support also other types of _id generation (like ObjectID)
+PREFIX = UNMISTAKABLE_CHARS.split ''
+
+if INSTANCES > 1
+  range = UNMISTAKABLE_CHARS.length / INSTANCES
+  PREFIX = PREFIX[Math.round(INSTANCE * range)...Math.round((INSTANCE + 1) * range)]
+
 # Fields:
 #   serial
 #   migrationName
@@ -26,10 +42,13 @@ fieldsToProjection = (fields) ->
   projection
 
 # TODO: Should we add retry?
-catchErrors = (f) ->
-  return (args...) ->
+observerCallback = (f) ->
+  return (id, args...) ->
     try
-      f args...
+      # We call f only if the first character of id is in PREFIX.
+      # By that we allow each instance to operate only on a subset
+      # of documents, allowing simple coordination while scaling.
+      f id, args... if id[0] in PREFIX
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
       Log.debug e.stack
@@ -45,14 +64,14 @@ globals.Document._TargetedFieldsObservingField::setupTargetObservers = (updateAl
   initializing = true
 
   observers =
-    added: catchErrors (id, fields) =>
+    added: observerCallback (id, fields) =>
       @updateSource id, fields if updateAll or not initializing
 
   unless updateAll
-    observers.changed = catchErrors (id, fields) =>
+    observers.changed = observerCallback (id, fields) =>
       @updateSource id, fields
 
-    observers.removed = catchErrors (id) =>
+    observers.removed = observerCallback (id) =>
       @removeSource id
 
   referenceFields = fieldsToProjection @fields
@@ -389,11 +408,11 @@ class globals.Document extends globals.Document
     initializing = true
 
     observers =
-      added: catchErrors (id, fields) =>
+      added: observerCallback (id, fields) =>
         @_sourceUpdated id, fields if updateAll or not initializing
 
     unless updateAll
-      observers.changed = catchErrors (id, fields) =>
+      observers.changed = observerCallback (id, fields) =>
         @_sourceUpdated id, fields
 
     handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
@@ -557,6 +576,13 @@ class globals.Document extends globals.Document
       else
         newName = currentName
 
+      if process.env.PEERDB_SKIP_MIGRATIONS
+        # We are skipping migrations but are still running
+        # the code around just to compute latest schema version
+        currentSchema = newSchema
+        currentName = newName
+        continue
+
       migration._updateAll = false
 
       future = new Future()
@@ -610,25 +636,27 @@ class globals.Document extends globals.Document
       currentSchema = newSchema
       currentName = newName
 
-    # For all those documents which lack schema information we assume they have the last schema
-    @Meta.collection.update
-      _schema:
-        $exists: false
-    ,
-      $set:
-        _schema: currentSchema
-    ,
-      multi: true
+    # We do not check for not migrated documents if we are skipping migrations
+    unless process.env.PEERDB_SKIP_MIGRATIONS
+      # For all those documents which lack schema information we assume they have the last schema
+      @Meta.collection.update
+        _schema:
+          $exists: false
+      ,
+        $set:
+          _schema: currentSchema
+      ,
+        multi: true
 
-    notMigrated = _.pluck @Meta.collection.find(
-      _schema:
-        $ne: currentSchema
-    ,
-      fields:
-        _id: 1
-    ).fetch(), '_id'
+      notMigrated = _.pluck @Meta.collection.find(
+        _schema:
+          $ne: currentSchema
+      ,
+        fields:
+          _id: 1
+      ).fetch(), '_id'
 
-    throw new Error "Not all documents migrated to the latest schema version (#{ currentSchema }): #{ notMigrated }" if notMigrated.length
+      throw new Error "Not all documents migrated to the latest schema version (#{ currentSchema }): #{ notMigrated }" if notMigrated.length
 
     @Meta.schema = currentSchema
 
@@ -638,20 +666,21 @@ class globals.Document extends globals.Document
   @setupMigrations: ->
     updateAll = @migrate()
 
-    @Meta.collection.find(
-      _schema:
-        $exists: false
-    ,
-      fields:
-        _id: 1
-        _schema: 1
-    ).observeChanges
-      added: catchErrors (id, fields) =>
-        return if fields._schema
+    if INSTANCES > 0
+      @Meta.collection.find(
+        _schema:
+          $exists: false
+      ,
+        fields:
+          _id: 1
+          _schema: 1
+      ).observeChanges
+        added: observerCallback (id, fields) =>
+          return if fields._schema
 
-        @Meta.collection.update id,
-          $set:
-            _schema: @Meta.schema
+          @Meta.collection.update id,
+            $set:
+              _schema: @Meta.schema
 
     # Return if updateAll should be called
     updateAll
@@ -705,9 +734,21 @@ Meteor.startup ->
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   globals.Document.defineAll()
 
+  Log.warn "Skipped migrations." if process.env.PEERDB_SKIP_MIGRATIONS
+  # We still run the code to determine schema version and setup
+  # observer to set schema version when inserting new documents,
+  # but we then inside the code skip running migrations themselves
   migrations()
 
-  setupObservers()
+  if INSTANCES is 0
+    Log.warn "Skipped observers."
+  else
+    if INSTANCES is 1
+      Log.warn "Enabling observers..."
+    else
+      Log.warn "Enabling observers, instance #{ INSTANCE }/#{ INSTANCES }, matching ID prefix: #{ PREFIX.join '' }"
+    setupObservers()
+    Log.warn "Done."
 
 Document = globals.Document
 
