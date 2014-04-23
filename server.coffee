@@ -61,7 +61,7 @@ extractValue = (obj, path) ->
   obj
 
 # Cannot use => here because we are not in the globals.Document._TargetedFieldsObservingField context
-globals.Document._TargetedFieldsObservingField::setupTargetObservers = (updateAll) ->
+globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateAll) ->
   initializing = true
 
   observers =
@@ -391,7 +391,7 @@ class globals.Document extends globals.Document
     for name, value of fields
       @_sourceFieldUpdated id, name, value
 
-  @setupSourceObservers: (updateAll) ->
+  @_setupSourceObservers: (updateAll) ->
     return if _.isEmpty @Meta.fields
 
     sourceFields =
@@ -664,7 +664,7 @@ class globals.Document extends globals.Document
     # Return if updateAll should be called
     updateAll
 
-  @setupMigrations: ->
+  @_setupMigrations: ->
     updateAll = @migrate()
 
     if INSTANCES > 0
@@ -687,7 +687,11 @@ class globals.Document extends globals.Document
     updateAll
 
   @updateAll: ->
-    setupObservers true
+    # It is only reasonable to run anything if this instance
+    # is not disabled. Otherwise we would still go over all
+    # documents, just we would not process any.
+    if INSTANCES > 0
+      setupObservers true
 
 # TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupObservers = (updateAll) ->
@@ -695,13 +699,13 @@ setupObservers = (updateAll) ->
     for name, field of fields
       # There are no arrays anymore here, just objects (for subdocuments) or fields
       if field instanceof globals.Document._TargetedFieldsObservingField
-        field.setupTargetObservers updateAll
+        field._setupTargetObservers updateAll
       else if field not instanceof globals.Document._Field
         setupTargetObservers field
 
   for document in globals.Document.list
     setupTargetObservers document.Meta.fields
-    document.setupSourceObservers updateAll
+    document._setupSourceObservers updateAll
 
 # TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupMigrations = ->
@@ -709,7 +713,7 @@ setupMigrations = ->
   # Migrate all except local collections
   for document in globals.Document.list when document.Meta.collection._name isnt null
     # Always run setupMigrations, don't short circuit
-    updateAll = document.setupMigrations() or updateAll
+    updateAll = document._setupMigrations() or updateAll
 
   if updateAll
     Log.warn "Migrations requested updating all references..."
@@ -743,6 +747,8 @@ Meteor.startup ->
 
   if INSTANCES is 0
     Log.warn "Skipped observers."
+    # To make sure everything is really skipped
+    PREFIX = []
   else
     if INSTANCES is 1
       Log.warn "Enabling observers..."
