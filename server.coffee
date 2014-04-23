@@ -13,6 +13,7 @@ throw new Error "Invalid number of instances: #{ INSTANCES }" unless 0 <= INSTAN
 throw new Error "Invalid instance index: #{ INSTANCE }" unless (INSTANCES is 0 and INSTANCE is 0) or 0 <= INSTANCE < INSTANCES
 
 # TODO: Support also other types of _id generation (like ObjectID)
+# TODO: We could do also a hash of an ID and then split, this would also prevent any DOS attacks by forcing IDs of a particular form
 PREFIX = UNMISTAKABLE_CHARS.split ''
 
 if INSTANCES > 1
