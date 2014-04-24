@@ -577,9 +577,9 @@ class globals.Document extends globals.Document
       else
         newName = currentName
 
-      if process.env.PEERDB_SKIP_MIGRATIONS
-        # We are skipping migrations but are still running
-        # the code around just to compute latest schema version
+      if globals.Document.migrationsDisabled
+        # Migrations are disabled but we are still running
+        # the code just to compute the latest schema version
         currentSchema = newSchema
         currentName = newName
         continue
@@ -637,8 +637,8 @@ class globals.Document extends globals.Document
       currentSchema = newSchema
       currentName = newName
 
-    # We do not check for not migrated documents if we are skipping migrations
-    unless process.env.PEERDB_SKIP_MIGRATIONS
+    # We do not check for not migrated documents if migrations are disabled
+    unless globals.Document.migrationsDisabled
       # For all those documents which lack schema information we assume they have the last schema
       @Meta.collection.update
         _schema:
@@ -667,7 +667,7 @@ class globals.Document extends globals.Document
   @_setupMigrations: ->
     updateAll = @migrate()
 
-    if INSTANCES > 0
+    unless globals.Document.instanceDisabled
       @Meta.collection.find(
         _schema:
           $exists: false
@@ -690,8 +690,7 @@ class globals.Document extends globals.Document
     # It is only reasonable to run anything if this instance
     # is not disabled. Otherwise we would still go over all
     # documents, just we would not process any.
-    if INSTANCES > 0
-      setupObservers true
+    setupObservers true unless globals.Document.instanceDisabled
 
 # TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupObservers = (updateAll) ->
@@ -734,26 +733,30 @@ migrations = ->
 
   setupMigrations()
 
+globals.Document.migrationsDisabled = !!process.env.PEERDB_MIGRATIONS_DISABLED
+globals.Document.instanceDisabled = INSTANCES is 0
+globals.Document.instances = INSTANCES
+
 Meteor.startup ->
   # To try delayed references one last time, throwing any exceptions
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   globals.Document.defineAll()
 
-  Log.warn "Skipped migrations." if process.env.PEERDB_SKIP_MIGRATIONS
+  Log.warn "Skipped migrations." if globals.Document.migrationsDisabled
   # We still run the code to determine schema version and setup
   # observer to set schema version when inserting new documents,
   # but we then inside the code skip running migrations themselves
   migrations()
 
-  if INSTANCES is 0
+  if globals.Document.instanceDisabled
     Log.warn "Skipped observers."
     # To make sure everything is really skipped
     PREFIX = []
   else
-    if INSTANCES is 1
+    if globals.Document.instances is 1
       Log.warn "Enabling observers..."
     else
-      Log.warn "Enabling observers, instance #{ INSTANCE }/#{ INSTANCES }, matching ID prefix: #{ PREFIX.join '' }"
+      Log.warn "Enabling observers, instance #{ INSTANCE }/#{ globals.Document.instances }, matching ID prefix: #{ PREFIX.join '' }"
     setupObservers()
     Log.warn "Done."
 

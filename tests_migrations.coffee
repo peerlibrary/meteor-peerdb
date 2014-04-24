@@ -182,73 +182,74 @@ testDefinition = (test, count) ->
     migrated: count
   ]
 
-testAsyncMulti 'meteor-peerdb - migrations', [
-  (test, expect) ->
-    @db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
-    test.isTrue @db
+unless Document.migrationsDisabled
+  testAsyncMulti 'meteor-peerdb - migrations', [
+    (test, expect) ->
+      @db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
+      test.isTrue @db
 
-    # Reset migrated count
-    Document.Migrations.update({}, {$set: migrated: 0}, {multi: true})
+      # Reset migrated count
+      Document.Migrations.update({}, {$set: migrated: 0}, {multi: true})
 
-    # We ignore any error
-    @db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-    @db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-    @db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      # We ignore any error
+      @db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      @db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      @db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
 
-    testDefinition test, 0
+      testDefinition test, 0
 
-    # We should be able to call migrate multiple times
-    MigrationTest.migrate()
+      # We should be able to call migrate multiple times
+      MigrationTest.migrate()
 
-    testDefinition test, 0
+      testDefinition test, 0
 
-    # We ignore any error
-    @db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-    @db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-    @db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-,
-  (test, expect) ->
-    Document.Migrations.remove serial: $ne: 1
+      # We ignore any error
+      @db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      @db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      @db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+  ,
+    (test, expect) ->
+      Document.Migrations.remove serial: $ne: 1
 
-    @db.collection 'OlderMigrationTests', Meteor.bindEnvironment expect((error, collection) =>
-      test.isFalse error, error?.toString?() or error
-      test.isTrue collection
-      @collection = collection
-    ), (e) -> throw e
-,
-  (test, expect) ->
-    @id = Random.id()
-    @collection.insert {_id: @id, _schema: '1.0.0', test: 'test field'}, Meteor.bindEnvironment expect((error) =>
-      test.isFalse error, error?.toString?() or error
-    ), (e) -> throw e
-,
-  (test, expect) ->
-    MigrationTest.migrate()
+      @db.collection 'OlderMigrationTests', Meteor.bindEnvironment expect((error, collection) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue collection
+        @collection = collection
+      ), (e) -> throw e
+  ,
+    (test, expect) ->
+      @id = Random.id()
+      @collection.insert {_id: @id, _schema: '1.0.0', test: 'test field'}, Meteor.bindEnvironment expect((error) =>
+        test.isFalse error, error?.toString?() or error
+      ), (e) -> throw e
+  ,
+    (test, expect) ->
+      MigrationTest.migrate()
 
-    docs = MigrationTest.documents.find({},
-      transform: null # So that we can use test.equal
-    ).fetch()
-    test.equal docs,
-      [
-        _id: @id
-        _schema: '5.2.1'
-        renamed: 'test field'
-      ]
+      docs = MigrationTest.documents.find({},
+        transform: null # So that we can use test.equal
+      ).fetch()
+      test.equal docs,
+        [
+          _id: @id
+          _schema: '5.2.1'
+          renamed: 'test field'
+        ]
 
-    testDefinition test, 1
+      testDefinition test, 1
 
-    # We should be able to call migrate multiple times
-    MigrationTest.migrate()
+      # We should be able to call migrate multiple times
+      MigrationTest.migrate()
 
-    testDefinition test, 1
+      testDefinition test, 1
 
-    docs = MigrationTest.documents.find({},
-      transform: null # So that we can use test.equal
-    ).fetch()
-    test.equal docs,
-      [
-        _id: @id
-        _schema: '5.2.1'
-        renamed: 'test field'
-      ]
-]
+      docs = MigrationTest.documents.find({},
+        transform: null # So that we can use test.equal
+      ).fetch()
+      test.equal docs,
+        [
+          _id: @id
+          _schema: '5.2.1'
+          renamed: 'test field'
+        ]
+  ]

@@ -1429,7 +1429,7 @@ Tinytest.add 'meteor-peerdb - abstract with parent', (test) ->
 
 testAsyncMulti 'meteor-peerdb - circular changes', [
   (test, expect) ->
-    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+    Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
 
     CircularFirst.documents.insert
       second: null
@@ -1453,7 +1453,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    if Meteor.isServer
+    if Meteor.isServer and Document.instances is 1
       intercepted = Log._intercepted()
 
       # One or two because it depends if the client tests are running at the same time
@@ -1658,7 +1658,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
     # If directly referenced document is removed, dependency is removed as well
     test.isFalse @circularFirst, @circularFirst
 
-    Log._intercept 1 if Meteor.isServer
+    Log._intercept 1 if Meteor.isServer and Document.instances is 1
 
     CircularSecond.documents.insert
       first: null
@@ -1684,7 +1684,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    if Meteor.isServer
+    if Meteor.isServer and Document.instances is 1
       intercepted = Log._intercepted()
 
       test.equal intercepted.length, 0, intercepted
@@ -2088,7 +2088,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
     test.isFalse @recursive, @recursive
 ]
 
-if Meteor.isServer
+if Meteor.isServer and Document.instances is 1
   Tinytest.add 'meteor-peerdb - errors', (test) ->
     Log._intercept 2 # Two to see if we catch more than expected
 
@@ -3546,7 +3546,7 @@ Tinytest.add 'meteor-peerdb - local collections', (test) ->
 
 testAsyncMulti 'meteor-peerdb - errors for generated fields', [
   (test, expect) ->
-    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+    Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
 
     IdentityGenerator.documents.insert
       source: 'foobar'
@@ -3560,7 +3560,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    if Meteor.isServer
+    if Meteor.isServer and Document.instances is 1
       intercepted = Log._intercepted()
 
       # One or two because it depends if the client tests are running at the same time
@@ -3584,7 +3584,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
       source: 'foobar'
       result: 'foobar'
 
-    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+    Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
 
     IdentityGenerator.documents.update @identityGeneratorId,
       $set:
@@ -3598,7 +3598,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    if Meteor.isServer
+    if Meteor.isServer and Document.instances is 1
       intercepted = Log._intercepted()
 
       # One or two because it depends if the client tests are running at the same time
@@ -8550,7 +8550,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 
 testAsyncMulti 'meteor-peerdb - exception while processing', [
   (test, expect) ->
-    Log._intercept 3 if Meteor.isServer # Three to see if we catch more than expected
+    Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
 
     IdentityGenerator.documents.insert
       source: 'exception'
@@ -8564,7 +8564,7 @@ testAsyncMulti 'meteor-peerdb - exception while processing', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
-    if Meteor.isServer
+    if Meteor.isServer and Document.instances is 1
       intercepted = Log._intercepted()
 
       # One or two because it depends if the client tests are running at the same time
@@ -8985,7 +8985,7 @@ Tinytest.add 'meteor-peerdb - bad instances', (test) ->
       ]
   , /Document does not match schema, not a plain object/
 
-if Meteor.isServer
+if Meteor.isServer and not Document.instanceDisabled
   testAsyncMulti 'meteor-peerdb - update all', [
     (test, expect) ->
       testDefinition test
