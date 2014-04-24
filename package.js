@@ -3,17 +3,15 @@ Package.describe({
 });
 
 Package.on_use(function (api) {
-  api.use(['coffeescript', 'underscore', 'logging', 'minimongo', 'util', 'assert', 'moment'], ['client', 'server']);
+  api.use(['coffeescript', 'underscore', 'logging', 'minimongo', 'util', 'assert', 'moment', 'stacktrace'], ['client', 'server']);
 
   api.export('Document');
 
   api.add_files([
-    'stacktrace/stacktrace.js',
     'lib.coffee'
-  ], 'client');
+  ], ['client', 'server']);
 
   api.add_files([
-    'lib.coffee',
     'server.coffee'
   ], 'server');
 });

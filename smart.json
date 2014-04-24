@@ -8,6 +8,7 @@
   "packages": {
     "util": {},
     "assert": {},
-    "moment": {}
+    "moment": {},
+    "stacktrace": {}
   }
 }

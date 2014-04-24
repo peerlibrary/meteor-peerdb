@@ -45,22 +45,6 @@ startsWith = (string, start) ->
 removePrefix = (string, prefix) ->
   string.substring prefix.length
 
-getCurrentLocation = ->
-  if Meteor.isServer
-    lines = (new Error().stack).split('\n')
-    thisFile = (lines[1].match(/\((.*\/.+\.(coffee|js)).*\)$/))[1]
-    for line in lines[2..] when line.indexOf(thisFile) is -1
-      return line.trim().replace(/^at\s*/, '')
-    assert false
-  else
-    # printStackTrace is from stacktrace.js
-    lines = printStackTrace()
-    thisFile = (lines[0].match(/@(.*\/.+\.(coffee|js)).*$/))[1]
-    for line in lines[1..] when line.indexOf(thisFile) is -1
-      return line
-    assert CODE_MINIMIZED
-    return '<code_minimized>'
-
 getCollection = (name, document, replaceParent) ->
   transform = (doc) => new document doc
 
@@ -466,7 +450,7 @@ class globals.Document
     if not meta.abstract
       meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
       # For easier debugging and better error messages
-      meta._location = getCurrentLocation()
+      meta._location = StackTrace.getCurrentLocation()
       meta.document = @
 
       if meta.collection is null or meta.collection
