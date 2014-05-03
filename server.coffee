@@ -52,7 +52,7 @@ observerCallback = (f) ->
       f id, args... if id[0] in PREFIX
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
-      Log.debug e.stack
+      Log.error e.stack
 
 extractValue = (obj, path) ->
   while path.length
