@@ -8548,37 +8548,49 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
     test.isFalse @post, @post
 ]
 
-testAsyncMulti 'meteor-peerdb - exception while processing', [
-  (test, expect) ->
-    Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
+if Meteor.isServer and Document.instances is 1
+  testAsyncMulti 'meteor-peerdb - exception while processing', [
+    (test, expect) ->
+      Log._intercept 4 # Four to see if we catch more than expected
 
-    IdentityGenerator.documents.insert
-      source: 'exception'
-    ,
-      expect (error, identityGeneratorId) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue identityGeneratorId
-        @identityGeneratorId = identityGeneratorId
+      IdentityGenerator.documents.insert
+        source: 'exception'
+      ,
+        expect (error, identityGeneratorId) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue identityGeneratorId
+          @identityGeneratorId = identityGeneratorId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
-,
-  (test, expect) ->
-    if Meteor.isServer and Document.instances is 1
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
       intercepted = Log._intercepted()
 
-      # One or two because it depends if the client tests are running at the same time
-      test.isTrue 1 <= intercepted.length <= 2, intercepted
+      test.isTrue intercepted.length is 3, intercepted
 
       # We are testing only the server one, so let's find it
       for i in intercepted
-        break if i.indexOf(@identityGeneratorId) isnt -1
-      test.isTrue _.isString(i), i
-      intercepted = EJSON.parse i
-
-      test.isTrue intercepted.message.lastIndexOf('PeerDB exception: Error: Test exception', 0) is 0, intercepted.message
-      test.equal intercepted.level, 'error'
-]
+        # First error message
+        if i.indexOf('PeerDB exception: Error: Test exception') isnt -1
+          i = EJSON.parse i
+          test.equal i.message, "PeerDB exception: Error: Test exception: [ { source: 'exception', _id: '#{ @identityGeneratorId }' } ]"
+          test.equal i.level, 'error'
+        # Stack trace error message
+        else if i.indexOf('Error: Test exception') isnt -1
+          i = EJSON.parse i
+          test.isTrue i.message.indexOf('_GeneratedField.result') isnt -1, i.message
+          test.equal i.level, 'error'
+        # Invalid update error message
+        else if i.indexOf('defined as an array with selector') isnt -1
+          i = EJSON.parse i
+          test.equal i.message, "Generated field 'results' defined as an array with selector '#{ @identityGeneratorId }' was updated with a non-array value: 'exception'"
+          test.equal i.level, 'error'
+        else
+          test.fail
+            type: 'assert_never'
+            message: i
+  ]
 
 testAsyncMulti 'meteor-peerdb - instances', [
   (test, expect) ->
