@@ -91,16 +91,11 @@ class globals.Document
 
         if field.isArray
           throw new Error "Document does not match schema, not an array" unless _.isArray obj[name]
-          obj[name] = _.map obj[name], (o) =>
-            if o instanceof field.targetDocument
-              o
-            else
-              new field.targetDocument o
+          obj[name] = _.map obj[name], (o) => new field.targetDocument o
         else
           throw new Error "Document does not match schema, ancestorArray does not match: #{ field.ancestorArray } vs. #{ ancestorArray }" if field.ancestorArray isnt ancestorArray
           throw new Error "Document does not match schema, not a plain object" unless isPlainObject obj[name]
-          if obj[name] not instanceof field.targetDocument
-            obj[name] = new field.targetDocument obj[name]
+          obj[name] = new field.targetDocument obj[name]
 
       else if isPlainObject field
         if _.isArray obj[name]
