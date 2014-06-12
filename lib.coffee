@@ -111,12 +111,37 @@ class globals.Document
   constructor: (doc) ->
     _.extend @, @constructor.objectify '', null, (doc or {}), (@constructor?.Meta?.fields or {})
 
+  @_Trigger: class
+    constructor: (@fields, @trigger) ->
+      @fields ?= []
+
+    contributeToClass: (@document, @name) =>
+      @_metaLocation = @document.Meta._location
+      @collection = @document.Meta.collection
+
+    validate: =>
+      # TODO: Should these be simply asserts?
+      throw new Error "Missing meta location" unless @_metaLocation
+      throw new Error "Missing name (from #{ @_metaLocation })" unless @name
+      throw new Error "Missing document (for #{ @name} trigger from #{ @_metaLocation })" unless @document
+      throw new Error "Missing collection (for #{ @name} trigger from #{ @_metaLocation })" unless @collection
+      throw new Error "Document not defined (for #{ @name} trigger from #{ @_metaLocation })" unless @document.Meta._listIndex?
+
+      assert not @document.Meta._replaced
+      assert not @document.Meta._delayIndex?
+      assert.equal @document.Meta.document, @document
+      assert.equal @document.Meta.document.Meta, @document.Meta
+
+  @Trigger: (args...) ->
+    new @_Trigger args...
+
   @_Field: class
     contributeToClass: (@sourceDocument, @sourcePath, @ancestorArray) =>
       @_metaLocation = @sourceDocument.Meta._location
       @sourceCollection = @sourceDocument.Meta.collection
 
     validate: =>
+      # TODO: Should these be simply asserts?
       throw new Error "Missing meta location" unless @_metaLocation
       throw new Error "Missing source path (from #{ @_metaLocation })" unless @sourcePath
       throw new Error "Missing source document (for #{ @sourcePath } from #{ @_metaLocation })" unless @sourceDocument
@@ -257,6 +282,20 @@ class globals.Document
   @_clearDelayedCheck: ->
     Meteor.clearTimeout globals.Document._delayedCheckTimeout if globals.Document._delayedCheckTimeout
 
+  @_processTriggers: (triggers) ->
+    assert triggers
+    assert isPlainObject triggers
+
+    for name, trigger of triggers
+      throw new Error "Trigger names cannot contain '.' (for #{ name } trigger from #{ @Meta._location })" if name.indexOf('.') isnt -1
+
+      if trigger instanceof globals.Document._Trigger
+        trigger.contributeToClass @, name
+      else
+        throw new Error "Invalid value for trigger (for #{ name } trigger from #{ @Meta._location })"
+
+    triggers
+
   @_processFields: (fields, parent, ancestorArray) ->
     assert fields
     assert isPlainObject fields
@@ -340,6 +379,16 @@ class globals.Document
         continue
 
       try
+        triggers = document.Meta._triggers.call document, {}
+        if triggers and isPlainObject triggers
+          document.Meta.triggers = document._processTriggers triggers
+      catch e
+        throw new Error "Invalid triggers (from #{ document.Meta._location }): #{ e.stringOf?() or e }\n---#{ if e.stack then "#{ e.stack }\n---" else '' }"
+
+      throw new Error "No triggers returned (from #{ document.Meta._location })" unless triggers
+      throw new Error "Returned triggers should be a plain object (from #{ document.Meta._location })" unless isPlainObject triggers
+
+      try
         fields = document.Meta._fields.call document, {}
         if fields and isPlainObject fields
           # We run _processFields first, so that _reverseFields for this document is populated as well
@@ -407,6 +456,13 @@ class globals.Document
 
     @_setDelayedCheck()
 
+  @_validateTriggers: (document) ->
+    for name, trigger of document.Meta.triggers
+      if trigger instanceof globals.Document._Trigger
+        trigger.validate()
+      else
+        throw new Error "Invalid trigger (for #{ name } trigger from #{ document.Meta._location })"
+
   @_validateFields: (obj) ->
     for name, field of obj
       if field instanceof globals.Document._Field
@@ -428,10 +484,20 @@ class globals.Document
       throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
 
     name = meta.name
+    currentTriggers = meta.triggers or (ts) -> ts
     currentFields = meta.fields or (fs) -> fs
-    meta = _.omit meta, 'name', 'fields'
+    meta = _.omit meta, 'name', 'triggers', 'fields'
 
     parentMeta = @Meta
+
+    if parentMeta._triggers
+      triggers = (ts) ->
+        newTs = parentMeta._triggers ts
+        removeUndefined _.extend ts, newTs, currentTriggers newTs
+    else
+      triggers = currentTriggers
+
+    meta._triggers = triggers # Triggers function
 
     if parentMeta._fields
       fields = (fs) ->
@@ -487,6 +553,7 @@ class globals.Document
   @validateAll: ->
     for document in globals.Document.list
       throw new Error "Missing fields (from #{ document.Meta._location })" unless document.Meta.fields
+      @_validateTriggers document
       @_validateFields document.Meta.fields
 
   @defineAll: (dontThrowDelayedErrors) ->

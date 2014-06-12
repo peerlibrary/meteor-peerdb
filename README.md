@@ -5,6 +5,7 @@ Meteor smart package which provides database support for collaborative documents
  * reactive references between documents
  * reactive auto-generated fields from other fields
  * reactive reverse references between documents
+ * reactive triggers
  * embedded documents are objectified
  * schema migrations
 
@@ -125,6 +126,39 @@ and a new value. If value is undefined, auto-generated field is removed. If sele
 
 Those fields are auto-generated and stored in the database. You should make sure not to override auto-generated
 fields with some other value after they have been generated.
+
+Triggers
+--------
+
+You can define triggers which are run every time any of the specified fields changes:
+
+```coffee
+class Post extends Document
+  # Other fields:
+  #   title
+  #   updatedAt
+
+  @Meta
+    name: 'Post'
+    triggers: =>
+      updateUpdatedAt: @Trigger ['title'], (newDocument, oldDocument) ->
+        # Don't do anything when document is removed
+        return unless newDocument._id
+
+        timestamp = new Date()
+        Post.documents.update
+          _id: newDocument._id
+          updatedAt:
+            $lt: timestamp
+        ,
+          $set:
+            updatedAt: timestamp
+```
+
+Return value is ignored. Triggers are useful when you want arbitrary code to be run when fields change.
+This could be easily implemented directly with [observe](http://docs.meteor.com/#observe), but triggers
+simplify that and provide an alternative API. Triggers are run when fields are freshly created, changed
+or removed and are not rerun when calling `Document.updateAll()`.
 
 Querying
 --------

@@ -44,12 +44,13 @@ fieldsToProjection = (fields) ->
 
 # TODO: Should we add retry?
 observerCallback = (f) ->
-  return (id, args...) ->
+  return (obj, args...) ->
     try
+      id = if _.isObject obj then obj._id else obj
       # We call f only if the first character of id is in PREFIX.
       # By that we allow each instance to operate only on a subset
       # of documents, allowing simple coordination while scaling.
-      f id, args... if id[0] in PREFIX
+      f obj, args... if id[0] in PREFIX
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
       Log.error e.stack
@@ -60,7 +61,9 @@ extractValue = (obj, path) ->
     path = path[1..]
   obj
 
-# Cannot use => here because we are not in the globals.Document._TargetedFieldsObservingField context
+# Cannot use => here because we are not in the globals.Document._TargetedFieldsObservingField context.
+# We have to modify prototype directly because there are classes which already inherit from the class
+# and we cannot just override the class as we are doing for other server-side only methods.
 globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateAll) ->
   initializing = true
 
@@ -81,6 +84,31 @@ globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateA
   initializing = false
 
   handle.stop() if updateAll
+
+# Cannot use => here because we are not in the globals.Document._Trigger context.
+# We are mofiying prototype directly to match code style of
+# _TargetedFieldsObservingField::_setupTargetObservers but in this case it is not
+# really needed, because there are no already existing classes which would inherit
+# from globals.Document._Trigger.
+globals.Document._Trigger::_setupObservers = ->
+  initializing = true
+
+  queryFields = fieldsToProjection @fields
+  @collection.find({}, fields: queryFields).observe
+    added: observerCallback (document) =>
+      @trigger document, {} unless initializing
+
+    changed: observerCallback (newDocument, oldDocument) =>
+      @trigger newDocument, oldDocument
+
+    removed: observerCallback (oldDocument) =>
+      @trigger {}, oldDocument
+
+  initializing = false
+
+class globals.Document._Trigger extends globals.Document._Trigger
+  trigger: (newDocument, oldDocument) =>
+    @generator newDocument, oldDocument
 
 class globals.Document._ReferenceField extends globals.Document._ReferenceField
   updateSource: (id, fields) =>
@@ -696,6 +724,10 @@ class globals.Document extends globals.Document
 
 # TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupObservers = (updateAll) ->
+  setupTriggerObserves = (triggers) ->
+    for name, trigger of triggers
+      trigger._setupObservers()
+
   setupTargetObservers = (fields) ->
     for name, field of fields
       # There are no arrays anymore here, just objects (for subdocuments) or fields
@@ -705,6 +737,7 @@ setupObservers = (updateAll) ->
         setupTargetObservers field
 
   for document in globals.Document.list
+    setupTriggerObserves document.Meta.triggers
     setupTargetObservers document.Meta.fields
     document._setupSourceObservers updateAll
 
