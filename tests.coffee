@@ -280,7 +280,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal Post.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Post.Meta.fields), 7
-  test.instanceOf Post.Meta.fields.author, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.author, Post._ReferenceField
   test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
   test.isTrue Post.Meta.fields.author.required
   test.equal Post.Meta.fields.author.sourcePath, 'author'
@@ -293,7 +293,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal Post.Meta.fields.author.reverseName, 'posts'
   test.equal Post.Meta.fields.author.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf Post.Meta.fields.subscribers, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.subscribers, Post._ReferenceField
   test.equal Post.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue Post.Meta.fields.subscribers.required
   test.equal Post.Meta.fields.subscribers.sourcePath, 'subscribers'
@@ -306,7 +306,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subscribers.fields, []
   test.isNull Post.Meta.fields.subscribers.reverseName
   test.equal Post.Meta.fields.subscribers.reverseFields, []
-  test.instanceOf Post.Meta.fields.reviewers, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.reviewers, Post._ReferenceField
   test.equal Post.Meta.fields.reviewers.ancestorArray, 'reviewers'
   test.isTrue Post.Meta.fields.reviewers.required
   test.equal Post.Meta.fields.reviewers.sourcePath, 'reviewers'
@@ -320,7 +320,7 @@ testDefinition = (test) ->
   test.isNull Post.Meta.fields.reviewers.reverseName
   test.equal Post.Meta.fields.reviewers.reverseFields, []
   test.equal _.size(Post.Meta.fields.subdocument), 3
-  test.instanceOf Post.Meta.fields.subdocument.person, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.subdocument.person, Post._ReferenceField
   test.isNull Post.Meta.fields.subdocument.person.ancestorArray, Post.Meta.fields.subdocument.person.ancestorArray
   test.isFalse Post.Meta.fields.subdocument.person.required
   test.equal Post.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
@@ -333,7 +333,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal Post.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
   test.equal Post.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf Post.Meta.fields.subdocument.persons, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.subdocument.persons, Post._ReferenceField
   test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue Post.Meta.fields.subdocument.persons.required
   test.equal Post.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
@@ -346,7 +346,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal Post.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
   test.equal Post.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf Post.Meta.fields.subdocument.slug, Person._GeneratedField
+  test.instanceOf Post.Meta.fields.subdocument.slug, Post._GeneratedField
   test.isNull Post.Meta.fields.subdocument.slug.ancestorArray, Post.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.subdocument.slug.generator
   test.equal Post.Meta.fields.subdocument.slug.sourcePath, 'subdocument.slug'
@@ -360,7 +360,7 @@ testDefinition = (test) ->
   test.isUndefined Post.Meta.fields.subdocument.slug.reverseName
   test.isUndefined Post.Meta.fields.subdocument.slug.reverseFields
   test.equal _.size(Post.Meta.fields.nested), 3
-  test.instanceOf Post.Meta.fields.nested.required, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.nested.required, Post._ReferenceField
   test.equal Post.Meta.fields.nested.required.ancestorArray, 'nested'
   test.isTrue Post.Meta.fields.nested.required.required
   test.equal Post.Meta.fields.nested.required.sourcePath, 'nested.required'
@@ -373,7 +373,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal Post.Meta.fields.nested.required.reverseName, 'nestedPosts'
   test.equal Post.Meta.fields.nested.required.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf Post.Meta.fields.nested.optional, Person._ReferenceField
+  test.instanceOf Post.Meta.fields.nested.optional, Post._ReferenceField
   test.equal Post.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse Post.Meta.fields.nested.optional.required
   test.equal Post.Meta.fields.nested.optional.sourcePath, 'nested.optional'
@@ -386,7 +386,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.optional.fields, ['username']
   test.isNull Post.Meta.fields.nested.optional.reverseName
   test.equal Post.Meta.fields.nested.optional.reverseFields, []
-  test.instanceOf Post.Meta.fields.nested.slug, Person._GeneratedField
+  test.instanceOf Post.Meta.fields.nested.slug, Post._GeneratedField
   test.equal Post.Meta.fields.nested.slug.ancestorArray, 'nested'
   test.isTrue _.isFunction Post.Meta.fields.nested.slug.generator
   test.equal Post.Meta.fields.nested.slug.sourcePath, 'nested.slug'
@@ -399,7 +399,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.nested.slug.fields, ['body', 'nested.body']
   test.isUndefined Post.Meta.fields.nested.slug.reverseName
   test.isUndefined Post.Meta.fields.nested.slug.reverseFields
-  test.instanceOf Post.Meta.fields.slug, Person._GeneratedField
+  test.instanceOf Post.Meta.fields.slug, Post._GeneratedField
   test.isNull Post.Meta.fields.slug.ancestorArray, Post.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction Post.Meta.fields.slug.generator
   test.equal Post.Meta.fields.slug.sourcePath, 'slug'
@@ -412,7 +412,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
   test.isUndefined Post.Meta.fields.slug.reverseName
   test.isUndefined Post.Meta.fields.slug.reverseFields
-  test.instanceOf Post.Meta.fields.tags, Person._GeneratedField
+  test.instanceOf Post.Meta.fields.tags, Post._GeneratedField
   test.equal Post.Meta.fields.tags.ancestorArray, 'tags'
   test.isTrue _.isFunction Post.Meta.fields.tags.generator
   test.equal Post.Meta.fields.tags.sourcePath, 'tags'
@@ -700,7 +700,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal SpecialPost.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(SpecialPost.Meta.fields), 8
-  test.instanceOf SpecialPost.Meta.fields.author, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.author, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.author.ancestorArray, SpecialPost.Meta.fields.author.ancestorArray
   test.isTrue SpecialPost.Meta.fields.author.required
   test.equal SpecialPost.Meta.fields.author.sourcePath, 'author'
@@ -713,7 +713,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal SpecialPost.Meta.fields.author.reverseName, 'posts'
   test.equal SpecialPost.Meta.fields.author.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf SpecialPost.Meta.fields.subscribers, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.subscribers, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.subscribers.ancestorArray, 'subscribers'
   test.isTrue SpecialPost.Meta.fields.subscribers.required
   test.equal SpecialPost.Meta.fields.subscribers.sourcePath, 'subscribers'
@@ -726,7 +726,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subscribers.fields, []
   test.isNull SpecialPost.Meta.fields.subscribers.reverseName
   test.equal SpecialPost.Meta.fields.subscribers.reverseFields, []
-  test.instanceOf SpecialPost.Meta.fields.reviewers, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.reviewers, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.reviewers.ancestorArray, 'reviewers'
   test.isTrue SpecialPost.Meta.fields.reviewers.required
   test.equal SpecialPost.Meta.fields.reviewers.sourcePath, 'reviewers'
@@ -740,7 +740,7 @@ testDefinition = (test) ->
   test.isNull SpecialPost.Meta.fields.reviewers.reverseName
   test.equal SpecialPost.Meta.fields.reviewers.reverseFields, []
   test.equal _.size(SpecialPost.Meta.fields.subdocument), 3
-  test.instanceOf SpecialPost.Meta.fields.subdocument.person, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.subdocument.person, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.subdocument.person.ancestorArray, SpecialPost.Meta.fields.subdocument.person.ancestorArray
   test.isFalse SpecialPost.Meta.fields.subdocument.person.required
   test.equal SpecialPost.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
@@ -753,7 +753,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal SpecialPost.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf SpecialPost.Meta.fields.subdocument.persons, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.subdocument.persons, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
   test.isTrue SpecialPost.Meta.fields.subdocument.persons.required
   test.equal SpecialPost.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
@@ -766,7 +766,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal SpecialPost.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
   test.equal SpecialPost.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf SpecialPost.Meta.fields.subdocument.slug, Person._GeneratedField
+  test.instanceOf SpecialPost.Meta.fields.subdocument.slug, SpecialPost._GeneratedField
   test.isNull SpecialPost.Meta.fields.subdocument.slug.ancestorArray, SpecialPost.Meta.fields.subdocument.slug.ancestorArray
   test.isTrue _.isFunction SpecialPost.Meta.fields.subdocument.slug.generator
   test.equal SpecialPost.Meta.fields.subdocument.slug.sourcePath, 'subdocument.slug'
@@ -780,7 +780,7 @@ testDefinition = (test) ->
   test.isUndefined SpecialPost.Meta.fields.subdocument.slug.reverseName
   test.isUndefined SpecialPost.Meta.fields.subdocument.slug.reverseFields
   test.equal _.size(SpecialPost.Meta.fields.nested), 3
-  test.instanceOf SpecialPost.Meta.fields.nested.required, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.nested.required, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.nested.required.ancestorArray, 'nested'
   test.isTrue SpecialPost.Meta.fields.nested.required.required
   test.equal SpecialPost.Meta.fields.nested.required.sourcePath, 'nested.required'
@@ -793,7 +793,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal SpecialPost.Meta.fields.nested.required.reverseName, 'nestedPosts'
   test.equal SpecialPost.Meta.fields.nested.required.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf SpecialPost.Meta.fields.nested.optional, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.nested.optional, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.nested.optional.ancestorArray, 'nested'
   test.isFalse SpecialPost.Meta.fields.nested.optional.required
   test.equal SpecialPost.Meta.fields.nested.optional.sourcePath, 'nested.optional'
@@ -806,7 +806,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.optional.fields, ['username']
   test.isNull SpecialPost.Meta.fields.nested.optional.reverseName
   test.equal SpecialPost.Meta.fields.nested.optional.reverseFields, []
-  test.instanceOf SpecialPost.Meta.fields.nested.slug, Person._GeneratedField
+  test.instanceOf SpecialPost.Meta.fields.nested.slug, SpecialPost._GeneratedField
   test.equal SpecialPost.Meta.fields.nested.slug.ancestorArray, 'nested'
   test.isTrue _.isFunction SpecialPost.Meta.fields.nested.slug.generator
   test.equal SpecialPost.Meta.fields.nested.slug.sourcePath, 'nested.slug'
@@ -819,7 +819,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.nested.slug.fields, ['body', 'nested.body']
   test.isUndefined SpecialPost.Meta.fields.nested.slug.reverseName
   test.isUndefined SpecialPost.Meta.fields.nested.slug.reverseFields
-  test.instanceOf SpecialPost.Meta.fields.slug, Person._GeneratedField
+  test.instanceOf SpecialPost.Meta.fields.slug, SpecialPost._GeneratedField
   test.isNull SpecialPost.Meta.fields.slug.ancestorArray, SpecialPost.Meta.fields.slug.ancestorArray
   test.isTrue _.isFunction SpecialPost.Meta.fields.slug.generator
   test.equal SpecialPost.Meta.fields.slug.sourcePath, 'slug'
@@ -832,7 +832,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.slug.fields, ['body', 'subdocument.body']
   test.isUndefined SpecialPost.Meta.fields.slug.reverseName
   test.isUndefined SpecialPost.Meta.fields.slug.reverseFields
-  test.instanceOf SpecialPost.Meta.fields.tags, Person._GeneratedField
+  test.instanceOf SpecialPost.Meta.fields.tags, SpecialPost._GeneratedField
   test.equal SpecialPost.Meta.fields.tags.ancestorArray, 'tags'
   test.isTrue _.isFunction SpecialPost.Meta.fields.tags.generator
   test.equal SpecialPost.Meta.fields.tags.sourcePath, 'tags'
@@ -845,7 +845,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
   test.isUndefined SpecialPost.Meta.fields.tags.reverseName
   test.isUndefined SpecialPost.Meta.fields.tags.reverseFields
-  test.instanceOf SpecialPost.Meta.fields.special, Person._ReferenceField
+  test.instanceOf SpecialPost.Meta.fields.special, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.special.ancestorArray, SpecialPost.Meta.fields.special.ancestorArray
   test.isTrue SpecialPost.Meta.fields.special.required
   test.equal SpecialPost.Meta.fields.special.sourcePath, 'special'
