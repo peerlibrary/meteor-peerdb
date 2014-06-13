@@ -10,6 +10,9 @@ assert.equal Document._delayed.length, 0
 assert _.isEqual Document.list, []
 assert _.isEqual Document._collections, {}
 
+if Meteor.isServer
+  globalTestTriggerCounters = {}
+
 class Post extends Document
   # Other fields:
   #   body
@@ -65,6 +68,10 @@ class Post extends Document
               tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
           [fields._id, tags]
       ]
+    triggers: =>
+      testTrigger: @Trigger ['body'], (newDocument, oldDocument) ->
+        return unless newDocument._id
+        globalTestTriggerCounters[newDocument._id] = (globalTestTriggerCounters[newDocument._id] or 0) + 1
 
 # Store away for testing
 _TestPost = Post
@@ -279,6 +286,12 @@ testDefinition = (test) ->
   test.equal Post.Meta.collection._name, 'Posts'
   test.equal Post.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal Post.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(Post.Meta.triggers), 1
+  test.instanceOf Post.Meta.triggers.testTrigger, Post._Trigger
+  test.equal Post.Meta.triggers.testTrigger.name, 'testTrigger'
+  test.equal Post.Meta.triggers.testTrigger.document, Post
+  test.equal Post.Meta.triggers.testTrigger.collection._name, 'Posts'
+  test.equal Post.Meta.triggers.testTrigger.fields, ['body']
   test.equal _.size(Post.Meta.fields), 7
   test.instanceOf Post.Meta.fields.author, Post._ReferenceField
   test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
@@ -432,6 +445,7 @@ testDefinition = (test) ->
   test.equal User.Meta.collection._name, 'users'
   test.equal User.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal User.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(User.Meta.triggers), 0
   test.equal _.size(User.Meta.fields), 0
 
   test.equal UserLink.Meta._name, 'UserLink'
@@ -440,6 +454,7 @@ testDefinition = (test) ->
   test.equal UserLink.Meta.collection._name, 'UserLinks'
   test.equal UserLink.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal UserLink.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(UserLink.Meta.triggers), 0
   test.equal _.size(UserLink.Meta.fields), 1
   test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
   test.isNull UserLink.Meta.fields.user.ancestorArray, UserLink.Meta.fields.user.ancestorArray
@@ -460,6 +475,7 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.collection._name, 'PostLinks'
   test.equal PostLink.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal PostLink.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(PostLink.Meta.triggers), 0
   test.equal _.size(PostLink.Meta.fields), 1
   test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
   test.isNull PostLink.Meta.fields.post.ancestorArray, PostLink.Meta.fields.post.ancestorArray
@@ -480,6 +496,7 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.collection._name, 'CircularFirsts'
   test.equal CircularFirst.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal CircularFirst.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(CircularFirst.Meta.triggers), 0
   test.equal _.size(CircularFirst.Meta.fields), 2
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
   test.isNull CircularFirst.Meta.fields.second.ancestorArray, CircularFirst.Meta.fields.second.ancestorArray
@@ -514,6 +531,7 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.collection._name, 'CircularSeconds'
   test.equal CircularSecond.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal CircularSecond.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(CircularSecond.Meta.triggers), 0
   test.equal _.size(CircularSecond.Meta.fields), 2
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
   test.isNull CircularSecond.Meta.fields.first.ancestorArray, CircularSecond.Meta.fields.first.ancestorArray
@@ -549,6 +567,7 @@ testDefinition = (test) ->
   test.equal Person.Meta.collection._name, 'Persons'
   test.equal Person.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal Person.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(Person.Meta.triggers), 0
   test.equal _.size(Person.Meta.fields), 5
   test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
   test.equal Person.Meta.fields.posts.ancestorArray, 'posts'
@@ -623,6 +642,7 @@ testDefinition = (test) ->
   test.equal SpecialPerson.Meta.collection._name, 'SpecialPersons'
   test.equal SpecialPerson.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal SpecialPerson.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(SpecialPerson.Meta.triggers), 0
   test.equal _.size(SpecialPerson.Meta.fields), 0
 
   test.equal Recursive.Meta._name, 'Recursive'
@@ -631,6 +651,7 @@ testDefinition = (test) ->
   test.equal Recursive.Meta.collection._name, 'Recursives'
   test.equal Recursive.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal Recursive.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(Recursive.Meta.triggers), 0
   test.equal _.size(Recursive.Meta.fields), 2
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
   test.isNull Recursive.Meta.fields.other.ancestorArray, Recursive.Meta.fields.other.ancestorArray
@@ -665,6 +686,7 @@ testDefinition = (test) ->
   test.equal IdentityGenerator.Meta.collection._name, 'IdentityGenerators'
   test.equal IdentityGenerator.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal IdentityGenerator.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(IdentityGenerator.Meta.triggers), 0
   test.equal _.size(IdentityGenerator.Meta.fields), 2
   test.instanceOf IdentityGenerator.Meta.fields.result, IdentityGenerator._GeneratedField
   test.isNull IdentityGenerator.Meta.fields.result.ancestorArray, IdentityGenerator.Meta.fields.result.ancestorArray
@@ -699,6 +721,12 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.schema, '1.0.0' if Meteor.isServer
   test.equal SpecialPost.Meta.migrations, [] if Meteor.isServer
+  test.equal _.size(SpecialPost.Meta.triggers), 1
+  test.instanceOf SpecialPost.Meta.triggers.testTrigger, SpecialPost._Trigger
+  test.equal SpecialPost.Meta.triggers.testTrigger.name, 'testTrigger'
+  test.equal SpecialPost.Meta.triggers.testTrigger.document, SpecialPost
+  test.equal SpecialPost.Meta.triggers.testTrigger.collection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.triggers.testTrigger.fields, ['body']
   test.equal _.size(SpecialPost.Meta.fields), 8
   test.instanceOf SpecialPost.Meta.fields.author, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.author.ancestorArray, SpecialPost.Meta.fields.author.ancestorArray
@@ -20110,3 +20138,243 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 ]
+
+if Meteor.isServer
+  testAsyncMulti 'meteor-peerdb - triggers', [
+    (test, expect) ->
+      testDefinition test
+
+      Person.documents.insert
+        username: 'person1'
+        displayName: 'Person 1'
+      ,
+        expect (error, person1Id) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue person1Id
+          @person1Id = person1Id
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @person1 = Person.documents.findOne @person1Id
+
+      test.instanceOf @person1, Person
+
+      test.equal plainObject(@person1),
+        _id: @person1Id
+        _schema: '1.0.0'
+        username: 'person1'
+        displayName: 'Person 1'
+        count: 0
+
+      test.equal @person1.formatName(), 'person1-Person 1'
+
+      Post.documents.insert
+        author:
+          _id: @person1._id
+        subdocument: {}
+        body: 'FooBar'
+      ,
+        expect (error, postId) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue postId
+          @postId = postId
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @post = Post.documents.findOne @postId
+
+      test.instanceOf @post, Post
+      test.instanceOf @post.author, Person
+
+      test.equal @post.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
+
+      test.equal plainObject(@post),
+        _id: @postId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+          displayName: @person1.displayName
+        subdocument: {}
+        body: 'FooBar'
+        tags: []
+
+      SpecialPost.documents.insert
+        author:
+          _id: @person1._id
+        subdocument: {}
+        body: 'FooBar'
+        special:
+          _id: @person1._id
+      ,
+        expect (error, postId) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue postId
+          @specialPostId = postId
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @specialPost = SpecialPost.documents.findOne @specialPostId
+
+      test.instanceOf @specialPost, SpecialPost
+      test.instanceOf @specialPost.author, Person
+      test.instanceOf @specialPost.special, Person
+
+      test.equal @specialPost.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
+
+      test.equal plainObject(@specialPost),
+        _id: @specialPostId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+          displayName: @person1.displayName
+        subdocument: {}
+        body: 'FooBar'
+        tags: []
+        special:
+          _id: @person1._id
+
+      test.equal globalTestTriggerCounters[@postId], 1
+      test.equal globalTestTriggerCounters[@specialPostId], 1
+
+      Post.documents.update @postId,
+        $set:
+          body: 'FooBar 1'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      SpecialPost.documents.update @specialPostId,
+        $set:
+          body: 'FooBar 1'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @post = Post.documents.findOne @postId
+
+      test.instanceOf @post, Post
+      test.instanceOf @post.author, Person
+
+      test.equal @post.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
+
+      test.equal plainObject(@post),
+        _id: @postId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+          displayName: @person1.displayName
+        subdocument: {}
+        body: 'FooBar 1'
+        tags: []
+
+      @specialPost = SpecialPost.documents.findOne @specialPostId
+
+      test.instanceOf @specialPost, SpecialPost
+      test.instanceOf @specialPost.author, Person
+      test.instanceOf @specialPost.special, Person
+
+      test.equal @specialPost.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
+
+      test.equal plainObject(@specialPost),
+        _id: @specialPostId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+          displayName: @person1.displayName
+        subdocument: {}
+        body: 'FooBar 1'
+        tags: []
+        special:
+          _id: @person1._id
+
+      test.equal globalTestTriggerCounters[@postId], 2
+      test.equal globalTestTriggerCounters[@specialPostId], 2
+
+      Post.documents.update @postId,
+        $set:
+          'subdocument.body': 'FooBar zzz'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      SpecialPost.documents.update @specialPostId,
+        $set:
+          'subdocument.body': 'FooBar zzz'
+      ,
+        expect (error, res) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue res
+
+      # Sleep so that observers have time to update documents
+      Meteor.setTimeout expect(), WAIT_TIME
+  ,
+    (test, expect) ->
+      @post = Post.documents.findOne @postId
+
+      test.instanceOf @post, Post
+      test.instanceOf @post.author, Person
+
+      test.equal @post.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
+
+      test.equal plainObject(@post),
+        _id: @postId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+          displayName: @person1.displayName
+        subdocument:
+          body: 'FooBar zzz'
+          slug: 'subdocument-prefix-foobar 1-foobar zzz-suffix'
+        body: 'FooBar 1'
+        slug: 'prefix-foobar 1-foobar zzz-suffix'
+        tags: [
+          'tag-0-prefix-foobar 1-foobar zzz-suffix'
+        ]
+
+      @specialPost = SpecialPost.documents.findOne @specialPostId
+
+      test.instanceOf @specialPost, SpecialPost
+      test.instanceOf @specialPost.author, Person
+      test.instanceOf @specialPost.special, Person
+
+      test.equal @specialPost.author.formatName(), "#{ @person1.username }-#{ @person1.displayName }"
+
+      test.equal plainObject(@specialPost),
+        _id: @specialPostId
+        _schema: '1.0.0'
+        author:
+          _id: @person1._id
+          username: @person1.username
+          displayName: @person1.displayName
+        subdocument:
+          body: 'FooBar zzz'
+          slug: 'subdocument-prefix-foobar 1-foobar zzz-suffix'
+        body: 'FooBar 1'
+        slug: 'prefix-foobar 1-foobar zzz-suffix'
+        tags: [
+          'tag-0-prefix-foobar 1-foobar zzz-suffix'
+        ]
+        special:
+          _id: @person1._id
+
+      test.equal globalTestTriggerCounters[@postId], 2
+      test.equal globalTestTriggerCounters[@specialPostId], 2
+  ]

@@ -737,7 +737,9 @@ setupObservers = (updateAll) ->
         setupTargetObservers field
 
   for document in globals.Document.list
-    setupTriggerObserves document.Meta.triggers
+    # We setup triggers only when we are not updating all
+    setupTriggerObserves document.Meta.triggers unless updateAll
+    # For fields we pass updateAll on
     setupTargetObservers document.Meta.fields
     document._setupSourceObservers updateAll
 
