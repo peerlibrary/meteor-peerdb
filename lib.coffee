@@ -383,7 +383,11 @@ class globals.Document
         if triggers and isPlainObject triggers
           document.Meta.triggers = document._processTriggers triggers
       catch e
-        throw new Error "Invalid triggers (from #{ document.Meta._location }): #{ e.stringOf?() or e }\n---#{ if e.stack then "#{ e.stack }\n---" else '' }"
+        if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
+          @_addDelayed document
+          continue
+        else
+          throw new Error "Invalid triggers (from #{ document.Meta._location }): #{ e.stringOf?() or e }\n---#{ if e.stack then "#{ e.stack }\n---" else '' }"
 
       throw new Error "No triggers returned (from #{ document.Meta._location })" unless triggers
       throw new Error "Returned triggers should be a plain object (from #{ document.Meta._location })" unless isPlainObject triggers
