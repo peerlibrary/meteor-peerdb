@@ -9,7 +9,8 @@
     "util": {},
     "assert": {},
     "moment": {},
-    "stacktrace": {}
+    "stacktrace": {},
+    "blocking": {}
   },
   "meteor": {
     "branch": "peerlibrary",
