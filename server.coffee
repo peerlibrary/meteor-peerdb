@@ -802,6 +802,7 @@ class globals.Document extends globals.Document
       migration._updateAll = false
 
       counts = migration.forward @, new DirectCollection(currentName), currentSchema, newSchema
+      throw new Error "Invalid return value from migration: #{ util.inspect counts }" unless 'migrated' of counts and 'all' of counts
 
       updateAll = true if counts.migrated and migration._updateAll
 
