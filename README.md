@@ -16,6 +16,13 @@ Planned features are:
 
 Adding this package to your [Meteor](http://www.meteor.com/) application adds `Document` object into the global scope.
 
+Installation
+------------
+
+```
+mrt add peerdb
+```
+
 References
 ----------
 
