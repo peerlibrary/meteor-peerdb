@@ -25,19 +25,11 @@ MigrationTest.addMigration new Migration3()
 class Migration4 extends Document.MajorMigration
   name: "Migration 4"
 
-  forward: (db, collectionName, currentSchema, newSchema, callback) =>
-    db.collection collectionName, (error, collection) =>
-      return callback error if error
-      collection.update {_schema: currentSchema}, {$rename: test: 'renamed'}, {multi: true}, (error, count) =>
-        return callback error if error
-        super db, collectionName, currentSchema, newSchema, callback
+  forward: (document, collection, currentSchema, newSchema) =>
+    collection.update {_schema: currentSchema}, {$rename: {test: 'renamed'}, $set: {_schema: newSchema}}, {multi: true}
 
-  backward: (db, collectionName, currentSchema, oldSchema, callback) =>
-    db.collection collectionName, (error, collection) =>
-      return callback error if error
-      collection.update {_schema: currentSchema}, {$rename: renamed: 'test'}, {multi: true}, (error, count) =>
-        return callback error if error
-        super db, collectionName, currentSchema, oldSchema, callback
+  backward: (document, collection, currentSchema, oldSchema) =>
+    collection.update {_schema: currentSchema}, {$rename: {renamed: 'test'}, $set: {_schema: oldSchema}}, {multi: true}
 
 MigrationTest.addMigration new Migration4()
 
@@ -185,16 +177,16 @@ testDefinition = (test, count) ->
 unless Document.migrationsDisabled
   testAsyncMulti 'meteor-peerdb - migrations', [
     (test, expect) ->
-      @db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
-      test.isTrue @db
+      db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
+      test.isTrue db
 
       # Reset migrated count
       Document.Migrations.update({}, {$set: migrated: 0}, {multi: true})
 
       # We ignore any error
-      @db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-      @db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-      @db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
 
       testDefinition test, 0
 
@@ -204,26 +196,17 @@ unless Document.migrationsDisabled
       testDefinition test, 0
 
       # We ignore any error
-      @db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-      @db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
-      @db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      db.dropCollection 'OldMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
+      db.dropCollection 'MigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
   ,
     (test, expect) ->
       Document.Migrations.remove serial: $ne: 1
 
-      @db.collection 'OlderMigrationTests', Meteor.bindEnvironment expect((error, collection) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue collection
-        @collection = collection
-      ), (e) -> throw e
-  ,
-    (test, expect) ->
-      @id = Random.id()
-      @collection.insert {_id: @id, _schema: '1.0.0', test: 'test field'}, Meteor.bindEnvironment expect((error) =>
-        test.isFalse error, error?.toString?() or error
-      ), (e) -> throw e
-  ,
-    (test, expect) ->
+      collection = new DirectCollection 'OlderMigrationTests'
+      id = Random.id()
+      collection.insert {_id: id, _schema: '1.0.0', test: 'test field'}
+
       MigrationTest.migrate()
 
       docs = MigrationTest.documents.find({},
@@ -231,7 +214,7 @@ unless Document.migrationsDisabled
       ).fetch()
       test.equal docs,
         [
-          _id: @id
+          _id: id
           _schema: '5.2.1'
           renamed: 'test field'
         ]
@@ -248,7 +231,7 @@ unless Document.migrationsDisabled
       ).fetch()
       test.equal docs,
         [
-          _id: @id
+          _id: id
           _schema: '5.2.1'
           renamed: 'test field'
         ]

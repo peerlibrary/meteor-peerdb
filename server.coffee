@@ -454,15 +454,11 @@ class globals.Document extends globals.Document
     updateAll: =>
       @_updateAll = true
 
-    forward: (db, collectionName, currentSchema, newSchema, callback) =>
-      db.collection collectionName, (error, collection) =>
-        return callback error if error
-        collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}, callback
+    forward: (document, collection, currentSchema, newSchema) =>
+      collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}
 
-    backward: (db, collectionName, currentSchema, oldSchema, callback) =>
-      db.collection collectionName, (error, collection) =>
-        return callback error if error
-        collection.update {_schema: currentSchema}, {$set: _schema: oldSchema}, {multi: true}, callback
+    backward: (document, collection, currentSchema, oldSchema) =>
+      collection.update {_schema: currentSchema}, {$set: _schema: oldSchema}, {multi: true}
 
   @PatchMigration: class extends @_Migration
 
@@ -474,27 +470,39 @@ class globals.Document extends globals.Document
     constructor: (@oldName, @newName) ->
       @name = "Renaming collection from '#{ @oldName }' to '#{ @newName }'"
 
-    forward: (db, collectionName, currentSchema, newSchema, callback) =>
-      assert.equal collectionName, @oldName
+    _rename: (mongoCollection, to, callback) =>
+      mongoCollection.rename to, (error, collection) =>
+        if error
+          return callback error unless /source namespace does not exist/.test "#{ error }"
+        callback null
 
-      db.collection collectionName, (error, collection) =>
-        return callback error if error
-        collection.rename @newName, (error, collection) =>
-          if error
-            return callback error unless /source namespace does not exist/.test "#{ error }"
-            return callback null, 0 unless collection
-          super db, @newName, currentSchema, newSchema, callback
+    forward: (document, collection, currentSchema, newSchema) =>
+      assert.equal collection.name, @oldName
 
-    backward: (db, collectionName, currentSchema, oldSchema, callback) =>
-      assert.equal collectionName, @newName
+      mongoCollection = MongoInternals.defaultRemoteCollectionDriver().mongo._getCollection @oldName
 
-      db.collection collectionName, (error, collection) =>
-        return callback error if error
-        collection.rename @oldName, (error, collection) =>
-          if error
-            return callback error unless /source namespace does not exist/.test "#{ error }"
-            return callback null, 0 unless collection
-          super db, @newName, currentSchema, oldSchema, callback
+      future = new Future()
+      @_rename mongoCollection, @newName, future.resolver()
+      future.wait()
+
+      collection.name = @newName
+
+      # We renamed the collection, so let's update all documents to new schema version
+      super
+
+    backward: (document, collection, currentSchema, newSchema) =>
+      assert.equal collection.name, @newName
+
+      mongoCollection = MongoInternals.defaultRemoteCollectionDriver().mongo._getCollection @newName
+
+      future = new Future()
+      @_rename mongoCollection, @oldName, future.resolver()
+      future.wait()
+
+      collection.name = @oldName
+
+      # We renamed the collection, so let's update all documents to old schema version
+      super
 
   @addMigration: (migration) ->
     throw new Error "Migration is missing a name" unless migration.name
@@ -577,10 +585,6 @@ class globals.Document extends globals.Document
 
     throw new Error "Documents with unknown schema version: #{ unknownSchema }" if unknownSchema.length
 
-    # We know MongoDB connection is established because setupMigrations are run from Meteor.startup
-    db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
-    assert db
-
     updateAll = false
 
     currentSchema = '1.0.0'
@@ -614,9 +618,7 @@ class globals.Document extends globals.Document
 
       migration._updateAll = false
 
-      future = new Future()
-      migration.forward db, currentName, currentSchema, newSchema, future.resolver()
-      migrated = future.wait()
+      migrated = migration.forward @, new DirectCollection(currentName), currentSchema, newSchema
 
       updateAll = true if migrated and migration._updateAll
 
