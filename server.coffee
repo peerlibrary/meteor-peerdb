@@ -29,6 +29,7 @@ if INSTANCES > 1
 #   newVersion
 #   timestamp
 #   migrated
+#   all
 # We use a lower case collection name to signal it is a system collection
 globals.Document.Migrations = new Meteor.Collection 'migrations'
 
@@ -451,14 +452,21 @@ class globals.Document extends globals.Document
     handle.stop() if updateAll
 
   @_Migration: class
-    updateAll: =>
+    updateAll: (document, collection, currentSchema, intoSchema) =>
       @_updateAll = true
 
+      count = collection.update {_schema: currentSchema}, {$set: _schema: intoSchema}, {multi: true}
+
+      migrated: count
+      all: count
+
     forward: (document, collection, currentSchema, newSchema) =>
-      collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}
+      migrated: 0
+      all: collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}
 
     backward: (document, collection, currentSchema, oldSchema) =>
-      collection.update {_schema: currentSchema}, {$set: _schema: oldSchema}, {multi: true}
+      migrated: 0
+      all: collection.update {_schema: currentSchema}, {$set: _schema: oldSchema}, {multi: true}
 
   @PatchMigration: class extends @_Migration
 
@@ -466,7 +474,176 @@ class globals.Document extends globals.Document
 
   @MajorMigration: class extends @_Migration
 
-  @_RenameMigration: class extends @MajorMigration
+  @UpdateAllMinorMigration: class extends @MinorMigration
+    forward: (document, collection, currentSchema, newSchema) =>
+      @updateAll document, collection, currentSchema, newSchema
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      @updateAll document, collection, currentSchema, oldSchema
+
+  @UpdateAllMajorMigration: class extends @MajorMigration
+    forward: (document, collection, currentSchema, newSchema) =>
+      @updateAll document, collection, currentSchema, newSchema
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      @updateAll document, collection, currentSchema, oldSchema
+
+  @AddOptionalFieldsMigration: class extends @MinorMigration
+    # Fields is an array
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      assert @fields
+      super
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      update =
+        $unset: {}
+        $set:
+          _schema: oldSchema
+
+      for field in @fields
+        update.$unset[field] = ''
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+  @AddRequiredFieldsMigration: class extends @MinorMigration
+    # Fields is an object
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      selector =
+        _schema: currentSchema
+      for field, value of @fields
+        selector[field] =
+          $exists: false
+
+      update =
+        $set:
+          _schema: newSchema
+      for field, value of @fields
+        if _.isFunction value
+          update.$set[field] = value()
+        else
+          update.$set[field] = value
+
+      count = collection.update selector, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      update =
+        $unset: {}
+        $set:
+          _schema: oldSchema
+
+      for field, value of @fields
+        update.$unset[field] = ''
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+  @RemoveFieldsMigration: class extends @MajorMigration
+    # Fields is an object
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      update =
+        $unset: {}
+        $set:
+          _schema: newSchema
+
+      for field, value of @fields
+        update.$unset[field] = ''
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      selector =
+        _schema: currentSchema
+      for field, value of @fields
+        selector[field] =
+          $exists: false
+
+      update =
+        $set:
+          _schema: oldSchema
+      for field, value of @fields
+        if _.isFunction value
+          update.$set[field] = value()
+        else
+          update.$set[field] = value
+
+      count = collection.update selector, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+  @RenameFieldsMigration: class extends @MajorMigration
+    # Fields is object
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      update =
+        $set:
+          _schema: newSchema
+        $rename: {}
+
+      for from, to of @fields
+        update.$rename[from] = to
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      update =
+        $set:
+          _schema: oldSchema
+        $rename: {}
+
+      for from, to of @fields
+        # Reversed
+        update.$rename[to] = from
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+  @_RenameCollectionMigration: class extends @MajorMigration
     constructor: (@oldName, @newName) ->
       @name = "Renaming collection from '#{ @oldName }' to '#{ @newName }'"
 
@@ -488,7 +665,10 @@ class globals.Document extends globals.Document
       collection.name = @newName
 
       # We renamed the collection, so let's update all documents to new schema version
-      super
+      counts = super
+      # We migrated everything
+      counts.migrated = counts.all
+      counts
 
     backward: (document, collection, currentSchema, newSchema) =>
       assert.equal collection.name, @newName
@@ -502,7 +682,10 @@ class globals.Document extends globals.Document
       collection.name = @oldName
 
       # We renamed the collection, so let's update all documents to old schema version
-      super
+      counts = super
+      # We migrated everything
+      counts.migrated = counts.all
+      counts
 
   @addMigration: (migration) ->
     throw new Error "Migration is missing a name" unless migration.name
@@ -512,7 +695,7 @@ class globals.Document extends globals.Document
     @Meta.migrations.push migration
 
   @renameCollectionMigration: (oldName, newName) ->
-    @addMigration new @_RenameMigration oldName, newName
+    @addMigration new @_RenameCollectionMigration oldName, newName
 
   @migrateForward: (untilName) ->
     # TODO: Implement
@@ -528,7 +711,7 @@ class globals.Document extends globals.Document
     currentSerial = 0
 
     initialName = @Meta.collection._name
-    for migration in @Meta.migrations by -1 when migration instanceof @_RenameMigration
+    for migration in @Meta.migrations by -1 when migration instanceof @_RenameCollectionMigration
       throw new Error "Incosistent document renaming, renaming from '#{ migration.oldName }' to '#{ migration.newName }', but current name is '#{ initialName }' (new name and current name should match)" if migration.newName isnt initialName
       initialName = migration.oldName
 
@@ -542,7 +725,7 @@ class globals.Document extends globals.Document
       else if migration instanceof @MajorMigration
         newSchema = semver.inc currentSchema, 'major'
 
-      if migration instanceof @_RenameMigration
+      if migration instanceof @_RenameCollectionMigration
         newName = migration.newName
       else
         newName = currentName
@@ -598,13 +781,13 @@ class globals.Document extends globals.Document
       else if migration instanceof @MajorMigration
         newSchema = semver.inc currentSchema, 'major'
 
-      if i < migrationsPending and migration instanceof @_RenameMigration
+      if i < migrationsPending and migration instanceof @_RenameCollectionMigration
         # We skip all already done rename migrations (but we run other old migrations again, just with the last known collection name)
         currentSchema = newSchema
         currentName = migration.newName
         continue
 
-      if migration instanceof @_RenameMigration
+      if migration instanceof @_RenameCollectionMigration
         newName = migration.newName
       else
         newName = currentName
@@ -618,9 +801,9 @@ class globals.Document extends globals.Document
 
       migration._updateAll = false
 
-      migrated = migration.forward @, new DirectCollection(currentName), currentSchema, newSchema
+      counts = migration.forward @, new DirectCollection(currentName), currentSchema, newSchema
 
-      updateAll = true if migrated and migration._updateAll
+      updateAll = true if counts.migrated and migration._updateAll
 
       if i < migrationsPending
         count = globals.Document.Migrations.update
@@ -631,7 +814,8 @@ class globals.Document extends globals.Document
           newVersion: newSchema
         ,
           $inc:
-            migrated: migrated
+            migrated: counts.migrated
+            all: counts.all
         ,
           multi: true # To catch any errors
 
@@ -655,14 +839,15 @@ class globals.Document extends globals.Document
           newCollectionName: newName
           oldVersion: currentSchema
           newVersion: newSchema
-          migrated: migrated
+          migrated: counts.migrated
+          all: counts.all
           timestamp: moment.utc().toDate()
 
-      if migration instanceof @_RenameMigration
+      if migration instanceof @_RenameCollectionMigration
         Log.warn "Renamed collection '#{ currentName }' to '#{ newName }'"
-        Log.warn "Migrated #{ migrated } document(s) (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if migrated
+        Log.warn "Migrated #{ counts.migrated }/#{ counts.all } document(s) (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if counts.all
       else
-        Log.warn "Migrated #{ migrated } document(s) in '#{ currentName }' collection (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if migrated
+        Log.warn "Migrated #{ counts.migrated }/#{ counts.all } document(s) in '#{ currentName }' collection (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if counts.all
 
       currentSchema = newSchema
       currentName = newName
@@ -769,6 +954,7 @@ migrations = ->
       newVersion: null
       timestamp: moment.utc().toDate()
       migrated: 0
+      all: 0
 
   setupMigrations()
 

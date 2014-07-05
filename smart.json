@@ -10,7 +10,8 @@
     "assert": {},
     "moment": {},
     "stacktrace": {},
-    "blocking": {}
+    "blocking": {},
+    "directcollection": {}
   },
   "meteor": {
     "branch": "peerlibrary",

@@ -26,10 +26,20 @@ class Migration4 extends Document.MajorMigration
   name: "Migration 4"
 
   forward: (document, collection, currentSchema, newSchema) =>
-    collection.update {_schema: currentSchema}, {$rename: {test: 'renamed'}, $set: {_schema: newSchema}}, {multi: true}
+    count = collection.update {_schema: currentSchema}, {$rename: {test: 'renamed'}, $set: {_schema: newSchema}}, {multi: true}
+
+    counts = super
+    counts.migrated += count
+    counts.all += count
+    counts
 
   backward: (document, collection, currentSchema, oldSchema) =>
-    collection.update {_schema: currentSchema}, {$rename: {renamed: 'test'}, $set: {_schema: oldSchema}}, {multi: true}
+    count = collection.update {_schema: currentSchema}, {$rename: {renamed: 'test'}, $set: {_schema: oldSchema}}, {multi: true}
+
+    counts = super
+    counts.migrated += count
+    counts.all += count
+    counts
 
 MigrationTest.addMigration new Migration4()
 
@@ -92,6 +102,7 @@ testDefinition = (test, count) ->
     oldVersion: null
     newVersion: null
     migrated: 0
+    all: 0
   ,
     serial: 2
     migrationName: 'Migration 1'
@@ -99,7 +110,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'OlderMigrationTests'
     oldVersion: '1.0.0'
     newVersion: '1.0.1'
-    migrated: count
+    migrated: 0
+    all: count
   ,
     serial: 3
     migrationName: 'Migration 2'
@@ -107,7 +119,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'OlderMigrationTests'
     oldVersion: '1.0.1'
     newVersion: '1.0.2'
-    migrated: count
+    migrated: 0
+    all: count
   ,
     serial: 4
     migrationName: 'Renaming collection from \'OlderMigrationTests\' to \'OldMigrationTests\''
@@ -116,6 +129,7 @@ testDefinition = (test, count) ->
     oldVersion: '1.0.2'
     newVersion: '2.0.0'
     migrated: count
+    all: count
   ,
     serial: 5
     migrationName: 'Migration 3'
@@ -123,7 +137,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'OldMigrationTests'
     oldVersion: '2.0.0'
     newVersion: '2.1.0'
-    migrated: count
+    migrated: 0
+    all: count
   ,
     serial: 6
     migrationName: 'Migration 4'
@@ -132,6 +147,7 @@ testDefinition = (test, count) ->
     oldVersion: '2.1.0'
     newVersion: '3.0.0'
     migrated: count
+    all: count
   ,
     serial: 7
     migrationName: 'Renaming collection from \'OldMigrationTests\' to \'MigrationTests\''
@@ -140,6 +156,7 @@ testDefinition = (test, count) ->
     oldVersion: '3.0.0'
     newVersion: '4.0.0'
     migrated: count
+    all: count
   ,
     serial: 8
     migrationName: 'Migration 5'
@@ -147,7 +164,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'MigrationTests'
     oldVersion: '4.0.0'
     newVersion: '5.0.0'
-    migrated: count
+    migrated: 0
+    all: count
   ,
     serial: 9
     migrationName: 'Migration 6'
@@ -155,7 +173,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'MigrationTests'
     oldVersion: '5.0.0'
     newVersion: '5.1.0'
-    migrated: count
+    migrated: 0
+    all: count
   ,
     serial: 10
     migrationName: 'Migration 7'
@@ -163,7 +182,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'MigrationTests'
     oldVersion: '5.1.0'
     newVersion: '5.2.0'
-    migrated: count
+    migrated: 0
+    all: count
   ,
     serial: 11
     migrationName: 'Migration 8'
@@ -171,7 +191,8 @@ testDefinition = (test, count) ->
     newCollectionName: 'MigrationTests'
     oldVersion: '5.2.0'
     newVersion: '5.2.1'
-    migrated: count
+    migrated: 0
+    all: count
   ]
 
 unless Document.migrationsDisabled
@@ -181,7 +202,7 @@ unless Document.migrationsDisabled
       test.isTrue db
 
       # Reset migrated count
-      Document.Migrations.update({}, {$set: migrated: 0}, {multi: true})
+      Document.Migrations.update({}, {$set: {migrated: 0, all: 0}}, {multi: true})
 
       # We ignore any error
       db.dropCollection 'OlderMigrationTests', Meteor.bindEnvironment expect(->), (e) -> throw e
