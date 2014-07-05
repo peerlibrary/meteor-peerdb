@@ -455,11 +455,6 @@ class globals.Document extends globals.Document
     updateAll: (document, collection, currentSchema, intoSchema) =>
       @_updateAll = true
 
-      count = collection.update {_schema: currentSchema}, {$set: _schema: intoSchema}, {multi: true}
-
-      migrated: count
-      all: count
-
     forward: (document, collection, currentSchema, newSchema) =>
       migrated: 0
       all: collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}
@@ -478,15 +473,31 @@ class globals.Document extends globals.Document
     forward: (document, collection, currentSchema, newSchema) =>
       @updateAll document, collection, currentSchema, newSchema
 
+      counts = super
+      counts.migrated = counts.all
+      counts
+
     backward: (document, collection, currentSchema, oldSchema) =>
       @updateAll document, collection, currentSchema, oldSchema
+
+      counts = super
+      counts.migrated = counts.all
+      counts
 
   @UpdateAllMajorMigration: class extends @MajorMigration
     forward: (document, collection, currentSchema, newSchema) =>
       @updateAll document, collection, currentSchema, newSchema
 
+      counts = super
+      counts.migrated = counts.all
+      counts
+
     backward: (document, collection, currentSchema, oldSchema) =>
       @updateAll document, collection, currentSchema, oldSchema
+
+      counts = super
+      counts.migrated = counts.all
+      counts
 
   @AddOptionalFieldsMigration: class extends @MinorMigration
     # Fields is an array
