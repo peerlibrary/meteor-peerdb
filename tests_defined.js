@@ -1,4 +1,4 @@
-Tinytest.add('meteor-peerdb - defined', function (test) {
+Tinytest.add('peerdb - defined', function (test) {
   var isDefined = false;
   try {
     Document;

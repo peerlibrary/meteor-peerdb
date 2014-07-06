@@ -196,7 +196,7 @@ testDefinition = (test, count) ->
   ]
 
 unless Document.migrationsDisabled
-  testAsyncMulti 'meteor-peerdb - migrations', [
+  testAsyncMulti 'peerdb - migrations', [
     (test, expect) ->
       db = MongoInternals.defaultRemoteCollectionDriver().mongo.db
       test.isTrue db

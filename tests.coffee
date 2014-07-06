@@ -899,7 +899,7 @@ plainObject = (obj) ->
 
   _.object keys, values
 
-testAsyncMulti 'meteor-peerdb - references', [
+testAsyncMulti 'peerdb - references', [
   (test, expect) ->
     testDefinition test
 
@@ -1396,7 +1396,7 @@ testAsyncMulti 'meteor-peerdb - references', [
     test.isFalse @post, @post
 ]
 
-Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
+Tinytest.add 'peerdb - invalid optional', (test) ->
   test.throws ->
     class BadPost1 extends Document
       @Meta
@@ -1411,7 +1411,7 @@ Tinytest.add 'meteor-peerdb - invalid optional', (test) ->
   # Should not try to define invalid document again
   Document.defineAll()
 
-Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
+Tinytest.add 'peerdb - invalid nested arrays', (test) ->
   test.throws ->
     class BadPost2 extends Document
       @Meta
@@ -1429,7 +1429,7 @@ Tinytest.add 'meteor-peerdb - invalid nested arrays', (test) ->
   Document.defineAll()
 
 unless CODE_MINIMIZED
-  Tinytest.add 'meteor-peerdb - invalid name', (test) ->
+  Tinytest.add 'peerdb - invalid name', (test) ->
     test.throws ->
       class BadPost3 extends Document
         @Meta
@@ -1442,7 +1442,7 @@ unless CODE_MINIMIZED
     # Should not try to define invalid document again
     Document.defineAll()
 
-Tinytest.add 'meteor-peerdb - abstract with parent', (test) ->
+Tinytest.add 'peerdb - abstract with parent', (test) ->
   test.throws ->
     class BadPost4 extends Post
       @Meta
@@ -1455,7 +1455,7 @@ Tinytest.add 'meteor-peerdb - abstract with parent', (test) ->
   # Should not try to define invalid document again
   Document.defineAll()
 
-testAsyncMulti 'meteor-peerdb - circular changes', [
+testAsyncMulti 'peerdb - circular changes', [
   (test, expect) ->
     Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
 
@@ -1804,7 +1804,7 @@ testAsyncMulti 'meteor-peerdb - circular changes', [
       reverseFirsts: []
 ]
 
-testAsyncMulti 'meteor-peerdb - recursive two', [
+testAsyncMulti 'peerdb - recursive two', [
   (test, expect) ->
     Recursive.documents.insert
       other: null
@@ -2023,7 +2023,7 @@ testAsyncMulti 'meteor-peerdb - recursive two', [
       reverse: []
 ]
 
-testAsyncMulti 'meteor-peerdb - recursive one', [
+testAsyncMulti 'peerdb - recursive one', [
   (test, expect) ->
     Recursive.documents.insert
       other: null
@@ -2117,7 +2117,7 @@ testAsyncMulti 'meteor-peerdb - recursive one', [
 ]
 
 if Meteor.isServer and Document.instances is 1
-  Tinytest.add 'meteor-peerdb - errors', (test) ->
+  Tinytest.add 'peerdb - errors', (test) ->
     Log._intercept 2 # Two to see if we catch more than expected
 
     postId = Post.documents.insert
@@ -2186,7 +2186,7 @@ if Meteor.isServer and Document.instances is 1
     # There should be no warning because user is optional
     test.equal intercepted.length, 0, intercepted
 
-testAsyncMulti 'meteor-peerdb - delayed defintion', [
+testAsyncMulti 'peerdb - delayed defintion', [
   (test, expect) ->
     class BadPost5 extends Document
       @Meta
@@ -2222,7 +2222,7 @@ testAsyncMulti 'meteor-peerdb - delayed defintion', [
     Document._clearDelayedCheck()
 ]
 
-testAsyncMulti 'meteor-peerdb - subdocument fields', [
+testAsyncMulti 'peerdb - subdocument fields', [
   (test, expect) ->
     Person.documents.insert
       username: 'person1'
@@ -2561,7 +2561,7 @@ testAsyncMulti 'meteor-peerdb - subdocument fields', [
     test.isFalse @postLink, @postLink
 ]
 
-testAsyncMulti 'meteor-peerdb - generated fields', [
+testAsyncMulti 'peerdb - generated fields', [
   (test, expect) ->
     Person.documents.insert
       username: 'person1'
@@ -3059,7 +3059,7 @@ testAsyncMulti 'meteor-peerdb - generated fields', [
       tags: []
 ]
 
-Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
+Tinytest.add 'peerdb - chain of extended classes', (test) ->
   list = _.clone Document.list
 
   firstReferenceA = undefined # To force delayed
@@ -3545,7 +3545,7 @@ Tinytest.add 'meteor-peerdb - chain of extended classes', (test) ->
   # Verify we are back to normal
   testDefinition test
 
-Tinytest.add 'meteor-peerdb - local collections', (test) ->
+Tinytest.add 'peerdb - local collections', (test) ->
   list = _.clone Document.list
 
   class Local extends Document
@@ -3572,7 +3572,7 @@ Tinytest.add 'meteor-peerdb - local collections', (test) ->
   # Verify we are back to normal
   testDefinition test
 
-testAsyncMulti 'meteor-peerdb - errors for generated fields', [
+testAsyncMulti 'peerdb - errors for generated fields', [
   (test, expect) ->
     Log._intercept 3 if Meteor.isServer and Document.instances is 1 # Three to see if we catch more than expected
 
@@ -3652,7 +3652,7 @@ testAsyncMulti 'meteor-peerdb - errors for generated fields', [
       results: ['foobar2']
 ]
 
-Tinytest.add 'meteor-peerdb - tricky references', (test) ->
+Tinytest.add 'peerdb - tricky references', (test) ->
   list = _.clone Document.list
 
   # You can in fact use class name instead of "self", but you have to
@@ -3717,7 +3717,7 @@ Tinytest.add 'meteor-peerdb - tricky references', (test) ->
   # Verify we are back to normal
   testDefinition test
 
-testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
+testAsyncMulti 'peerdb - duplicate values in lists', [
   (test, expect) ->
     Person.documents.insert
       username: 'person1'
@@ -8577,7 +8577,7 @@ testAsyncMulti 'meteor-peerdb - duplicate values in lists', [
 ]
 
 if Meteor.isServer and Document.instances is 1
-  testAsyncMulti 'meteor-peerdb - exception while processing', [
+  testAsyncMulti 'peerdb - exception while processing', [
     (test, expect) ->
       Log._intercept 4 # Four to see if we catch more than expected
 
@@ -8620,7 +8620,7 @@ if Meteor.isServer and Document.instances is 1
             message: i
   ]
 
-testAsyncMulti 'meteor-peerdb - instances', [
+testAsyncMulti 'peerdb - instances', [
   (test, expect) ->
     testDefinition test
 
@@ -8935,7 +8935,7 @@ testAsyncMulti 'meteor-peerdb - instances', [
     test.equal @user.username, @username
 ]
 
-Tinytest.add 'meteor-peerdb - bad instances', (test) ->
+Tinytest.add 'peerdb - bad instances', (test) ->
   # Empty document should be always possible to create
   for document in Document.list
     test.isTrue new document
@@ -9026,7 +9026,7 @@ Tinytest.add 'meteor-peerdb - bad instances', (test) ->
   , /Document does not match schema, not a plain object/
 
 if Meteor.isServer and not Document.instanceDisabled
-  testAsyncMulti 'meteor-peerdb - update all', [
+  testAsyncMulti 'peerdb - update all', [
     (test, expect) ->
       testDefinition test
 
@@ -9306,7 +9306,7 @@ if Meteor.isServer and not Document.instanceDisabled
         ]
   ]
 
-testAsyncMulti 'meteor-peerdb - reverse posts', [
+testAsyncMulti 'peerdb - reverse posts', [
   (test, expect) ->
     Person.documents.insert
       username: 'person1'
@@ -20140,7 +20140,7 @@ testAsyncMulti 'meteor-peerdb - reverse posts', [
 ]
 
 if Meteor.isServer
-  testAsyncMulti 'meteor-peerdb - triggers', [
+  testAsyncMulti 'peerdb - triggers', [
     (test, expect) ->
       testDefinition test
 
