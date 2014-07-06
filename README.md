@@ -391,7 +391,9 @@ documents.
 We skimmed over `replaceParent` before. You should set it to `true` when you are defining a document with the
 same name as a document you are extending (parent). It is a kind of a sanity check that you know what you are
 doing and that you are promising you are not holding a reference to the extended (and replaced) document somewhere
-and you expect it to work when using it.
+and you expect it to work when using it. How much `replaceParent` is really useful is a good question, but it
+allows you to define a common (client and server side) document and then augment it on the server side with
+server side specific code.
 
 Migrations
 ----------
