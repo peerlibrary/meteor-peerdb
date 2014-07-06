@@ -1,5 +1,5 @@
 Package.describe({
-  summary: "Database support for collaborative documents"
+  summary: "Reactive database layer with references, generators, triggers, migrations, etc."
 });
 
 Package.on_use(function (api) {
