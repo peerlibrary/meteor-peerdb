@@ -396,10 +396,104 @@ and you expect it to work when using it.
 Migrations
 ----------
 
+In any large project your documents' schemas will evolve through time. While MongoDB does not really enforce
+any schema, your program logic might require one. It is error prone to allow documents with various versions
+of schemas to exist at the same time and it makes your program code more complicated.
+
+To address this, PeerDB provides you with a way to define schema migrations. They are applied automatically on
+a startup of your application to migrate any documents necessary. To know which documents are at which schema
+version, PeerDB adds a field `_schema` to all documents with a [semantic version](http://semver.org/) number.
+
+To define a migration, extend a class `Document.PatchMigration`, `Document.MinorMigration`, or
+`Document.MajorMigration`, depending if your schema change is a backwards-compatible bug fix,
+you are adding functionality in a backwards-compatible manner, or you are making an incompatible
+change, respectively. By default migrations just update schema version:
+
+```coffee
+class Migration extends Document.PatchMigration
+  name: "Migration not really doing anything with data"
+
+  forward: (document, collection, currentSchema, newSchema) =>
+    migrated: 0
+    all: collection.update {_schema: currentSchema}, {$set: _schema: newSchema}, {multi: true}
+
+  backward: (document, collection, currentSchema, oldSchema) =>
+    migrated: 0
+    all: collection.update {_schema: currentSchema}, {$set: _schema: oldSchema}, {multi: true}
+
+Post.addMigration new Migration()
+```
+
+Base migrations class uses migration definitions above. You have to define both `forward` and `backward`
+methods, but you can leave them undefined to use inherited definitions. Methods should return an
+object containing `migrated` and `all` counts. `migrated` is count of all documents which were migrated,
+while `all` include documents which were not really migrated (maybe because they were not applicable
+for the given migration), but they still exist in the collection and only their schema version was updated.
+Method must update schema version on all documents in a collection. (Easy pattern is to first migrate
+applicable documents and then call `super` for the rest, returning combined counts.)
+
+Inside a migration method you should use [DirectCollection](https://github.com/peerlibrary/meteor-directcollection)
+provided to you as a `collection` argument. If you need access to other collections in your migrations,
+you should use DirectCollection as well. DirectCollection is a library which provides a Meteor-like API for accessing
+MongoDB, but bypasses Meteor completely, allowing you direct interaction with the database. This is necessary
+in migrations because collection names could be changing during migrations and Meteor cannot really handle that.
+
+You should call `addMigration` in the order you want migrations to be applied. The easiest way to assure that is
+to create a directory `server/migrations/` in your project and have multiple files with `XXXX-description.coffee`
+filenames, where `XXXX` is a consecutive number for the order you want, each file adding one migration.
+
+There are some migration classes predefined:
+
+* `UpdateAllMinorMigration` – you are adding fields to a reference to be synced and you want to trigger resyncing of fields
+* `UpdateAllMajorMigration` – you are removing fields from a reference and you want to trigger resyncing of fields
+* `AddOptionalFieldsMigration` – you are adding optional fields, you should pass a list of fields' names
+* `AddRequiredFieldsMigration` – you are adding required fields, you should pass a map between new fields' names and their initial values
+* `RemoveFieldsMigration` – you are removing fields, you should pass a map between fields' names to be removed, and their values which should be set when reverting the migration
+* `RenameFieldsMigration` – you are renaming fields, you should pass a map between current fields' names and new names
+
+To rename a collection backing the document, use `renameCollectionMigration`:
+
+```
+Post.renameCollectionMigration 'oldPosts', 'Posts'
+```
 
 Settings
 --------
 
+### `PEERDB_INSTANCES=1` ###
+
+As your application grows you might want to run specialized Meteor instances just to do PeerDB reactive MongoDB
+queries. To distribute PeerDB load, configure number of PeerDB instances using `PEERDB_INSTANCES` environment variable.
+Suggested setting is that your web-facing instances disable PeerDB by setting `PEERDB_INSTANCES` to 0, and then you have
+dedicated PeerDB instances.
+
+### `PEERDB_INSTANCE=0` ###
+
+If you are running multiple PeerDB instances, which instance is this? It is zero-based index so if you configured
+`PEERDB_INSTANCES=2`, you have to have two instances, one with `PEERDB_INSTANCE=0` and another with `PEERDB_INSTANCE=1`.
+
+### `PEERDB_MIGRATIONS_DISABLED=` ###
+
+If you want migrations to not run, set `PEERDB_MIGRATIONS_DISABLED` to a true value. Recommended setting is that only
+*one* web-facing instance has migrations enabled and all other, including PeerDB instances, have them disabled. This
+prevents any possible conflicts which could happen because of running migrations in parallel (but you are writing all
+your migrations in a way that conflicts will never happen, using the
+[Update If Current pattern](http://docs.mongodb.org/manual/tutorial/isolate-sequence-of-operations/#update-if-current),
+aren't you?).
+
+Disabling migrations just disables running them, documents are still populated with the `_schema` field.
+
+### `MONGO_OPLOG_URL` and `MONGO_URL` ###
+
+When running multiple instances you want to connect them all to the same database. You have to configure both normal
+MongoDB connection and also oplog connection. You can use your own MongoDB instance or connect to one provided by
+running Meteor in development mode. In the latter case the recommended way is that one web-facing instance runs
+MongoDB and all other instances connect to that MongoDB.
+
+```
+MONGO_OPLOG_URL=mongodb://127.0.0.1:3001/local
+MONGO_URL=mongodb://127.0.0.1:3001/meteor
+```
 
 Related projects
 ----------------
