@@ -379,7 +379,8 @@ without any content of a document really changing.
 
 PeerDB does not really re-sync any broken references (made while your Meteor application was not running)
 automatically. If you believe such references exist (eg., after a hard crash of your application), you
-can trigger re-syncing by calling `Document.updateAll()`.
+can trigger re-syncing by calling `Document.updateAll()`. All references will be resynced and all
+auto-generated fields rerun. But not triggers. It is a quite heavy operation.
 
 Abstract documents and `replaceParent`
 --------------------------------------
