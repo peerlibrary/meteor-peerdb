@@ -131,7 +131,7 @@ could then look like:
     "username": "wesley",
     "displayName": "Wesley Crusher"
   },
-  subscribers: [
+  "subscribers": [
     {
       "_id": "k7cgWtxQpPQ3gLgxa"
     },
@@ -142,13 +142,13 @@ could then look like:
       "_id": "tMgj8mF2zF3gjCftS"
     }
   ],
-  reviewers: [
+  "reviewers": [
     {
       "_id": "tMgj8mF2zF3gjCftS",
       "username": "deanna",
       "displayName": "Deanna Troi"
     }
-  }
+  ]
 ```
 
 Great! Now we have to fetch only this one document and we have everything needed to display a blog post. It is easy
@@ -191,8 +191,8 @@ class Post extends Document
 We are using `@Meta`'s `fields` argument to define references.
 
 In above definition, `author` field will be a subdocument containing `_id` (always added) and `username`
-and `displayName` fields. If `username` field in referenced `Person` document is changed, `author` field
-in all related `Post` documents will be automatically updated with new value for `username` field.
+and `displayName` fields. If `displayName` field in referenced `Person` document is changed, `author` field
+in all related `Post` documents will be automatically updated with the new value for `displayName` field.
 
 ```coffee
 Person.documents.update 'tMgj8mF2zF3gjCftS',
@@ -278,7 +278,7 @@ class Post extends Post
 ```
 
 We redefine `Post` document and replace it with a new definition which has for `author` field reverse references
-enabled. Now `Person.documents.findOne('frqejWeGWjDTPMj7P')` returns:
+enabled. Now `Person.documents.findOne('yeK7R5Lws6MSeRQad')` returns:
 
 ```json
 {
@@ -367,18 +367,19 @@ class Post extends Post
 ```
 
 Return value is ignored. Triggers are useful when you want arbitrary code to be run when fields change.
-This could be easily implemented directly with [observe](http://docs.meteor.com/#observe), but triggers
+This could be implemented directly with [observe](http://docs.meteor.com/#observe), but triggers
 simplify that and provide an alternative API in the PeerDB spirit.
 
-Why we are using a trigger here and not auto-generated field? The main reason is that we want to assure
+Why we are using a trigger here and not an auto-generated field? The main reason is that we want to assure
 `updatedAt` really just increases, so a more complicated update query is needed. Additionally, reference
 fields and auto-generated fields should be without side-effects and should be allowed to be called at any
 time. This is to assure that we can re-sync any broken references as needed. If you would use an
-auto-generated field it could be called again at a later time, updating `updatedAt` without any content
-of a document really changing.
+auto-generated field it could be called again at a later time, updating `updatedAt` to a later time
+without any content of a document really changing.
 
-PeerDB does not really re-sync any broken references automatically. If you believe such references exist
-(eg., after a hard crash of your application), you can trigger re-syncing by calling `Document.updateAll()`.
+PeerDB does not really re-sync any broken references (made while your Meteor application was not running)
+automatically. If you believe such references exist (eg., after a hard crash of your application), you
+can trigger re-syncing by calling `Document.updateAll()`.
 
 Abstract documents and `replaceParent`
 --------------------------------------
