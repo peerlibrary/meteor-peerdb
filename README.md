@@ -495,6 +495,13 @@ MONGO_OPLOG_URL=mongodb://127.0.0.1:3001/local
 MONGO_URL=mongodb://127.0.0.1:3001/meteor
 ```
 
+Examples
+--------
+
+See [tests](https://github.com/peerlibrary/meteor-peerdb/blob/master/tests.coffee) for many examples. See
+[document definitions in PeerLibrary](https://github.com/peerlibrary/peerlibrary/tree/development/lib/documents) for
+real-world definitions, and [their migrations](https://github.com/peerlibrary/peerlibrary/tree/development/server/migrations).
+
 Related projects
 ----------------
 
