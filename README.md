@@ -447,8 +447,10 @@ filenames, where `XXXX` is a consecutive number for the order you want, each fil
 
 There are some migration classes predefined:
 
-* `UpdateAllMinorMigration` – you are adding fields to a reference to be synced and you want to trigger resyncing of fields
-* `UpdateAllMajorMigration` – you are removing fields from a reference and you want to trigger resyncing of fields
+* `AddSyncedFieldsMigration` – you are adding fields to a reference to be synced and you want to trigger resyncing of fields
+* `RemoveSyncedFieldsMigration` – you are removing fields from a reference and you want to trigger resyncing of fields
+* `AddSyncedFieldsMigration` – you are adding auto-generated fields and you want to trigger generation of fields
+* `RemoveSyncedFieldsMigration` – you are removing auto-generated fields
 * `AddOptionalFieldsMigration` – you are adding optional fields, you should pass a list of fields' names
 * `AddRequiredFieldsMigration` – you are adding required fields, you should pass a map between new fields' names and their initial values
 * `RemoveFieldsMigration` – you are removing fields, you should pass a map between fields' names to be removed, and their values which should be set when reverting the migration

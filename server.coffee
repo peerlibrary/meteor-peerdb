@@ -469,7 +469,7 @@ class globals.Document extends globals.Document
 
   @MajorMigration: class extends @_Migration
 
-  @UpdateAllMinorMigration: class extends @MinorMigration
+  @AddSyncedFieldsMigration: class extends @MinorMigration
     forward: (document, collection, currentSchema, newSchema) =>
       @updateAll document, collection, currentSchema, newSchema
 
@@ -484,7 +484,7 @@ class globals.Document extends globals.Document
       counts.migrated = counts.all
       counts
 
-  @UpdateAllMajorMigration: class extends @MajorMigration
+  @RemoveSyncedFieldsMigration: class extends @MajorMigration
     forward: (document, collection, currentSchema, newSchema) =>
       @updateAll document, collection, currentSchema, newSchema
 
@@ -494,6 +494,68 @@ class globals.Document extends globals.Document
 
     backward: (document, collection, currentSchema, oldSchema) =>
       @updateAll document, collection, currentSchema, oldSchema
+
+      counts = super
+      counts.migrated = counts.all
+      counts
+
+  @AddAutoFieldsMigration: class extends @MinorMigration
+    # Fields is an array
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      assert @fields
+
+      @updateAll document, collection, currentSchema, newSchema
+
+      counts = super
+      counts.migrated = counts.all
+      counts
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      update =
+        $unset: {}
+        $set:
+          _schema: oldSchema
+
+      for field in @fields
+        update.$unset[field] = ''
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+  @RemoveAutoFieldsMigration: class extends @MajorMigration
+    # Fields is an array
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      update =
+        $unset: {}
+        $set:
+          _schema: newSchema
+
+      for field in @fields
+        update.$unset[field] = ''
+
+      count = collection.update {_schema: currentSchema}, update, {multi: true}
+
+      counts = super
+      counts.migrated += count
+      counts.all += count
+      counts
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      assert @fields
+
+      @updateAll document, collection, currentSchema, newSchema
 
       counts = super
       counts.migrated = counts.all
