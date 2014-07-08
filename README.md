@@ -449,8 +449,8 @@ There are some migration classes predefined:
 
 * `AddSyncedFieldsMigration` – you are adding fields to a reference to be synced and you want to trigger resyncing of fields
 * `RemoveSyncedFieldsMigration` – you are removing fields from a reference and you want to trigger resyncing of fields
-* `AddAutoFieldsMigration` – you are adding auto-generated fields and you want to trigger generation of fields
-* `RemoveAutoFieldsMigration` – you are removing auto-generated fields
+* `AddAutoFieldsMigration` – you are adding auto-generated fields and you want to trigger generation of fields, you should pass a list of fields' names
+* `RemoveAutoFieldsMigration` – you are removing auto-generated fields, you should pass a list of fields' names
 * `AddOptionalFieldsMigration` – you are adding optional fields, you should pass a list of fields' names
 * `AddRequiredFieldsMigration` – you are adding required fields, you should pass a map between new fields' names and their initial values
 * `RemoveFieldsMigration` – you are removing fields, you should pass a map between fields' names to be removed, and their values which should be set when reverting the migration
