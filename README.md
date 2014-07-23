@@ -255,7 +255,7 @@ The best is to put it in the filename which is loaded last.
 
 * `targetDocument` – target document class, or `'self'`
 * `fields` – list of fields to sync in a reference's sub-document; instead of a field name you can use a MongoDB projection as well, like `emails: {$slice: 1}`
-* `required` – should the reference be required or not, if required, when referenced document is removed, this document will be removed as well, if not required, reference will be set to `null`
+* `required` – should the reference be required (default) or not, if required, when referenced document is removed, this document will be removed as well, if not required, reference will be set to `null`
 * `reverseName` – name of a field for a reverse reference; specify to enable a reverse reference
 * `reverseFields` – list of fields to sync for a reference reference
 
@@ -277,7 +277,7 @@ class Post extends Post
       fields
 ```
 
-We redefine `Post` document and replace it with a new definition which has for `author` field reverse references
+We [redefine](#abstract-documents-and-replaceparent) `Post` document and replace it with a new definition which has for `author` field reverse references
 enabled. Now `Person.documents.findOne('yeK7R5Lws6MSeRQad')` returns:
 
 ```json
