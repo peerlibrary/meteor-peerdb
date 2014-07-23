@@ -530,6 +530,30 @@ class globals.Document extends globals.Document
       counts.all += count
       counts
 
+  @ModifyAutoFieldsMigration: class extends @MinorMigration
+    # Fields is an array
+    constructor: (fields) ->
+      @fields = fields if fields
+      super
+
+    forward: (document, collection, currentSchema, newSchema) =>
+      assert @fields
+
+      @updateAll document, collection, currentSchema, newSchema
+
+      counts = super
+      counts.migrated = counts.all
+      counts
+
+    backward: (document, collection, currentSchema, oldSchema) =>
+      assert @fields
+
+      @updateAll document, collection, currentSchema, oldSchema
+
+      counts = super
+      counts.migrated = counts.all
+      counts
+
   @RemoveAutoFieldsMigration: class extends @MajorMigration
     # Fields is an array
     constructor: (fields) ->
