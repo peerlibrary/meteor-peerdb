@@ -942,10 +942,10 @@ class globals.Document extends globals.Document
           timestamp: moment.utc().toDate()
 
       if migration instanceof @_RenameCollectionMigration
-        Log.warn "Renamed collection '#{ currentName }' to '#{ newName }'"
-        Log.warn "Migrated #{ counts.migrated }/#{ counts.all } document(s) (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if counts.all
+        Log.info "Renamed collection '#{ currentName }' to '#{ newName }'"
+        Log.info "Migrated #{ counts.migrated }/#{ counts.all } document(s) (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if counts.all
       else
-        Log.warn "Migrated #{ counts.migrated }/#{ counts.all } document(s) in '#{ currentName }' collection (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if counts.all
+        Log.info "Migrated #{ counts.migrated }/#{ counts.all } document(s) in '#{ currentName }' collection (from #{ currentSchema } to #{ newSchema }): #{ migration.name }" if counts.all
 
       currentSchema = newSchema
       currentName = newName
@@ -1037,9 +1037,9 @@ setupMigrations = ->
     updateAll = document._setupMigrations() or updateAll
 
   if updateAll
-    Log.warn "Migrations requested updating all references..."
+    Log.info "Migrations requested updating all references..."
     globals.Document.updateAll()
-    Log.warn "Done."
+    Log.info "Done"
 
 migrations = ->
   if globals.Document.Migrations.find({}, limit: 1).count() == 0
@@ -1065,23 +1065,23 @@ Meteor.startup ->
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   globals.Document.defineAll()
 
-  Log.warn "Skipped migrations." if globals.Document.migrationsDisabled
+  Log.info "Skipped migrations" if globals.Document.migrationsDisabled
   # We still run the code to determine schema version and setup
   # observer to set schema version when inserting new documents,
   # but we then inside the code skip running migrations themselves
   migrations()
 
   if globals.Document.instanceDisabled
-    Log.warn "Skipped observers."
+    Log.info "Skipped observers"
     # To make sure everything is really skipped
     PREFIX = []
   else
     if globals.Document.instances is 1
-      Log.warn "Enabling observers..."
+      Log.info "Enabling observers..."
     else
-      Log.warn "Enabling observers, instance #{ INSTANCE }/#{ globals.Document.instances }, matching ID prefix: #{ PREFIX.join '' }"
+      Log.info "Enabling observers, instance #{ INSTANCE }/#{ globals.Document.instances }, matching ID prefix: #{ PREFIX.join '' }"
     setupObservers()
-    Log.warn "Done."
+    Log.info "Done"
 
 Document = globals.Document
 
