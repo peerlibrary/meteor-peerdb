@@ -520,6 +520,8 @@ class globals.Document
 
       if meta.collection is null or meta.collection
         meta.collection = getCollection meta.collection, @, meta.replaceParent
+      else if parentMeta.collection?._peerdb
+        meta.collection = getCollection parentMeta.collection, @, meta.replaceParent
       else
         meta.collection = getCollection "#{ name }s", @, meta.replaceParent
 
