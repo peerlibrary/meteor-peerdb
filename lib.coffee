@@ -266,6 +266,12 @@ class globals.Document
     remove: (args...) =>
       @meta.collection.remove args...
 
+    exists: (query) =>
+      !!@meta.collection.findOne query,
+        fields:
+          _id: 1
+        transform: null
+
   @_setDelayedCheck: ->
     return unless globals.Document._delayed.length
 

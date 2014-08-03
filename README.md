@@ -86,8 +86,11 @@ Person.documents.findOne().getDisplayName()
 Person.documents.findOne().email
 ```
 
-Functions and arguments available are the same as those available for Meteor collections. `Person.Meta` gives you back
-document metadata and `Person.documents` give you access to all documents.
+Functions and arguments available are the same as those available for Meteor collections, with addition of:
+
+* `.documents.exists(query)` – efficient check if any document matches given `query`
+
+`Person.Meta` gives you back document metadata and `Person.documents` give you access to all documents.
 
 All this is just an easy way to define documents and collections in a unified fashion, but it becomes interesting
 when you start defining relations between documents.
