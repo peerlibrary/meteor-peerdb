@@ -10,7 +10,6 @@
     "assert": {},
     "moment": {},
     "stacktrace": {},
-    "blocking": {},
     "directcollection": {}
   },
   "meteor": {
