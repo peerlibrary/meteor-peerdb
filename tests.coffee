@@ -950,6 +950,10 @@ testAsyncMulti 'peerdb - references', [
     Meteor.setTimeout expect(), WAIT_TIME
 ,
   (test, expect) ->
+    test.isTrue Person.documents.exists @person1Id
+    test.isTrue Person.documents.exists @person2Id
+    test.isTrue Person.documents.exists @person3Id
+
     @person1 = Person.documents.findOne @person1Id,
       transform: null # So that we can use test.equal
     @person2 = Person.documents.findOne @person2Id,
