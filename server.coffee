@@ -66,6 +66,16 @@ extractValue = (obj, path) ->
 # We have to modify prototype directly because there are classes which already inherit from the class
 # and we cannot just override the class as we are doing for other server-side only methods.
 globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateAll) ->
+  unless updateAll
+    index = {}
+    index["#{ @sourcePath }._id"] = 1
+    @sourceCollection._ensureIndex index
+
+    if @reverseName
+      index = {}
+      index["#{ @reverseName }._id"] = 1
+      @targetCollection._ensureIndex index
+
   initializing = true
 
   observers =
@@ -87,7 +97,7 @@ globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateA
   handle.stop() if updateAll
 
 # Cannot use => here because we are not in the globals.Document._Trigger context.
-# We are mofiying prototype directly to match code style of
+# We are modifying prototype directly to match code style of
 # _TargetedFieldsObservingField::_setupTargetObservers but in this case it is not
 # really needed, because there are no already existing classes which would inherit
 # from globals.Document._Trigger.
@@ -423,6 +433,7 @@ class globals.Document extends globals.Document
   @_setupSourceObservers: (updateAll) ->
     return if _.isEmpty @Meta.fields
 
+    indexes = []
     sourceFields =
       _id: 1 # To make sure we do not pass empty set of fields
 
@@ -430,10 +441,17 @@ class globals.Document extends globals.Document
       for name, field of obj
         if field instanceof globals.Document._ObservingField
           sourceFields[field.sourcePath] = 1
+          index = {}
+          index["#{ field.sourcePath }._id"] = 1
+          indexes.push index
         else if field not instanceof globals.Document._Field
           sourceFieldsWalker field
 
     sourceFieldsWalker @Meta.fields
+
+    unless updateAll
+      for index in indexes
+        @Meta.collection._ensureIndex index
 
     initializing = true
 
