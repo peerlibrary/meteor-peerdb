@@ -66,7 +66,7 @@ extractValue = (obj, path) ->
 # We have to modify prototype directly because there are classes which already inherit from the class
 # and we cannot just override the class as we are doing for other server-side only methods.
 globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateAll) ->
-  unless updateAll
+  if not updateAll and @ instanceof globals.Document._ReferenceField
     index = {}
     index["#{ @sourcePath }._id"] = 1
     @sourceCollection._ensureIndex index
@@ -441,9 +441,10 @@ class globals.Document extends globals.Document
       for name, field of obj
         if field instanceof globals.Document._ObservingField
           sourceFields[field.sourcePath] = 1
-          index = {}
-          index["#{ field.sourcePath }._id"] = 1
-          indexes.push index
+          if field instanceof globals.Document._ReferenceField
+            index = {}
+            index["#{ field.sourcePath }._id"] = 1
+            indexes.push index
         else if field not instanceof globals.Document._Field
           sourceFieldsWalker field
 
