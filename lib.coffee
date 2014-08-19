@@ -521,7 +521,7 @@ class globals.Document
     if not meta.abstract
       meta._name = name # "name" is a reserved property name on functions in some environments (eg. node.js), so we use "_name"
       # For easier debugging and better error messages
-      meta._location = StackTrace.getCaller()
+      meta._location = if CODE_MINIMIZED then '<code_minimized>' else StackTrace.getCaller()
       meta.document = @
 
       if meta.collection is null or meta.collection
