@@ -598,7 +598,7 @@ class globals.Document extends globals.Document
     backward: (document, collection, currentSchema, oldSchema) =>
       assert @fields
 
-      @updateAll document, collection, currentSchema, newSchema
+      @updateAll document, collection, currentSchema, oldSchema
 
       counts = super
       counts.migrated = counts.all
@@ -709,9 +709,10 @@ class globals.Document extends globals.Document
           _schema: oldSchema
       for field, value of @fields
         if _.isFunction value
-          update.$set[field] = value()
+          v = value()
         else
-          update.$set[field] = value
+          v = value
+        update.$set[field] = v unless _.isUndefined v
 
       count = collection.update selector, update, {multi: true}
 
