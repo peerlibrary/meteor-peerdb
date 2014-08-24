@@ -371,18 +371,18 @@ class globals.Document extends globals.Document
 
       assert field.reverseName
 
+      query =
+        _id:
+          $nin:
+            ids
+      query[field.reverseName] =
+        _id: id
+
       update = {}
       update[field.reverseName] =
         _id: id
 
-      field.targetCollection.update
-        _id:
-          $nin:
-            ids
-      ,
-        $pull: update
-      ,
-        multi: true
+      field.targetCollection.update query, {$pull: update}, multi: true
 
   @_sourceFieldUpdated: (id, name, value, field, originalValue) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
