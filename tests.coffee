@@ -1,8 +1,3 @@
-if Meteor.isServer
-  __meteor_runtime_config__.WAIT_TIME = WAIT_TIME = process?.env?.WAIT_TIME or 1000
-else
-  WAIT_TIME = __meteor_runtime_config__?.WAIT_TIME or 1000
-
 # The order of documents here tests delayed definitions
 
 # Just to make sure things are sane
@@ -256,6 +251,35 @@ if Meteor.isServer
     IdentityGenerator.documents.find()
   Meteor.publish null, ->
     SpecialPost.documents.find()
+
+  DirectCollection.command
+    profile: 2
+
+  systemProfile = new DirectCollection 'system.profile'
+
+  Meteor.methods
+    'wait-for-database': ->
+      peerdbNamespaces = ("meteor.#{ document.Meta.collection._name }" for document in Document.list)
+      try
+        systemProfile.findEach
+          ns:
+            $in: peerdbNamespaces
+          op:
+            $in: ['insert', 'update', 'remove']
+        ,
+          tailable: true
+          awaitdata: true
+          numberOfRetries: 2
+        ,
+          (document) ->
+            # Ignoring
+            # TODO: We could also measure things like number of requests made and test if they match what it should be
+      catch error
+        throw error unless /tailable cursor timed out/.test "#{ error }"
+
+waitForDatabase = (test, expect) ->
+  Meteor.call 'wait-for-database', expect (error) ->
+    test.isFalse error, error?.toString?() or error
 
 ALL = @ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
 
@@ -941,13 +965,13 @@ testAsyncMulti 'peerdb - references', [
         test.isTrue person3Id
         @person3Id = person3Id
 
-    # Sleep so that observers have time to run (but no post is yet made, so nothing really happens)
+    # Wait so that observers have time to run (but no post is yet made, so nothing really happens).
     # We want to wait here so that we catch possible errors in source observers, otherwise target
-    # observers can patch things up, for example, if we create a post first and target observers
+    # observers can patch things up. For example, if we create a post first and target observers
     # (triggered by person inserts, but pending) run afterwards, then they can patch things which
     # should in fact be done by source observers (on post), like setting usernames in post's
-    # references to persons
-    Meteor.setTimeout expect(), WAIT_TIME
+    # references to persons.
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     test.isTrue Person.documents.exists @person1Id
@@ -1033,8 +1057,8 @@ testAsyncMulti 'peerdb - references', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -1123,10 +1147,10 @@ testAsyncMulti 'peerdb - references', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
+    # Wait so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), WAIT_TIME
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     Person.documents.update @person3Id,
@@ -1215,8 +1239,8 @@ testAsyncMulti 'peerdb - references', [
       ]
       count: 1
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -1291,8 +1315,8 @@ testAsyncMulti 'peerdb - references', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -1353,8 +1377,8 @@ testAsyncMulti 'peerdb - references', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -1389,8 +1413,8 @@ testAsyncMulti 'peerdb - references', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -1481,8 +1505,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isTrue circularSecondId
         @circularSecondId = circularSecondId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     if Meteor.isServer and Document.instances is 1
@@ -1525,8 +1549,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1560,8 +1584,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1600,8 +1624,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1640,8 +1664,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1676,8 +1700,8 @@ testAsyncMulti 'peerdb - circular changes', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1712,8 +1736,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isTrue circularFirstId
         @circularFirstId = circularFirstId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     if Meteor.isServer and Document.instances is 1
@@ -1752,8 +1776,8 @@ testAsyncMulti 'peerdb - circular changes', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1788,8 +1812,8 @@ testAsyncMulti 'peerdb - circular changes', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update document
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update document
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -1828,8 +1852,8 @@ testAsyncMulti 'peerdb - recursive two', [
         test.isTrue recursive2Id
         @recursive2Id = recursive2Id
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive1 = Recursive.documents.findOne @recursive1Id,
@@ -1857,8 +1881,8 @@ testAsyncMulti 'peerdb - recursive two', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive1 = Recursive.documents.findOne @recursive1Id,
@@ -1892,8 +1916,8 @@ testAsyncMulti 'peerdb - recursive two', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive1 = Recursive.documents.findOne @recursive1Id,
@@ -1932,8 +1956,8 @@ testAsyncMulti 'peerdb - recursive two', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive1 = Recursive.documents.findOne @recursive1Id,
@@ -1972,8 +1996,8 @@ testAsyncMulti 'peerdb - recursive two', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive1 = Recursive.documents.findOne @recursive1Id,
@@ -2008,8 +2032,8 @@ testAsyncMulti 'peerdb - recursive two', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive1 = Recursive.documents.findOne @recursive1Id,
@@ -2038,8 +2062,8 @@ testAsyncMulti 'peerdb - recursive one', [
         test.isTrue recursiveId
         @recursiveId = recursiveId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive = Recursive.documents.findOne @recursiveId,
@@ -2060,8 +2084,8 @@ testAsyncMulti 'peerdb - recursive one', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive = Recursive.documents.findOne @recursiveId,
@@ -2087,8 +2111,8 @@ testAsyncMulti 'peerdb - recursive one', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive = Recursive.documents.findOne @recursiveId,
@@ -2110,8 +2134,8 @@ testAsyncMulti 'peerdb - recursive one', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @recursive = Recursive.documents.findOne @recursiveId,
@@ -2128,8 +2152,8 @@ if Meteor.isServer and Document.instances is 1
       author:
         _id: 'nonexistent'
 
-    # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(WAIT_TIME)
+    # Wait so that observers have time to update documents
+    Meteor.call 'wait-for-database'
 
     intercepted = Log._intercepted()
 
@@ -2146,8 +2170,8 @@ if Meteor.isServer and Document.instances is 1
     postId = Post.documents.insert
       subscribers: 'foobar'
 
-    # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(WAIT_TIME)
+    # Wait so that observers have time to update documents
+    Meteor.call 'wait-for-database'
 
     intercepted = Log._intercepted()
 
@@ -2164,8 +2188,8 @@ if Meteor.isServer and Document.instances is 1
     postId = Post.documents.insert
       author: null
 
-    # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(WAIT_TIME)
+    # Wait so that observers have time to update documents
+    Meteor.call 'wait-for-database'
 
     intercepted = Log._intercepted()
 
@@ -2182,8 +2206,8 @@ if Meteor.isServer and Document.instances is 1
     userLinkId = UserLink.documents.insert
       user: null
 
-    # Sleep so that observers have time to update documents
-    Meteor._sleepForMs(WAIT_TIME)
+    # Wait so that observers have time to update documents
+    Meteor.call 'wait-for-database'
 
     intercepted = Log._intercepted()
 
@@ -2201,7 +2225,7 @@ testAsyncMulti 'peerdb - delayed defintion', [
     Log._intercept 2 # Two to see if we catch more than expected
 
     # Sleep so that error is shown
-    Meteor.setTimeout expect(), 1000 # We need 1000 here because we have a check which runs after 1000 ms to check for delayed defintions
+    Meteor.setTimeout expect(), 1000 # We need 1000 here because we have a check which runs after 1000 ms to check for delayed definitions
 ,
   (test, expect) ->
     intercepted = Log._intercepted()
@@ -2261,8 +2285,8 @@ testAsyncMulti 'peerdb - subdocument fields', [
         test.isTrue person3Id
         @person3Id = person3Id
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -2333,8 +2357,8 @@ testAsyncMulti 'peerdb - subdocument fields', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -2412,8 +2436,8 @@ testAsyncMulti 'peerdb - subdocument fields', [
         test.isTrue postLinkId
         @postLinkId = postLinkId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @postLink = PostLink.documents.findOne @postLinkId,
@@ -2453,8 +2477,8 @@ testAsyncMulti 'peerdb - subdocument fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person2 = Person.documents.findOne @person2Id,
@@ -2529,8 +2553,8 @@ testAsyncMulti 'peerdb - subdocument fields', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @postLink = PostLink.documents.findOne @postLinkId,
@@ -2555,8 +2579,8 @@ testAsyncMulti 'peerdb - subdocument fields', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @postLink = PostLink.documents.findOne @postLinkId,
@@ -2594,8 +2618,8 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isTrue person3Id
         @person3Id = person3Id
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -2660,8 +2684,8 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -2728,10 +2752,10 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
+    # Wait so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), WAIT_TIME
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -2800,10 +2824,10 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
+    # Wait so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), WAIT_TIME
+    waitForDatabase test, expect
 ,
    (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -2872,10 +2896,10 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
+    # Wait so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), WAIT_TIME
+    waitForDatabase test, expect
 ,
    (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -2944,8 +2968,8 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -3009,8 +3033,8 @@ testAsyncMulti 'peerdb - generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -3588,8 +3612,8 @@ testAsyncMulti 'peerdb - errors for generated fields', [
         test.isTrue identityGeneratorId
         @identityGeneratorId = identityGeneratorId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     if Meteor.isServer and Document.instances is 1
@@ -3626,8 +3650,8 @@ testAsyncMulti 'peerdb - errors for generated fields', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     if Meteor.isServer and Document.instances is 1
@@ -3756,8 +3780,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isTrue person3Id
         @person3Id = person3Id
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -3886,8 +3910,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -4054,10 +4078,10 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
+    # Wait so that observers have time to update documents
     # so that persons updates are not merged together to better
     # test the code for multiple updates
-    Meteor.setTimeout expect(), WAIT_TIME
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     Person.documents.update @person3Id,
@@ -4068,8 +4092,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -4218,8 +4242,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       ]
       count: 2
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -4381,8 +4405,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -4572,8 +4596,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -4761,8 +4785,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person2 = Person.documents.findOne @person2Id,
@@ -4978,8 +5002,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person3 = Person.documents.findOne @person3Id,
@@ -5166,8 +5190,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -5337,8 +5361,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person2 = Person.documents.findOne @person2Id,
@@ -5556,8 +5580,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person3 = Person.documents.findOne @person3Id,
@@ -5769,8 +5793,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person2 = Person.documents.findOne @person2Id,
@@ -5987,8 +6011,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person2 = Person.documents.findOne @person2Id,
@@ -6216,8 +6240,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -6522,8 +6546,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -6828,8 +6852,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -7134,8 +7158,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -7439,8 +7463,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -7741,8 +7765,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -8048,8 +8072,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -8371,8 +8395,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -8517,8 +8541,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -8570,8 +8594,8 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId,
@@ -8593,8 +8617,8 @@ if Meteor.isServer and Document.instances is 1
           test.isTrue identityGeneratorId
           @identityGeneratorId = identityGeneratorId
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       intercepted = Log._intercepted()
@@ -8655,8 +8679,8 @@ testAsyncMulti 'peerdb - instances', [
         test.isTrue person3Id
         @person3Id = person3Id
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id
@@ -8726,8 +8750,8 @@ testAsyncMulti 'peerdb - instances', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = Post.documents.findOne @postId
@@ -8839,8 +8863,8 @@ testAsyncMulti 'peerdb - instances', [
         test.isTrue postId
         @postId = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post = SpecialPost.documents.findOne @postId
@@ -9061,8 +9085,8 @@ if Meteor.isServer and not Document.instanceDisabled
           test.isTrue person3Id
           @person3Id = person3Id
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @person1 = Person.documents.findOne @person1Id
@@ -9108,8 +9132,8 @@ if Meteor.isServer and not Document.instanceDisabled
           test.isTrue postId
           @postId = postId
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @post = Post.documents.findOne @postId,
@@ -9187,8 +9211,8 @@ if Meteor.isServer and not Document.instanceDisabled
           test.isFalse error, error?.toString?() or error
           test.isTrue res
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @post = Post.documents.findOne @postId,
@@ -9247,8 +9271,11 @@ if Meteor.isServer and not Document.instanceDisabled
         slug: 'wrong'
         tags: 'wrong'
 
-        # Update all fields back (a blocking operation)
-        Document.updateAll()
+      # Update all fields back (a blocking operation)
+      Document.updateAll()
+
+      # Wait so that triggered observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @post = Post.documents.findOne @postId,
@@ -9339,8 +9366,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isTrue person3Id
         @person3Id = person3Id
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     Post.documents.insert
@@ -9439,8 +9466,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isTrue postId
         @postId3 = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post1 = Post.documents.findOne @postId1,
@@ -9907,8 +9934,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isTrue postId
         @postId5 = postId
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -10373,8 +10400,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -10799,8 +10826,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post2 = Post.documents.findOne @postId2,
@@ -11309,8 +11336,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post2 = Post.documents.findOne @postId2,
@@ -11793,8 +11820,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post2 = Post.documents.findOne @postId2,
@@ -12293,8 +12320,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post2 = Post.documents.findOne @postId2,
@@ -12773,8 +12800,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -13281,8 +13308,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -13778,8 +13805,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -14290,8 +14317,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -14788,8 +14815,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -15288,8 +15315,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -15784,8 +15811,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -16293,8 +16320,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -16789,8 +16816,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -17270,8 +17297,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -17767,8 +17794,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -18262,8 +18289,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -18742,8 +18769,8 @@ testAsyncMulti 'peerdb - reverse posts', [
         test.isFalse error, error?.toString?() or error
         test.isTrue res
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @post5 = Post.documents.findOne @postId5,
@@ -19218,8 +19245,8 @@ testAsyncMulti 'peerdb - reverse posts', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -19576,8 +19603,8 @@ testAsyncMulti 'peerdb - reverse posts', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -19885,8 +19912,8 @@ testAsyncMulti 'peerdb - reverse posts', [
       expect (error) =>
         test.isFalse error, error?.toString?() or error
 
-    # Sleep so that observers have time to update documents
-    Meteor.setTimeout expect(), WAIT_TIME
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     @person1 = Person.documents.findOne @person1Id,
@@ -20157,8 +20184,8 @@ if Meteor.isServer
           test.isTrue person1Id
           @person1Id = person1Id
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @person1 = Person.documents.findOne @person1Id
@@ -20185,8 +20212,8 @@ if Meteor.isServer
           test.isTrue postId
           @postId = postId
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @post = Post.documents.findOne @postId
@@ -20220,8 +20247,8 @@ if Meteor.isServer
           test.isTrue postId
           @specialPostId = postId
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @specialPost = SpecialPost.documents.findOne @specialPostId
@@ -20264,8 +20291,8 @@ if Meteor.isServer
           test.isFalse error, error?.toString?() or error
           test.isTrue res
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @post = Post.documents.findOne @postId
@@ -20326,8 +20353,8 @@ if Meteor.isServer
           test.isFalse error, error?.toString?() or error
           test.isTrue res
 
-      # Sleep so that observers have time to update documents
-      Meteor.setTimeout expect(), WAIT_TIME
+      # Wait so that observers have time to update documents
+      waitForDatabase test, expect
   ,
     (test, expect) ->
       @post = Post.documents.findOne @postId
