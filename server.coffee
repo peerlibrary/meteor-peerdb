@@ -772,20 +772,16 @@ class globals.Document extends globals.Document
     constructor: (@oldName, @newName) ->
       @name = "Renaming collection from '#{ @oldName }' to '#{ @newName }'"
 
-    _rename: (mongoCollection, to, callback) =>
-      mongoCollection.rename to, (error, collection) =>
-        if error
-          return callback error unless /source namespace does not exist/.test "#{ error }"
-        callback null
+    _rename: (collection, to) =>
+      try
+        collection.renameCollection to
+      catch error
+        throw error unless /source namespace does not exist/.test "#{ error }"
 
     forward: (document, collection, currentSchema, newSchema) =>
       assert.equal collection.name, @oldName
 
-      mongoCollection = MongoInternals.defaultRemoteCollectionDriver().mongo._getCollection @oldName
-
-      future = new Future()
-      @_rename mongoCollection, @newName, future.resolver()
-      future.wait()
+      @_rename collection, @newName
 
       collection.name = @newName
 
@@ -798,11 +794,7 @@ class globals.Document extends globals.Document
     backward: (document, collection, currentSchema, newSchema) =>
       assert.equal collection.name, @newName
 
-      mongoCollection = MongoInternals.defaultRemoteCollectionDriver().mongo._getCollection @newName
-
-      future = new Future()
-      @_rename mongoCollection, @oldName, future.resolver()
-      future.wait()
+      @_rename collection, @oldName
 
       collection.name = @oldName
 
