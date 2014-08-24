@@ -255,10 +255,15 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
 
     return unless @reverseName
 
+    # TODO: Current code is run too many times, for any update of source collection reverse field is updated, which is big overkill for the most common case of maintaining only the list of IDs
+    # TODO: Probably only existence (adding) of IDs in the reverse field should be maintained here and the content of any additional fields will be taken care by Meta._reverseFields anyway
+
     reverseFields = fieldsToProjection @reverseFields
     source = @sourceCollection.findOne id,
       fields: reverseFields
       transform: null
+
+    # TODO: What if returned source is null, document does not exist (anymore)? Should we then call try to remove the ID?
 
     selector =
       _id: value._id
@@ -405,6 +410,13 @@ class globals.Document extends globals.Document
         field.updatedWithValue id, v
 
       if field.reverseName
+        # In updatedWithValue we added possible new entry/ies to reverse fields, but here
+        # we have also to remove those which were maybe removed from the value and are
+        # not referencing anymore a document which got added the entry to its reverse
+        # field in the past. So we make sure that only those documents which are still in
+        # the value have the entry in their reverse fields by creating a query which pulls
+        # the entry from all other.
+
         pathSegments = name.split('.')
 
         if field.ancestorArray
