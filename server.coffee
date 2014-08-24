@@ -1,5 +1,4 @@
 semver = Npm.require 'semver'
-Future = Npm.require 'fibers/future'
 
 globals = @
 
