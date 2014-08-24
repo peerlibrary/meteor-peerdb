@@ -247,7 +247,7 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
 
       unless target
         Log.error "Document's '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
-        # TODO: Should we call reference.removeSource here?
+        # TODO: Should we call reference.removeSource here? And remove from reverse fields?
         return
 
       # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
@@ -255,15 +255,10 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
 
     return unless @reverseName
 
-    # TODO: Current code is run too many times, for any update of source collection reverse field is updated, which is big overkill for the most common case of maintaining only the list of IDs
-    # TODO: Probably only existence (adding) of IDs in the reverse field should be maintained here and the content of any additional fields will be taken care by Meta._reverseFields anyway
+    # TODO: Current code is run too many times, for any update of source collection reverse field is updated
 
-    reverseFields = fieldsToProjection @reverseFields
-    source = @sourceCollection.findOne id,
-      fields: reverseFields
-      transform: null
-
-    # TODO: What if returned source is null, document does not exist (anymore)? Should we then call try to remove the ID?
+    # We just add the ID to the reverse field array and leave for any additional fields
+    # (@reverseFields) to be added by reference fields configured through Meta._reverseFields
 
     selector =
       _id: value._id
@@ -271,7 +266,8 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
       $ne: id
 
     update = {}
-    update[@reverseName] = source
+    update[@reverseName] =
+      _id: id
 
     @targetCollection.update selector,
       $addToSet: update
