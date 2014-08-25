@@ -1,3 +1,5 @@
+WAIT_FOR_DATABASE_TIMEOUT = 1000 # ms
+
 # The order of documents here tests delayed definitions
 
 # Just to make sure things are sane
@@ -252,30 +254,34 @@ if Meteor.isServer
   Meteor.publish null, ->
     SpecialPost.documents.find()
 
-  DirectCollection.command
-    profile: 2
-
-  systemProfile = new DirectCollection 'system.profile'
+  Future = Npm.require 'fibers/future'
 
   Meteor.methods
     'wait-for-database': ->
-      peerdbNamespaces = ("meteor.#{ document.Meta.collection._name }" for document in Document.list)
-      try
-        systemProfile.findEach
-          ns:
-            $in: peerdbNamespaces
-          op:
-            $in: ['insert', 'update', 'remove']
-        ,
-          tailable: true
-          awaitdata: true
-          numberOfRetries: 2
-        ,
-          (document) ->
-            # Ignoring
-            # TODO: We could also measure things like number of requests made and test if they match what it should be
-      catch error
-        throw error unless /tailable cursor timed out/.test "#{ error }"
+      future = new Future()
+      timeout = null
+      newTimeout = ->
+        Meteor.clearTimeout timeout if timeout
+        timeout = Meteor.setTimeout ->
+          timeout = null
+          future.return() unless future.isResolved()
+        , WAIT_FOR_DATABASE_TIMEOUT
+      newTimeout()
+      handles = []
+      for document in Document.list
+        do (document) ->
+          initializing = true
+          handles.push document.documents.find({}).observeChanges
+            added: (id, fields) ->
+              newTimeout() unless initializing
+            changed: (id, fields) ->
+              newTimeout()
+            removed: (id) ->
+              newTimeout()
+          initializing = false
+      future.wait()
+      for handle in handles
+        handle.stop()
 
 waitForDatabase = (test, expect) ->
   Meteor.call 'wait-for-database', expect (error) ->
@@ -8607,7 +8613,7 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 if Meteor.isServer and Document.instances is 1
   testAsyncMulti 'peerdb - exception while processing', [
     (test, expect) ->
-      Log._intercept 4 # Four to see if we catch more than expected
+      Log._intercept 3
 
       IdentityGenerator.documents.insert
         source: 'exception'
