@@ -368,10 +368,8 @@ class globals.Document extends globals.Document
 
       query =
         _id:
-          $nin:
-            ids
-      query[field.reverseName] =
-        _id: id
+          $nin: ids
+      query["#{ field.reverseName }._id"] = id
 
       update = {}
       update[field.reverseName] =
