@@ -493,7 +493,7 @@ class globals.Document extends globals.Document
 
   @MajorMigration: class extends @_Migration
 
-  @AddSyncedFieldsMigration: class extends @MinorMigration
+  @AddReferenceFieldsMigration: class extends @MinorMigration
     forward: (document, collection, currentSchema, newSchema) =>
       @updateAll document, collection, currentSchema, newSchema
 
@@ -508,7 +508,7 @@ class globals.Document extends globals.Document
       counts.migrated = counts.all
       counts
 
-  @RemoveSyncedFieldsMigration: class extends @MajorMigration
+  @RemoveReferenceFieldsMigration: class extends @MajorMigration
     forward: (document, collection, currentSchema, newSchema) =>
       @updateAll document, collection, currentSchema, newSchema
 
@@ -523,7 +523,7 @@ class globals.Document extends globals.Document
       counts.migrated = counts.all
       counts
 
-  @AddAutoFieldsMigration: class extends @MinorMigration
+  @AddGeneratedFieldsMigration: class extends @MinorMigration
     # Fields is an array
     constructor: (fields) ->
       @fields = fields if fields
@@ -554,7 +554,7 @@ class globals.Document extends globals.Document
       counts.all += count
       counts
 
-  @ModifyAutoFieldsMigration: class extends @MinorMigration
+  @ModifyGeneratedFieldsMigration: class extends @PatchMigration
     # Fields is an array
     constructor: (fields) ->
       @fields = fields if fields
@@ -578,7 +578,7 @@ class globals.Document extends globals.Document
       counts.migrated = counts.all
       counts
 
-  @RemoveAutoFieldsMigration: class extends @MajorMigration
+  @RemoveGeneratedFieldsMigration: class extends @MajorMigration
     # Fields is an array
     constructor: (fields) ->
       @fields = fields if fields
