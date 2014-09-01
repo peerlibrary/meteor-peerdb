@@ -415,7 +415,7 @@ class globals.Document extends globals.Document
     if field instanceof globals.Document._ObservingField
       if field.ancestorArray and name is field.ancestorArray
         unless _.isArray value
-          Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ name }' was updated with a non-array value: #{ util.inspect value }"
+          Log.error "Document '#{ @Meta._name }' '#{ id }' field '#{ name }' was updated with a non-array value: #{ util.inspect value }"
           return
       else
         value = [value]
