@@ -4,6 +4,7 @@ Package.describe({
 
 Package.on_use(function (api) {
   api.use(['coffeescript', 'underscore', 'minimongo', 'assert', 'stacktrace'], ['client', 'server']);
+  api.use(['mongo-livedata', 'random'], 'server');
 
   api.export('Document');
 
@@ -18,7 +19,7 @@ Package.on_use(function (api) {
 });
 
 Package.on_test(function (api) {
-  api.use(['peerdb', 'tinytest', 'test-helpers', 'coffeescript', 'insecure', 'accounts-base', 'accounts-password', 'assert', 'underscore', 'directcollection'], ['client', 'server']);
+  api.use(['peerdb', 'tinytest', 'test-helpers', 'coffeescript', 'insecure', 'accounts-base', 'accounts-password', 'assert', 'underscore', 'directcollection', 'random'], ['client', 'server']);
   api.add_files([
     'tests_defined.js',
     'tests.coffee'

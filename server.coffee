@@ -19,6 +19,12 @@ if INSTANCES > 1
   range = UNMISTAKABLE_CHARS.length / INSTANCES
   PREFIX = PREFIX[Math.round(INSTANCE * range)...Math.round((INSTANCE + 1) * range)]
 
+try
+  # Migration of migrations collection
+  new DirectCollection('migrations').renameCollection 'peerdb.migrations'
+catch error
+  throw error unless /source namespace does not exist/.test "#{ error }"
+
 # Fields:
 #   serial
 #   migrationName
@@ -30,7 +36,17 @@ if INSTANCES > 1
 #   migrated
 #   all
 # We use a lower case collection name to signal it is a system collection
-globals.Document.Migrations = new Meteor.Collection 'migrations'
+globals.Document.Migrations = new Meteor.Collection 'peerdb.migrations'
+
+# Fields:
+#   ts
+#   type
+#   data
+# We use a lower case collection name to signal it is a system collection
+globals.Document.Messages = new Meteor.Collection 'peerdb.messages'
+
+# Cap the messages collection
+globals.Document.Messages._createCappedCollection 100 * 1024, 10
 
 fieldsToProjection = (fields) ->
   projection =
@@ -1019,10 +1035,17 @@ class globals.Document extends globals.Document
     updateAll
 
   @updateAll: ->
+    sendMessage 'updateAll'
+
+  @_updateAll: ->
     # It is only reasonable to run anything if this instance
     # is not disabled. Otherwise we would still go over all
     # documents, just we would not process any.
-    setupObservers true unless globals.Document.instanceDisabled
+    return if globals.Document.instanceDisabled
+
+    Log.info "Updating all references..."
+    setupObservers true
+    Log.info "Done"
 
 # TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
 setupObservers = (updateAll) ->
@@ -1056,7 +1079,6 @@ setupMigrations = ->
   if updateAll
     Log.info "Migrations requested updating all references..."
     globals.Document.updateAll()
-    Log.info "Done"
 
 migrations = ->
   if globals.Document.Migrations.find({}, limit: 1).count() == 0
@@ -1073,6 +1095,35 @@ migrations = ->
 
   setupMigrations()
 
+sendMessage = (type, data) ->
+  globals.Document.Messages.insert
+    ts: new MongoInternals.MongoTimestamp 0, 0
+    type: type
+    data: data
+
+setupMessages = ->
+  initializing = true
+  # We send a startup message for which we then wait to read. After
+  # we read it, we know that we should start processing messages.
+  randomId = Random.id()
+  sendMessage 'startup', randomId
+  # And now we start processing all messages
+  globals.Document.Messages.find({}, tailable: true).observeChanges
+    added: (id, fields) ->
+      if fields.type is 'startup' and fields.data is randomId
+        initializing = false
+        return
+
+      return if initializing
+
+      switch fields.type
+        when 'updateAll'
+          globals.Document._updateAll()
+        when 'startup'
+          # We ignore startup messages from others
+        else
+          Log.error "Unknown message type '#{ fields.type }': " + util.inspect _.extend({}, {_id: id}, fields), false, null
+
 globals.Document.migrationsDisabled = !!process.env.PEERDB_MIGRATIONS_DISABLED
 globals.Document.instanceDisabled = INSTANCES is 0
 globals.Document.instances = INSTANCES
@@ -1081,6 +1132,10 @@ Meteor.startup ->
   # To try delayed references one last time, throwing any exceptions
   # (Otherwise setupObservers would trigger strange exceptions anyway)
   globals.Document.defineAll()
+
+  # We first have to setup messages, so that migrations can run properly
+  # (if they call updateAll, the message should be listened for)
+  setupMessages() unless globals.Document.instanceDisabled
 
   Log.info "Skipped migrations" if globals.Document.migrationsDisabled
   # We still run the code to determine schema version and setup
