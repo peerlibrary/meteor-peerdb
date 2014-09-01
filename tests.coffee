@@ -2168,7 +2168,7 @@ if Meteor.isServer and Document.instances is 1
     test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Document's '#{ postId }' field 'author' is referencing a nonexistent document 'nonexistent'"
+    test.equal intercepted.message, "Document 'Post' '#{ postId }' field 'author' is referencing a nonexistent document 'nonexistent'"
     test.equal intercepted.level, 'error'
 
     Log._intercept 2 # Two to see if we catch more than expected
@@ -2186,7 +2186,7 @@ if Meteor.isServer and Document.instances is 1
     test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Document's '#{ postId }' field 'subscribers' was updated with a non-array value: 'foobar'"
+    test.equal intercepted.message, "Document 'Post' '#{ postId }' field 'subscribers' was updated with a non-array value: 'foobar'"
     test.equal intercepted.level, 'error'
 
     Log._intercept 2 # Two to see if we catch more than expected
