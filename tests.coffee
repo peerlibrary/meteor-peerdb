@@ -1527,7 +1527,7 @@ testAsyncMulti 'peerdb - circular changes', [
       test.isTrue _.isString(i), i
       intercepted = EJSON.parse i
 
-      test.equal intercepted.message, "Document's '#{ @circularFirstId }' field 'second' was updated with an invalid value: null"
+      test.equal intercepted.message, "Document 'CircularFirst' '#{ @circularFirstId }' field 'second' was updated with an invalid value: null"
       test.equal intercepted.level, 'error'
 
     @circularFirst = CircularFirst.documents.findOne @circularFirstId,
@@ -2204,7 +2204,7 @@ if Meteor.isServer and Document.instances is 1
     test.isTrue _.isString(intercepted[0]), intercepted[0]
     intercepted = EJSON.parse intercepted[0]
 
-    test.equal intercepted.message, "Document's '#{ postId }' field 'author' was updated with an invalid value: null"
+    test.equal intercepted.message, "Document 'Post' '#{ postId }' field 'author' was updated with an invalid value: null"
     test.equal intercepted.level, 'error'
 
     Log._intercept 1
