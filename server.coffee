@@ -255,7 +255,7 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
       return if _.isNull(value) and not @required
 
       # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
-      Log.error "Document's '#{ id }' field '#{ @sourcePath }' was updated with an invalid value: #{ util.inspect value }"
+      Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' was updated with an invalid value: #{ util.inspect value }"
       return
 
     # Only _id is requested, we do not have to do anything
@@ -266,7 +266,7 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
         transform: null
 
       unless target
-        Log.error "Document's '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
+        Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
         # TODO: Should we call reference.removeSource here? And remove from reverse fields?
         return
 
@@ -415,7 +415,7 @@ class globals.Document extends globals.Document
     if field instanceof globals.Document._ObservingField
       if field.ancestorArray and name is field.ancestorArray
         unless _.isArray value
-          Log.error "Document's '#{ id }' field '#{ name }' was updated with a non-array value: #{ util.inspect value }"
+          Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ name }' was updated with a non-array value: #{ util.inspect value }"
           return
       else
         value = [value]
