@@ -19,6 +19,8 @@ if INSTANCES > 1
   range = UNMISTAKABLE_CHARS.length / INSTANCES
   PREFIX = PREFIX[Math.round(INSTANCE * range)...Math.round((INSTANCE + 1) * range)]
 
+MESSAGES_TTL = 60 # seconds
+
 try
   # Migration of migrations collection
   new DirectCollection('migrations').renameCollection 'peerdb.migrations'
@@ -39,14 +41,17 @@ catch error
 globals.Document.Migrations = new Meteor.Collection 'peerdb.migrations'
 
 # Fields:
-#   ts
+#   created
 #   type
 #   data
 # We use a lower case collection name to signal it is a system collection
 globals.Document.Messages = new Meteor.Collection 'peerdb.messages'
 
-# Cap the messages collection
-globals.Document.Messages._createCappedCollection 100 * 1024, 10
+# Auto-expire messages after MESSAGES_TTL seconds
+globals.Document.Messages._ensureIndex
+  created: 1
+,
+  expireAfterSeconds: MESSAGES_TTL
 
 fieldsToProjection = (fields) ->
   projection =
@@ -1097,32 +1102,24 @@ migrations = ->
 
 sendMessage = (type, data) ->
   globals.Document.Messages.insert
-    ts: new MongoInternals.MongoTimestamp 0, 0
+    created: moment.utc().toDate()
     type: type
     data: data
 
 setupMessages = ->
   initializing = true
-  # We send a startup message for which we then wait to read. After
-  # we read it, we know that we should start processing messages.
-  randomId = Random.id()
-  sendMessage 'startup', randomId
-  # And now we start processing all messages
-  globals.Document.Messages.find({}, tailable: true).observeChanges
-    added: (id, fields) ->
-      if fields.type is 'startup' and fields.data is randomId
-        initializing = false
-        return
 
+  globals.Document.Messages.find({}).observeChanges
+    added: (id, fields) ->
       return if initializing
 
       switch fields.type
         when 'updateAll'
           globals.Document._updateAll()
-        when 'startup'
-          # We ignore startup messages from others
         else
           Log.error "Unknown message type '#{ fields.type }': " + util.inspect _.extend({}, {_id: id}, fields), false, null
+
+  initializing = false
 
 globals.Document.migrationsDisabled = !!process.env.PEERDB_MIGRATIONS_DISABLED
 globals.Document.instanceDisabled = INSTANCES is 0

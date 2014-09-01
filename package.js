@@ -4,7 +4,7 @@ Package.describe({
 
 Package.on_use(function (api) {
   api.use(['coffeescript', 'underscore', 'minimongo', 'assert', 'stacktrace'], ['client', 'server']);
-  api.use(['mongo-livedata', 'random'], 'server');
+  api.use(['random'], 'server');
 
   api.export('Document');
 
