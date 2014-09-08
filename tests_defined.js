@@ -7,5 +7,5 @@ Tinytest.add('peerdb - defined', function (test) {
   catch (e) {
   }
   test.isTrue(isDefined, "Document is not defined");
-  test.isTrue(Package.peerdb.Document, "Package.peerdb.Document is not defined");
+  test.isTrue(Package['peerlibrary:peerdb'].Document, "Package.peerlibrary:peerdb.Document is not defined");
 });
