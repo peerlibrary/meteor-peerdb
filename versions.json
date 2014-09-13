@@ -2,7 +2,7 @@
   "dependencies": [
     [
       "application-configuration",
-      "1.0.1"
+      "1.0.1-glasser1"
     ],
     [
       "binary-heap",
@@ -22,7 +22,7 @@
     ],
     [
       "ddp",
-      "1.0.8"
+      "1.0.1-ekate"
     ],
     [
       "ejson",
@@ -30,7 +30,7 @@
     ],
     [
       "follower-livedata",
-      "1.0.1"
+      "1.0.1-rc0"
     ],
     [
       "geojson-utils",
@@ -85,6 +85,10 @@
       "0.2.2"
     ],
     [
+      "peerlibrary:peerdb",
+      "0.14.3"
+    ],
+    [
       "peerlibrary:stacktrace",
       "0.1.3"
     ],
@@ -102,7 +106,7 @@
     ],
     [
       "tracker",
-      "1.0.2"
+      "1.0.2-rc0"
     ],
     [
       "underscore",
