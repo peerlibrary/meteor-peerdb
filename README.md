@@ -521,3 +521,7 @@ be executed while in PeerDB hooks run in parallel in or even in a separate proce
 return quickly while PeerDB assures that data will be eventually consistent (this has a downside of course as well,
 so if you do not want that API calls return before all hooks run, meteor-collection-hooks might be more suitable for
 you)
+* [meteor-related](https://github.com/peerlibrary/meteor-related) – while PeerDB allows easy way to embed referenced
+documents as subdocuments it requires that those relations are the same for all users; if you want dynamic relations
+between documents, meteor-related provides an easy way to fetch related documents reactively on the server side, so
+when dependencies change, your published documents will be updated accordingly
