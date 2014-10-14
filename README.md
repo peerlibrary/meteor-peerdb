@@ -152,6 +152,7 @@ could then look like:
       "displayName": "Deanna Troi"
     }
   ]
+}
 ```
 
 Great! Now we have to fetch only this one document and we have everything needed to display a blog post. It is easy
