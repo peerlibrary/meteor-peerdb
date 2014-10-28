@@ -204,10 +204,10 @@ Person.documents.update 'tMgj8mF2zF3gjCftS',
     displayName: 'Deanna Troi-Riker'
 
 # Returns "Deanna Troi-Riker"
-Post.documents.fetchOne('frqejWeGWjDTPMj7P').reviewers[0].displayName
+Post.documents.findOne('frqejWeGWjDTPMj7P').reviewers[0].displayName
 
 # Returns "Deanna Troi-Riker", sub-documents are objectified into document instances as well
-Post.documents.fetchOne('frqejWeGWjDTPMj7P').reviewers[0].getDisplayName()
+Post.documents.findOne('frqejWeGWjDTPMj7P').reviewers[0].getDisplayName()
 ```
 
 `subscribers` field is an array of references to `Person` documents, where every element in the array will
