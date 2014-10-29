@@ -3,7 +3,7 @@ PeerDB
 
 Meteor smart package which provides a reactive database layer with references, generators, triggers, migrations, etc.
 Meteor provides a great way to code in a reactive style and this package brings reactivity to your database as well.
-You can now define inside you application along with the rest of your program logic also how your data should be updated
+You can now define inside your application along with the rest of your program logic also how your data should be updated
 on any change and how various aspects of your data should be kept in sync and consistent no matter where the change comes
 from.
 
