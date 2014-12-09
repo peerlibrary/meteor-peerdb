@@ -43,7 +43,7 @@ fieldsToProjection = (fields) ->
   projection
 
 # TODO: Should we add retry?
-observerCallback = (f) ->
+globals.Document._observerCallback = (f) ->
   return (obj, args...) ->
     try
       id = if _.isObject obj then obj._id else obj
@@ -78,14 +78,14 @@ globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateA
   initializing = true
 
   observers =
-    added: observerCallback (id, fields) =>
+    added: globals.Document._observerCallback (id, fields) =>
       @updateSource id, fields if updateAll or not initializing
 
   unless updateAll
-    observers.changed = observerCallback (id, fields) =>
+    observers.changed = globals.Document._observerCallback (id, fields) =>
       @updateSource id, fields
 
-    observers.removed = observerCallback (id) =>
+    observers.removed = globals.Document._observerCallback (id) =>
       @removeSource id
 
   referenceFields = fieldsToProjection @fields
@@ -105,13 +105,13 @@ globals.Document._Trigger::_setupObservers = ->
 
   queryFields = fieldsToProjection @fields
   @collection.find({}, fields: queryFields).observe
-    added: observerCallback (document) =>
+    added: globals.Document._observerCallback (document) =>
       @trigger document, new @document({}) unless initializing
 
-    changed: observerCallback (newDocument, oldDocument) =>
+    changed: globals.Document._observerCallback (newDocument, oldDocument) =>
       @trigger newDocument, oldDocument
 
-    removed: observerCallback (oldDocument) =>
+    removed: globals.Document._observerCallback (oldDocument) =>
       @trigger new @document({}), oldDocument
 
   initializing = false
@@ -462,11 +462,11 @@ class globals.Document extends globals.Document
     initializing = true
 
     observers =
-      added: observerCallback (id, fields) =>
+      added: globals.Document._observerCallback (id, fields) =>
         @_sourceUpdated id, fields if updateAll or not initializing
 
     unless updateAll
-      observers.changed = observerCallback (id, fields) =>
+      observers.changed = globals.Document._observerCallback (id, fields) =>
         @_sourceUpdated id, fields
 
     handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
