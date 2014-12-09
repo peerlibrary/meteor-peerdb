@@ -314,8 +314,6 @@ testDefinition = (test) ->
   test.equal Post.Meta.parent, _TestPost2.Meta
   test.equal Post.Meta.document, Post
   test.equal Post.Meta.collection._name, 'Posts'
-  test.equal Post.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal Post.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Post.Meta.triggers), 1
   test.instanceOf Post.Meta.triggers.testTrigger, Post._Trigger
   test.equal Post.Meta.triggers.testTrigger.name, 'testTrigger'
@@ -473,8 +471,6 @@ testDefinition = (test) ->
   test.isFalse User.Meta.parent
   test.equal User.Meta.document, User
   test.equal User.Meta.collection._name, 'users'
-  test.equal User.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal User.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(User.Meta.triggers), 0
   test.equal _.size(User.Meta.fields), 0
 
@@ -482,8 +478,6 @@ testDefinition = (test) ->
   test.isFalse UserLink.Meta.parent
   test.equal UserLink.Meta.document, UserLink
   test.equal UserLink.Meta.collection._name, 'UserLinks'
-  test.equal UserLink.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal UserLink.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(UserLink.Meta.triggers), 0
   test.equal _.size(UserLink.Meta.fields), 1
   test.instanceOf UserLink.Meta.fields.user, UserLink._ReferenceField
@@ -503,8 +497,6 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.parent, _TestPostLink.Meta
   test.equal PostLink.Meta.document, PostLink
   test.equal PostLink.Meta.collection._name, 'PostLinks'
-  test.equal PostLink.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal PostLink.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(PostLink.Meta.triggers), 0
   test.equal _.size(PostLink.Meta.fields), 1
   test.instanceOf PostLink.Meta.fields.post, PostLink._ReferenceField
@@ -524,8 +516,6 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.parent, _TestCircularFirst.Meta
   test.equal CircularFirst.Meta.document, CircularFirst
   test.equal CircularFirst.Meta.collection._name, 'CircularFirsts'
-  test.equal CircularFirst.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal CircularFirst.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(CircularFirst.Meta.triggers), 0
   test.equal _.size(CircularFirst.Meta.fields), 2
   test.instanceOf CircularFirst.Meta.fields.second, CircularFirst._ReferenceField
@@ -559,8 +549,6 @@ testDefinition = (test) ->
   test.isFalse CircularSecond.Meta.parent
   test.equal CircularSecond.Meta.document, CircularSecond
   test.equal CircularSecond.Meta.collection._name, 'CircularSeconds'
-  test.equal CircularSecond.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal CircularSecond.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(CircularSecond.Meta.triggers), 0
   test.equal _.size(CircularSecond.Meta.fields), 2
   test.instanceOf CircularSecond.Meta.fields.first, CircularSecond._ReferenceField
@@ -595,8 +583,6 @@ testDefinition = (test) ->
   test.equal Person.Meta.document, Person
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal Person.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Person.Meta.triggers), 0
   test.equal _.size(Person.Meta.fields), 5
   test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
@@ -670,8 +656,6 @@ testDefinition = (test) ->
   test.equal SpecialPerson.Meta.document, SpecialPerson
   test.equal SpecialPerson.Meta._name, 'SpecialPerson'
   test.equal SpecialPerson.Meta.collection._name, 'SpecialPersons'
-  test.equal SpecialPerson.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal SpecialPerson.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(SpecialPerson.Meta.triggers), 0
   test.equal _.size(SpecialPerson.Meta.fields), 0
 
@@ -679,8 +663,6 @@ testDefinition = (test) ->
   test.isFalse Recursive.Meta.parent
   test.equal Recursive.Meta.document, Recursive
   test.equal Recursive.Meta.collection._name, 'Recursives'
-  test.equal Recursive.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal Recursive.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(Recursive.Meta.triggers), 0
   test.equal _.size(Recursive.Meta.fields), 2
   test.instanceOf Recursive.Meta.fields.other, Recursive._ReferenceField
@@ -714,8 +696,6 @@ testDefinition = (test) ->
   test.isFalse IdentityGenerator.Meta.parent
   test.equal IdentityGenerator.Meta.document, IdentityGenerator
   test.equal IdentityGenerator.Meta.collection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal IdentityGenerator.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(IdentityGenerator.Meta.triggers), 0
   test.equal _.size(IdentityGenerator.Meta.fields), 2
   test.instanceOf IdentityGenerator.Meta.fields.result, IdentityGenerator._GeneratedField
@@ -749,8 +729,6 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.parent, _TestPost2.Meta
   test.equal SpecialPost.Meta.document, SpecialPost
   test.equal SpecialPost.Meta.collection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.schema, '1.0.0' if Meteor.isServer
-  test.equal SpecialPost.Meta.migrations, [] if Meteor.isServer
   test.equal _.size(SpecialPost.Meta.triggers), 1
   test.instanceOf SpecialPost.Meta.triggers.testTrigger, SpecialPost._Trigger
   test.equal SpecialPost.Meta.triggers.testTrigger.name, 'testTrigger'
@@ -993,7 +971,6 @@ testAsyncMulti 'peerdb - references', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
@@ -1001,7 +978,6 @@ testAsyncMulti 'peerdb - references', [
       count: 0
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -1009,7 +985,6 @@ testAsyncMulti 'peerdb - references', [
       count: 0
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -1074,7 +1049,6 @@ testAsyncMulti 'peerdb - references', [
     # automatically populated with additional fields as defined in @ReferenceField
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1177,7 +1151,6 @@ testAsyncMulti 'peerdb - references', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1a'
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
@@ -1194,7 +1167,6 @@ testAsyncMulti 'peerdb - references', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2a'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -1229,7 +1201,6 @@ testAsyncMulti 'peerdb - references', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3a'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -1256,7 +1227,6 @@ testAsyncMulti 'peerdb - references', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1331,7 +1301,6 @@ testAsyncMulti 'peerdb - references', [
     # person3 was removed, references should be removed as well, automatically
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1394,7 +1363,6 @@ testAsyncMulti 'peerdb - references', [
     # but lists should be kept as empty lists
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -1537,12 +1505,10 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second: null
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
 
@@ -1566,14 +1532,12 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
       reverseFirsts: [
@@ -1601,7 +1565,6 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
@@ -1612,7 +1575,6 @@ testAsyncMulti 'peerdb - circular changes', [
       ]
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1'
@@ -1641,7 +1603,6 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
@@ -1652,7 +1613,6 @@ testAsyncMulti 'peerdb - circular changes', [
       ]
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1a'
@@ -1681,7 +1641,6 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2a'
@@ -1692,7 +1651,6 @@ testAsyncMulti 'peerdb - circular changes', [
       ]
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1a'
@@ -1758,14 +1716,12 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
       reverseFirsts: [
@@ -1793,7 +1749,6 @@ testAsyncMulti 'peerdb - circular changes', [
 
     test.equal @circularFirst,
       _id: @circularFirstId
-      _schema: '1.0.0'
       second:
         _id: @circularSecondId
         content: 'FooBar 2'
@@ -1804,7 +1759,6 @@ testAsyncMulti 'peerdb - circular changes', [
       ]
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first:
         _id: @circularFirstId
         content: 'FooBar 1'
@@ -1832,7 +1786,6 @@ testAsyncMulti 'peerdb - circular changes', [
     # If directly referenced but optional document is removed, dependency is not removed as well, but set to null
     test.equal @circularSecond,
       _id: @circularSecondId
-      _schema: '1.0.0'
       first: null
       content: 'FooBar 2'
       reverseFirsts: []
@@ -1869,12 +1822,10 @@ testAsyncMulti 'peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
-      _schema: '1.0.0'
       other: null
       content: 'FooBar 1'
     test.equal @recursive2,
       _id: @recursive2Id
-      _schema: '1.0.0'
       other: null
       content: 'FooBar 2'
 
@@ -1898,14 +1849,12 @@ testAsyncMulti 'peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
-      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2'
       content: 'FooBar 1'
     test.equal @recursive2,
       _id: @recursive2Id
-      _schema: '1.0.0'
       other: null
       content: 'FooBar 2'
       reverse: [
@@ -1933,7 +1882,6 @@ testAsyncMulti 'peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
-      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2'
@@ -1944,7 +1892,6 @@ testAsyncMulti 'peerdb - recursive two', [
       ]
     test.equal @recursive2,
       _id: @recursive2Id
-      _schema: '1.0.0'
       other:
         _id: @recursive1Id
         content: 'FooBar 1'
@@ -1973,7 +1920,6 @@ testAsyncMulti 'peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
-      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2'
@@ -1984,7 +1930,6 @@ testAsyncMulti 'peerdb - recursive two', [
       ]
     test.equal @recursive2,
       _id: @recursive2Id
-      _schema: '1.0.0'
       other:
         _id: @recursive1Id
         content: 'FooBar 1a'
@@ -2013,7 +1958,6 @@ testAsyncMulti 'peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
-      _schema: '1.0.0'
       other:
         _id: @recursive2Id
         content: 'FooBar 2a'
@@ -2024,7 +1968,6 @@ testAsyncMulti 'peerdb - recursive two', [
       ]
     test.equal @recursive2,
       _id: @recursive2Id
-      _schema: '1.0.0'
       other:
         _id: @recursive1Id
         content: 'FooBar 1a'
@@ -2051,7 +1994,6 @@ testAsyncMulti 'peerdb - recursive two', [
 
     test.equal @recursive1,
       _id: @recursive1Id
-      _schema: '1.0.0'
       other: null
       content: 'FooBar 1a'
       reverse: []
@@ -2077,7 +2019,6 @@ testAsyncMulti 'peerdb - recursive one', [
 
     test.equal @recursive,
       _id: @recursiveId
-      _schema: '1.0.0'
       other: null
       content: 'FooBar'
 
@@ -2099,7 +2040,6 @@ testAsyncMulti 'peerdb - recursive one', [
 
     test.equal @recursive,
       _id: @recursiveId
-      _schema: '1.0.0'
       other:
         _id: @recursiveId
         content: 'FooBar'
@@ -2126,7 +2066,6 @@ testAsyncMulti 'peerdb - recursive one', [
 
     test.equal @recursive,
       _id: @recursiveId
-      _schema: '1.0.0'
       other:
         _id: @recursiveId
         content: 'FooBara'
@@ -2304,7 +2243,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
@@ -2312,7 +2250,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
       count: 0
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -2320,7 +2257,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
       count: 0
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -2372,7 +2308,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2451,7 +2386,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
 
     test.equal @postLink,
       _id: @postLinkId
-      _schema: '1.0.0'
       post:
         _id: @post._id
         subdocument:
@@ -2492,7 +2426,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
 
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2a'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -2531,7 +2464,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
 
     test.equal @postLink,
       _id: @postLinkId
-      _schema: '1.0.0'
       post:
         _id: @post._id
         subdocument:
@@ -2568,7 +2500,6 @@ testAsyncMulti 'peerdb - subdocument fields', [
 
     test.equal @postLink,
       _id: @postLinkId
-      _schema: '1.0.0'
       post:
         _id: @post._id
         subdocument:
@@ -2637,19 +2568,16 @@ testAsyncMulti 'peerdb - generated fields', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 0
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 0
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 0
@@ -2699,7 +2627,6 @@ testAsyncMulti 'peerdb - generated fields', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2771,7 +2698,6 @@ testAsyncMulti 'peerdb - generated fields', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2843,7 +2769,6 @@ testAsyncMulti 'peerdb - generated fields', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2915,7 +2840,6 @@ testAsyncMulti 'peerdb - generated fields', [
     # be updated in the post as well, automatically
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -2983,7 +2907,6 @@ testAsyncMulti 'peerdb - generated fields', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3048,7 +2971,6 @@ testAsyncMulti 'peerdb - generated fields', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -3217,8 +3139,6 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
   test.equal Document._delayed[2], _TestThird2
   test.equal Document._delayed[3], Third
   test.equal Document._delayed[4], First
-
-  # These documents do not have schema version set because they are created after Meteor.startup
 
   test.equal Second.Meta._name, 'Second'
   test.equal Second.Meta.parent, _TestSecond.Meta
@@ -3590,8 +3510,6 @@ Tinytest.add 'peerdb - local collections', (test) ->
   testDocumentList test, ALL.concat [Local]
   test.equal Document._delayed.length, 0
 
-  # This document does not have schema version set because it is created after Meteor.startup
-
   test.equal Local.Meta._name, 'Local'
   test.isFalse Local.Meta.parent
   test.equal Local.Meta.document, Local
@@ -3642,7 +3560,6 @@ testAsyncMulti 'peerdb - errors for generated fields', [
 
     test.equal @identityGenerator,
       _id: @identityGeneratorId
-      _schema: '1.0.0'
       source: 'foobar'
       result: 'foobar'
 
@@ -3680,7 +3597,6 @@ testAsyncMulti 'peerdb - errors for generated fields', [
 
     test.equal @identityGenerator,
       _id: @identityGeneratorId
-      _schema: '1.0.0'
       source: ['foobar2']
       result: 'foobar'
       results: ['foobar2']
@@ -3698,8 +3614,6 @@ Tinytest.add 'peerdb - tricky references', (test) ->
         first: @ReferenceField First1
 
   Document.defineAll()
-
-  # These documents do not have schema version set because they are created after Meteor.startup
 
   test.equal First1.Meta._name, 'First1'
   test.isFalse First1.Meta.parent
@@ -3799,7 +3713,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
@@ -3807,7 +3720,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 0
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -3815,7 +3727,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 0
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -3925,7 +3836,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4111,7 +4021,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1a'
       displayName: 'Person 1'
       field1: 'Field 1 - 1'
@@ -4138,7 +4047,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2a'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -4203,7 +4111,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3a'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -4257,7 +4164,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4420,7 +4326,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1a'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -4451,7 +4356,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -4611,7 +4515,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
       field2: 'Field 1 - 2a'
@@ -4641,7 +4544,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         displayName: @person1.displayName
@@ -4800,7 +4702,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
@@ -4868,7 +4769,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         displayName: @person1.displayName
@@ -5017,7 +4917,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
       field2: 'Field 3 - 2'
@@ -5066,7 +4965,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         displayName: @person1.displayName
@@ -5205,7 +5103,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -5236,7 +5133,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -5376,7 +5272,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
@@ -5445,7 +5340,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -5595,7 +5489,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -5645,7 +5538,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -5808,7 +5700,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       subdocumentPosts: [
@@ -5875,7 +5766,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -6026,7 +5916,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -6095,7 +5984,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -6259,7 +6147,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -6286,7 +6173,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -6351,7 +6237,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -6401,7 +6286,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -6565,7 +6449,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -6592,7 +6475,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -6657,7 +6539,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -6707,7 +6588,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -6871,7 +6751,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -6898,7 +6777,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -6963,7 +6841,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -7013,7 +6890,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -7177,7 +7053,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -7204,7 +7079,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -7269,7 +7143,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -7319,7 +7192,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -7482,7 +7354,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -7509,7 +7380,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -7574,7 +7444,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -7624,7 +7493,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -7784,7 +7652,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -7811,7 +7678,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -7876,7 +7742,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -7926,7 +7791,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -8091,7 +7955,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -8120,7 +7983,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person2,
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2b'
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
@@ -8191,7 +8053,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 3
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -8245,7 +8106,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -8412,7 +8272,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -8433,7 +8292,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       count: 1
     test.equal @person3,
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3b'
       displayName: 'Person 3'
       field1: 'Field 3 - 1'
@@ -8471,7 +8329,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -8556,7 +8413,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @person1,
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1b'
       displayName: 'Person 1'
       field1: 'Field 1 - 1a'
@@ -8575,7 +8431,6 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
 
     test.equal @post,
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -8699,19 +8554,16 @@ testAsyncMulti 'peerdb - instances', [
 
     test.equal plainObject(@person1),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 0
     test.equal plainObject(@person2),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 0
     test.equal plainObject(@person3),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 0
@@ -8778,7 +8630,6 @@ testAsyncMulti 'peerdb - instances', [
 
     test.equal plainObject(@post),
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -8892,7 +8743,6 @@ testAsyncMulti 'peerdb - instances', [
 
     test.equal plainObject(@post),
       _id: @postId
-      _schema: '1.0.0'
       author:
         _id: @person1._id
         username: @person1.username
@@ -9147,7 +8997,6 @@ if Meteor.isServer and not Document.instanceDisabled
 
       test.equal @post,
         _id: @postId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -9227,7 +9076,6 @@ if Meteor.isServer and not Document.instanceDisabled
       # Reference fields are automatically updated back, but generated fields are not
       test.equal @post,
         _id: @postId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -9289,7 +9137,6 @@ if Meteor.isServer and not Document.instanceDisabled
 
       test.equal @post,
         _id: @postId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -9485,7 +9332,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post1,
       _id: @postId1
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -9539,7 +9385,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post2,
       _id: @postId2
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -9593,7 +9438,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post3,
       _id: @postId3
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -9654,7 +9498,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 8
@@ -9733,7 +9576,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 5
@@ -9788,7 +9630,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 5
@@ -9953,7 +9794,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -10133,7 +9973,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -10244,7 +10083,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -10419,7 +10257,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -10599,7 +10436,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -10710,7 +10546,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -10841,7 +10676,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post2,
       _id: @postId2
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -10910,7 +10744,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -11094,7 +10927,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 9
@@ -11219,7 +11051,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -11351,7 +11182,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post2,
       _id: @postId2
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -11412,7 +11242,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -11592,7 +11421,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -11703,7 +11531,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -11835,7 +11662,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post2,
       _id: @postId2
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -11904,7 +11730,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -12088,7 +11913,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -12203,7 +12027,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -12335,7 +12158,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post2,
       _id: @postId2
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -12396,7 +12218,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -12576,7 +12397,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -12687,7 +12507,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -12815,7 +12634,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -12892,7 +12710,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -13072,7 +12889,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 9
@@ -13195,7 +13011,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -13323,7 +13138,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -13400,7 +13214,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -13580,7 +13393,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -13691,7 +13503,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -13820,7 +13631,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -13901,7 +13711,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 14
@@ -14093,7 +13902,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -14204,7 +14012,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -14332,7 +14139,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -14409,7 +14215,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -14589,7 +14394,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -14700,7 +14504,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -14830,7 +14633,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -14911,7 +14713,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -15091,7 +14892,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -15202,7 +15002,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -15330,7 +15129,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -15407,7 +15205,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -15587,7 +15384,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -15698,7 +15494,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -15826,7 +15621,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -15903,7 +15697,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 14
@@ -16095,7 +15888,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -16206,7 +15998,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -16335,7 +16126,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -16412,7 +16202,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -16592,7 +16381,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -16703,7 +16491,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -16831,7 +16618,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -16905,7 +16691,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -17085,7 +16870,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -17196,7 +16980,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 8
@@ -17312,7 +17095,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -17389,7 +17171,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -17569,7 +17350,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -17680,7 +17460,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 9
@@ -17809,7 +17588,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -17886,7 +17664,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 14
@@ -18078,7 +17855,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -18189,7 +17965,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 8
@@ -18304,7 +18079,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person1Id
         username: 'person1'
@@ -18377,7 +18151,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 13
@@ -18557,7 +18330,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 8
@@ -18668,7 +18440,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 8
@@ -18784,7 +18555,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal @post5,
       _id: @postId5
-      _schema: '1.0.0'
       author:
         _id: @person2Id
         username: 'person2'
@@ -18857,7 +18627,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 12
@@ -19025,7 +18794,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 9
@@ -19149,7 +18917,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 8
@@ -19264,7 +19031,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 12
@@ -19432,7 +19198,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 7
@@ -19531,7 +19296,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 6
@@ -19622,7 +19386,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 10
@@ -19774,7 +19537,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 5
@@ -19856,7 +19618,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 4
@@ -19931,7 +19692,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
-      _schema: '1.0.0'
       username: 'person1'
       displayName: 'Person 1'
       count: 7
@@ -20059,7 +19819,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
-      _schema: '1.0.0'
       username: 'person2'
       displayName: 'Person 2'
       count: 4
@@ -20133,7 +19892,6 @@ testAsyncMulti 'peerdb - reverse posts', [
 
     test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
-      _schema: '1.0.0'
       username: 'person3'
       displayName: 'Person 3'
       count: 2
@@ -20200,7 +19958,6 @@ if Meteor.isServer
 
       test.equal plainObject(@person1),
         _id: @person1Id
-        _schema: '1.0.0'
         username: 'person1'
         displayName: 'Person 1'
         count: 0
@@ -20231,7 +19988,6 @@ if Meteor.isServer
 
       test.equal plainObject(@post),
         _id: @postId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -20267,7 +20023,6 @@ if Meteor.isServer
 
       test.equal plainObject(@specialPost),
         _id: @specialPostId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -20310,7 +20065,6 @@ if Meteor.isServer
 
       test.equal plainObject(@post),
         _id: @postId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -20329,7 +20083,6 @@ if Meteor.isServer
 
       test.equal plainObject(@specialPost),
         _id: @specialPostId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -20372,7 +20125,6 @@ if Meteor.isServer
 
       test.equal plainObject(@post),
         _id: @postId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
@@ -20396,7 +20148,6 @@ if Meteor.isServer
 
       test.equal plainObject(@specialPost),
         _id: @specialPostId
-        _schema: '1.0.0'
         author:
           _id: @person1._id
           username: @person1.username
