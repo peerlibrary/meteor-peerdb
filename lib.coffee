@@ -112,6 +112,9 @@ class globals.Document
     _.extend @, @constructor.objectify '', null, (doc or {}), (@constructor?.Meta?.fields or {})
 
   @_Trigger: class
+    # Arguments:
+    #   fields
+    #   fields, trigger
     constructor: (@fields, @trigger) ->
       @fields ?= []
 
@@ -156,6 +159,8 @@ class globals.Document
   @_ObservingField: class extends @_Field
 
   @_TargetedFieldsObservingField: class extends @_ObservingField
+    # Arguments:
+    #   targetDocument, fields
     constructor: (targetDocument, @fields) ->
       super()
 
@@ -195,6 +200,11 @@ class globals.Document
       assert.equal @targetDocument.Meta.document.Meta, @targetDocument.Meta
 
   @_ReferenceField: class extends @_TargetedFieldsObservingField
+    # Arguments:
+    #   targetDocument, fields
+    #   targetDocument, fields, required
+    #   targetDocument, fields, required, reverseName
+    #   targetDocument, fields, required, reverseName, reverseFields
     constructor: (targetDocument, fields, @required, @reverseName, @reverseFields) ->
       super targetDocument, fields
 
@@ -239,6 +249,9 @@ class globals.Document
     new @_ReferenceField args...
 
   @_GeneratedField: class extends @_TargetedFieldsObservingField
+    # Arguments:
+    #   targetDocument, fields
+    #   targetDocument, fields, generator
     constructor: (targetDocument, fields, @generator) ->
       super targetDocument, fields
 
