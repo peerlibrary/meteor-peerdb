@@ -62,10 +62,10 @@ getCollection = (name, document, replaceParent) ->
           delete Document._collections[name]._connection._stores[name]
         else
           throw new Error "Reuse of a collection without replaceParent set"
-    collection = new Meteor.Collection name, transform: transform
+    collection = new Mongo.Collection name, transform: transform
     Document._collections[name] = collection
   else if name is null
-    collection = new Meteor.Collection name, transform: transform
+    collection = new Mongo.Collection name, transform: transform
   else
     collection = name
     if collection._peerdb and not replaceParent

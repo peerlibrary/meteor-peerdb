@@ -24,7 +24,7 @@ MESSAGES_TTL = 60 # seconds
 #   type
 #   data
 # We use a lower case collection name to signal it is a system collection
-globals.Document.Messages = new Meteor.Collection 'peerdb.messages'
+globals.Document.Messages = new Mongo.Collection 'peerdb.messages'
 
 # Auto-expire messages after MESSAGES_TTL seconds
 globals.Document.Messages._ensureIndex

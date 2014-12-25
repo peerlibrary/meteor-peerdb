@@ -7,7 +7,7 @@ Package.describe({
 
 Package.on_use(function (api) {
   api.versionsFrom('METEOR@1.0');
-  api.use(['coffeescript', 'underscore', 'minimongo', 'peerlibrary:assert@0.2.5', 'peerlibrary:stacktrace@0.1.3'], ['client', 'server']);
+  api.use(['coffeescript', 'underscore', 'minimongo', 'mongo', 'peerlibrary:assert@0.2.5', 'peerlibrary:stacktrace@0.1.3'], ['client', 'server']);
   api.use(['random'], 'server');
 
   api.export('Document');
