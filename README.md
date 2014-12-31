@@ -33,7 +33,7 @@ meteor add peerlibrary:peerdb
 Additional packages
 -------------------
 
-* [peerlibrary:peerdb-migrations](https://github.com/peerlibrary/meteor-peerdb-migrations)
+* [peerlibrary:peerdb-migrations](https://github.com/peerlibrary/meteor-peerdb-migrations) – Migrations support for PeerDB documents
 
 Documents
 ---------
