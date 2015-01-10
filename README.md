@@ -76,6 +76,22 @@ class Person extends Document
     @displayName or @username
 ```
 
+You can also wrap existing Meteor collections:
+
+```coffeescript
+class User extends Document
+  @Meta
+    name: 'User'
+    collection: Meteor.users
+```
+
+And if you need to access the internal or wrapped collection you can do that by:
+
+```coffeescript
+Person.Meta.collection._ensureIndex
+  username: 1
+```
+
 Querying
 --------
 
