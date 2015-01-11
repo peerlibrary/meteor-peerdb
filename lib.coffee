@@ -280,6 +280,7 @@ class globals.Document
       @meta.collection.remove args...
 
     exists: (query) =>
+      query ?= {}
       !!@meta.collection.findOne query,
         fields:
           _id: 1

@@ -958,6 +958,9 @@ testAsyncMulti 'peerdb - references', [
     waitForDatabase test, expect
 ,
   (test, expect) ->
+    # Should work also with no argument (defaults to {}).
+    test.isTrue Person.documents.exists()
+
     test.isTrue Person.documents.exists @person1Id
     test.isTrue Person.documents.exists @person2Id
     test.isTrue Person.documents.exists @person3Id
