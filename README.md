@@ -109,7 +109,15 @@ Person.documents.findOne().email
 
 The functions and arguments available are the same as those available for Meteor collections, with the addition of:
 
-* `.documents.exists(query)` – efficient check if any document matches given `query`
+* `.documents.exists(query, options)` – efficient check if any document matches given `query`
+
+In a similar way we extend the cursor returned from `.documents.find(...)` with an `exists` method which operates
+similar to the `count` method, only that it is more efficient:
+
+```coffee
+Person.documents.exists({})
+Person.documents.find({}).exists()
+```
 
 `Person.Meta` gives you back document metadata and `Person.documents` give you access to all documents.
 

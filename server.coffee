@@ -19,6 +19,24 @@ if INSTANCES > 1
 
 MESSAGES_TTL = 60 # seconds
 
+# We augment the cursor so that it matches our extra method in documents manager.
+MeteorCursor = Object.getPrototypeOf(MongoInternals.defaultRemoteCollectionDriver().mongo.find()).constructor
+MeteorCursor.prototype.exists = ->
+  # You can only observe a tailable cursor.
+  throw new Error "Cannot call exists on a tailable cursor" if @_cursorDescription.options.tailable
+
+  unless @_synchronousCursorForExists
+    # A special cursor with limit forced to 1.
+    cursorDescription = _.clone @_cursorDescription
+    cursorDescription.options = _.clone cursorDescription.options
+    cursorDescription.options.limit = 1
+    @_synchronousCursorForExists = @_mongo._createSynchronousCursor cursorDescription,
+      selfForIteration: @
+      useTransform: false
+
+  @_synchronousCursorForExists._rewind()
+  !!@_synchronousCursorForExists._nextObject()
+
 # Fields:
 #   created
 #   type

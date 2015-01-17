@@ -75,6 +75,21 @@ getCollection = (name, document, replaceParent) ->
 
   collection
 
+# We augment the cursor so that it matches our extra method in documents manager.
+LocalCollection.Cursor.prototype.exists = ->
+  # We just have to limit the query temporary. For limited and unsorted queries
+  # there is already a fast path in _getRawObjects. Same for single ID queries.
+  # We cannot do much if it is a sorted query (Minimongo does not have indexes).
+  # The only combination we could optimize further is an unsorted query with skip
+  # and instead of generating a set of all documents and then doing a slice, we
+  # could traverse at most skip number of documents.
+  originalLimit = @limit
+  @limit = 1
+  try
+    return !!@count()
+  finally
+    @limit = originalLimit
+
 class globals.Document
   # TODO: When we will require all fields to be specified and have validator support to validate new objects, we can also run validation here and check all data, reference fields and others
   @objectify: (parent, ancestorArray, obj, fields) ->
@@ -279,12 +294,17 @@ class globals.Document
     remove: (args...) =>
       @meta.collection.remove args...
 
-    exists: (query) =>
+    exists: (query, options) =>
       query ?= {}
-      !!@meta.collection.findOne query,
+      options ?= {}
+
+      # We want only a top-level extend here.
+      _.extend options,
         fields:
           _id: 1
         transform: null
+
+      !!@meta.collection.findOne query, options
 
   @_setDelayedCheck: ->
     return unless globals.Document._delayed.length

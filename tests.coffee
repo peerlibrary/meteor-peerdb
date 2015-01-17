@@ -960,10 +960,38 @@ testAsyncMulti 'peerdb - references', [
   (test, expect) ->
     # Should work also with no argument (defaults to {}).
     test.isTrue Person.documents.exists()
+    test.isTrue Person.documents.find().exists()
 
     test.isTrue Person.documents.exists @person1Id
     test.isTrue Person.documents.exists @person2Id
     test.isTrue Person.documents.exists @person3Id
+
+    test.isTrue Person.documents.find(@person1Id).exists()
+    test.isTrue Person.documents.find(@person2Id).exists()
+    test.isTrue Person.documents.find(@person3Id).exists()
+
+    test.equal Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}).count(), 3
+
+    # Test without skip and limit.
+    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]})
+    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}).exists()
+
+    # With sorting. We are testing all this combinations because there are various code paths.
+    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {sort: [['username', 'asc']]})
+    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {sort: [['username', 'asc']]}).exists()
+
+    # Test with skip and limit.
+    # This behaves differently than .count() on the server because on the server
+    # applySkipLimit is not set. But exists do respect skip and limit.
+    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1})
+    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1}).exists()
+    test.isFalse Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1})
+    test.isFalse Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1}).exists()
+
+    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1, sort: [['username', 'asc']]})
+    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1, sort: [['username', 'asc']]}).exists()
+    test.isFalse Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1, sort: [['username', 'asc']]})
+    test.isFalse Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1, sort: [['username', 'asc']]}).exists()
 
     @person1 = Person.documents.findOne @person1Id,
       transform: null # So that we can use test.equal
