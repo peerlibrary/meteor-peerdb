@@ -78,7 +78,7 @@ class Person extends Document
 
 You can also wrap existing Meteor collections:
 
-```coffeescript
+```coffee
 class User extends Document
   @Meta
     name: 'User'
@@ -87,7 +87,7 @@ class User extends Document
 
 And if you need to access the internal or wrapped collection you can do that by:
 
-```coffeescript
+```coffee
 Person.Meta.collection._ensureIndex
   username: 1
 ```
