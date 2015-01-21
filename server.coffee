@@ -26,10 +26,12 @@ MeteorCursor.prototype.exists = ->
   throw new Error "Cannot call exists on a tailable cursor" if @_cursorDescription.options.tailable
 
   unless @_synchronousCursorForExists
-    # A special cursor with limit forced to 1.
+    # A special cursor with limit forced to 1 and fields to only _id.
     cursorDescription = _.clone @_cursorDescription
     cursorDescription.options = _.clone cursorDescription.options
     cursorDescription.options.limit = 1
+    cursorDescription.options.fields =
+      _id: 1
     @_synchronousCursorForExists = @_mongo._createSynchronousCursor cursorDescription,
       selfForIteration: @
       useTransform: false
