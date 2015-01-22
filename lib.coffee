@@ -76,7 +76,7 @@ getCollection = (name, document, replaceParent) ->
   collection
 
 # We augment the cursor so that it matches our extra method in documents manager.
-LocalCollection.Cursor.prototype.exists = ->
+LocalCollection.Cursor::exists = ->
   # We just have to limit the query temporary. For limited and unsorted queries
   # there is already a fast path in _getRawObjects. Same for single ID queries.
   # We cannot do much if it is a sorted query (Minimongo does not have indexes).

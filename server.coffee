@@ -21,7 +21,7 @@ MESSAGES_TTL = 60 # seconds
 
 # We augment the cursor so that it matches our extra method in documents manager.
 MeteorCursor = Object.getPrototypeOf(MongoInternals.defaultRemoteCollectionDriver().mongo.find()).constructor
-MeteorCursor.prototype.exists = ->
+MeteorCursor::exists = ->
   # You can only observe a tailable cursor.
   throw new Error "Cannot call exists on a tailable cursor" if @_cursorDescription.options.tailable
 
