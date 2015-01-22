@@ -24,6 +24,7 @@ Package.on_use(function (api) {
 
 Package.on_test(function (api) {
   api.use(['peerlibrary:peerdb', 'tinytest', 'test-helpers', 'coffeescript', 'insecure', 'accounts-base', 'accounts-password', 'peerlibrary:assert@0.2.5', 'underscore', 'random'], ['client', 'server']);
+
   api.add_files([
     'tests_defined.js',
     'tests.coffee'
