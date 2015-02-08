@@ -284,6 +284,34 @@ and JavaScript symbols might not even exist yet in the scope, and PeerDB works h
 But to make sure all symbols are correctly resolved you should call `Document.defineAll()` after all your definitions.
 The best is to put it in the filename which is loaded last.
 
+One more example to show use of nested objects:
+
+```coffee
+class ACLDocument extends Document
+  @Meta
+    name: 'ACLDocument'
+    fields: =>
+      permissions:
+        admins: [@ReferenceField User]
+        editors: [@ReferenceField User]
+```
+
+You can also do:
+
+```coffee
+class ACLDocument extends Document
+  # Each permission object inside "permissions" could have also
+  # timestamp and permission type fields.
+
+  @Meta
+    name: 'ACLDocument'
+    fields: =>
+      permissions: [
+        user: @ReferenceField User
+        grantor: @ReferenceField User, [], false
+      ]
+```
+
 `ReferenceField` accepts the following arguments:
 
 * `targetDocument` – target document class, or `'self'`
