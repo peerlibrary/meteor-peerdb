@@ -46,7 +46,7 @@ removePrefix = (string, prefix) ->
   string.substring prefix.length
 
 getCollection = (name, document, replaceParent) ->
-  transform = (doc) => new document doc
+  transform = (doc) -> new document doc
 
   if _.isString(name)
     if Document._collections[name]
