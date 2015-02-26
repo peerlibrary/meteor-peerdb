@@ -276,8 +276,10 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
 
     # TODO: Current code is run too many times, for any update of source collection reverse field is updated
 
-    # We just add the ID to the reverse field array and leave for any additional fields
-    # (@reverseFields) to be added by reference fields configured through Meta._reverseFields
+    # We add other fields (@reverseFields) to the reverse field array only the first time,
+    # when we are adding the new subdocument to the array. Keeping them updated later on is done
+    # by reference fields configured through Meta._reverseFields. This assures subdocuments in
+    # the reverse field array always match the schema, from the very beginning.
 
     selector =
       _id: value._id
@@ -287,6 +289,22 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
     update = {}
     update[@reverseName] =
       _id: id
+
+    # Only _id is requested, we do not have to do anything more
+    unless _.isEmpty @reverseFields
+      referenceFields = fieldsToProjection @reverseFields
+      source = @sourceCollection.findOne id,
+        fields: referenceFields
+        transform: null
+
+      unless source
+        Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' document disappeared while fetching reverse fields for field '#{ @sourcePath }' ('#{ @reverseName }')"
+        # TODO: Should we call reference.removeSource here? And remove from reverse fields?
+
+        # No need adding it to the reverse field because it does not exist anymore.
+        return
+
+      update[@reverseName] = source
 
     @targetCollection.update selector,
       $addToSet: update

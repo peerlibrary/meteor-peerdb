@@ -20197,3 +20197,85 @@ if Meteor.isServer
       test.equal globalTestTriggerCounters[@postId], 2
       test.equal globalTestTriggerCounters[@specialPostId], 2
   ]
+
+testAsyncMulti 'peerdb - reverse fields', [
+  (test, expect) ->
+    Person.documents.insert
+      username: 'person1'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+    ,
+      expect (error, person1Id) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue person1Id
+        @person1Id = person1Id
+
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      username: 'person1'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+      count: 0
+
+    @changes = []
+
+    @handle = Person.documents.find(@person1Id).observe
+      changed: (newDocument, oldDocument) =>
+        @changes.push newDocument
+
+    Post.documents.insert
+      author:
+        _id: @person1._id
+      subdocument:
+        persons: []
+        body: 'SubdocumentFooBar'
+      nested: []
+      body: 'FooBar'
+    ,
+      expect (error, postId) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue postId
+        @postId = postId
+
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+
+    test.equal @person1,
+      _id: @person1Id
+      username: 'person1'
+      displayName: 'Person 1'
+      field1: 'Field 1 - 1'
+      field2: 'Field 1 - 2'
+      count: 1
+      posts: [
+        _id: @postId
+        body: 'FooBar'
+        nested: []
+        subdocument:
+          body: 'SubdocumentFooBar'
+      ]
+
+    # This test is checking that all fields in reverse field subdocuments are populated
+    # from the beginning. Otherwise there might be a short but existing time when
+    # document does not match the schema, and is published as such to the client.
+    for person in @changes
+      for post in person.posts
+        test.equal post.body, 'FooBar'
+        test.equal post.nested, []
+        test.equal post.subdocument?.body, 'SubdocumentFooBar'
+
+    @handle.stop()
+]
