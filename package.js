@@ -1,6 +1,6 @@
 Package.describe({
   summary: "Reactive database layer with references, generators, triggers, migrations, etc.",
-  version: '0.16.0',
+  version: '0.16.1',
   name: 'peerlibrary:peerdb',
   git: 'https://github.com/peerlibrary/meteor-peerdb.git'
 });
