@@ -20279,3 +20279,83 @@ testAsyncMulti 'peerdb - reverse fields', [
 
     @handle.stop()
 ]
+
+testAsyncMulti 'peerdb - bulk insert', [
+  (test, expect) ->
+    @testContent = for i in [0..100]
+      content: Random.id()
+
+    ids = Recursive.documents.bulkInsert @testContent, expect (error, ids) =>
+        test.isFalse error, error?.toString?() or error
+        test.isTrue ids
+        test.equal ids?.length, @testContent.length
+        @testIds = ids
+
+    test.isTrue ids
+    test.equal ids?.length, @testContent.length
+
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
+,
+  (test, expect) ->
+    docs = Recursive.documents.find(
+      _id:
+        $in: @testIds
+    ,
+      fields:
+        _id: 0
+        content: 1
+      transform: null # So that we can use test.equal
+    ).fetch()
+
+    testSetEqual test, @testContent, docs
+,
+  (test, expect) ->
+    randomIds = for i in [0...100]
+      Random.id()
+
+    insertContent = for i in [0...100]
+      other = randomIds[(i + 50) % 100]
+      reverse = randomIds[(100 + i - 50) % 100]
+
+      _id: randomIds[i]
+      content: randomIds[i]
+      other:
+        _id: other
+      reverse: [
+        _id: reverse
+      ]
+    @testContent = for i in [0...100]
+      other = randomIds[(i + 50) % 100]
+      reverse = randomIds[(100 + i - 50) % 100]
+
+      _id: randomIds[i]
+      content: randomIds[i]
+      other:
+        _id: other
+        content: other
+      reverse: [
+        _id: reverse
+        content: reverse
+      ]
+
+    ids = Recursive.documents.bulkInsert insertContent, expect (error, ids) =>
+      test.isFalse error, error?.toString?() or error
+      test.isTrue ids
+      test.equal ids, _.pluck @testContent, '_id'
+
+    test.equal ids, _.pluck @testContent, '_id'
+
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
+,
+  (test, expect) ->
+    docs = Recursive.documents.find(
+      _id:
+        $in: _.pluck(@testContent, '_id')
+    ,
+      transform: null # So that we can use test.equal
+    ).fetch()
+
+    testSetEqual test, @testContent, docs
+]

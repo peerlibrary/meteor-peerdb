@@ -285,6 +285,127 @@ class globals.Document
     insert: (args...) =>
       @meta.collection.insert args...
 
+    bulkInsert: (docs, callback) =>
+      # We exclude _id explicitly in referencesInclude so that we can use it directly with $set.
+      # You cannot use $set with _id, even if you are not changing the _id.
+      referencesInclude = {_id: 0}
+      referencesExclude = {}
+
+      fieldsWalker = (obj) ->
+        for name, field of obj
+          if field instanceof globals.Document._ReferenceField
+            if not field.required or field.isArray
+              referencesInclude[field.sourcePath] = 1
+              referencesExclude[field.sourcePath] = 0
+            else if field.inArray
+              assert field.required
+              referencesInclude[field.ancestorArray] = 1
+              referencesExclude[field.ancestorArray] = 0
+          else if field not instanceof globals.Document._Field
+            fieldsWalker field
+
+      fieldsWalker @meta.fields
+
+      referencesIncludeProjection = LocalCollection._compileProjection referencesInclude
+      referencesExcludeProjection = LocalCollection._compileProjection referencesExclude
+
+      enclosing = DDP._CurrentInvocation.get()
+      alreadyInSimulation = enclosing && enclosing.isSimulation
+
+      if Meteor.isServer or alreadyInSimulation
+        try
+          # We first insert documents without any optional or in-array references set.
+          # This allows us to have all processors in the database before we start to
+          # add references so that PeerDB does not complain or even remove documents
+          # because of a missing referenced document.
+          ids = for doc in docs
+            # If document has an _id, then we try to be smart and delay references.
+            doc = referencesExcludeProjection doc if '_id' of doc
+
+            @insert doc
+
+          # And now add also the references between processors.
+          for doc in docs when '_id' of doc
+            @update doc._id,
+              $set: referencesIncludeProjection doc
+
+        catch error
+          if callback
+            callback error
+            return null
+          throw error
+
+        callback? null, ids
+        return ids
+
+      # The same on the client (outside a simulation), but callback-style.
+      else
+        unless callback
+          # Default callback. Same as Meteor's.
+          callback = (error) =>
+            Meteor._debug "bulkInsert failed: #{ error.reason or error.stack }" if error
+
+        # To cover the edge case and always call a callback.
+        unless docs.length
+          callback null, []
+          return []
+
+        # We are using a dict so that we can write to these variables inside
+        # callbacks. CoffeeScript otherwise makes new local variables instead.
+        callbackClosure =
+          error: null
+          counter: docs.length
+
+        ids = for doc in docs
+          doc = referencesExcludeProjection doc if '_id' of doc
+
+          @insert doc, (error, id) =>
+            # We store only the first error.
+            callbackClosure.error = error if error and not callbackClosure.error
+            callbackClosure.counter--
+
+            return unless callbackClosure.counter is 0
+
+            return callback callbackClosure.error if callbackClosure.error
+
+            finalCallback = ->
+              if ids.length isnt docs.length
+                # There might be an (unconfirmed) edge case where the last insert's callback is called before
+                # the last insert returns, and if the same repeats with the update, ids might not yet be complete.
+                assert.equal ids.length, docs.length - 1
+                callback null, ids.concat [id]
+              else
+                callback null, ids
+
+            anyUpdate = false
+            callbackClosure.counter = docs.length
+
+            # And now add also the references between processors.
+            for doc in docs
+              unless '_id' of doc
+                callbackClosure.counter--
+              else
+                anyUpdate = true
+
+                @update doc._id,
+                  $set: referencesIncludeProjection doc
+                ,
+                  (error) =>
+                    # We store only the first error.
+                    callbackClosure.error = error if error and not callbackClosure.error
+                    callbackClosure.counter--
+
+                    return unless callbackClosure.counter is 0
+
+                    return callback callbackClosure.error if callbackClosure.error
+
+                    finalCallback()
+
+            # Catching the edge case when no document had an _id field, so no update is called and no callback is called.
+            finalCallback() unless anyUpdate
+
+        return ids
+
     update: (args...) =>
       @meta.collection.update args...
 

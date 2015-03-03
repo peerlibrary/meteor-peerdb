@@ -110,6 +110,9 @@ Person.documents.findOne().email
 The functions and arguments available are the same as those available for Meteor collections, with the addition of:
 
 * `.documents.exists(query, options)` – efficient check if any document matches given `query`
+* `.documents.bulkInsert(arrayOfDocuments, callback)` – insert multiple documents in bulk, returning the list of IDs and
+calling an optional callback; it has a special handling of references to minimize issues of loading documents referencing
+documents which are yet to be inserted
 
 In a similar way we extend the cursor returned from `.documents.find(...)` with an `exists` method which operates
 similar to the `count` method, only that it is more efficient:
