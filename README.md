@@ -316,7 +316,7 @@ class ACLDocument extends Document
 
 * `targetDocument` – target document class, or `'self'`
 * `fields` – list of fields to sync in a reference's sub-document; instead of a field name you can use a MongoDB projection as well, like `emails: {$slice: 1}`
-* `required` – should the reference be required (default) or not. If required, when the referenced document is removed, this document will be removed as well. Ff not required, the reference will be set to `null`.
+* `required` – should the reference be required (default) or not. If required, when the referenced document is removed, this document will be removed as well. If not required, the reference will be set to `null`.
 * `reverseName` – name of a field for a reverse reference; specify to enable a reverse reference
 * `reverseFields` – list of fields to sync for a reference reference
 
