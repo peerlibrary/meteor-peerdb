@@ -126,13 +126,13 @@ globals.Document._Trigger::_setupObservers = ->
   queryFields = fieldsToProjection @fields
   @collection.find({}, fields: queryFields).observe
     added: globals.Document._observerCallback (document) =>
-      @trigger document, new @document({}) unless initializing
+      @trigger document, null unless initializing
 
     changed: globals.Document._observerCallback (newDocument, oldDocument) =>
       @trigger newDocument, oldDocument
 
     removed: globals.Document._observerCallback (oldDocument) =>
-      @trigger new @document({}), oldDocument
+      @trigger null, oldDocument
 
   initializing = false
 

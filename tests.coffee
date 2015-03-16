@@ -67,7 +67,7 @@ class Post extends Document
       ]
     triggers: =>
       testTrigger: @Trigger ['body'], (newDocument, oldDocument) ->
-        return unless newDocument._id
+        return unless newDocument?._id
         globalTestTriggerCounters[newDocument._id] = (globalTestTriggerCounters[newDocument._id] or 0) + 1
 
 # Store away for testing

@@ -418,7 +418,7 @@ class Post extends Post
     triggers: =>
       updateUpdatedAt: @Trigger ['title', 'body'], (newDocument, oldDocument) ->
         # Don't do anything when document is removed
-        return unless newDocument._id
+        return unless newDocument?._id
 
         timestamp = new Date()
         Post.documents.update
@@ -430,14 +430,15 @@ class Post extends Post
             updatedAt: timestamp
 ```
 
-The return value is ignored. Triggers are useful when you want arbitrary code to be run when fields change.
-This could be implemented directly with [observe](http://docs.meteor.com/#observe), but triggers
-simplify that and provide an alternative API in the PeerDB spirit.
+The return value is ignored. `newDocument` and `oldDocument` can be `null` when a document has been
+removed or added, respectively. Triggers are useful when you want arbitrary code to be run when
+fields change. This could be implemented directly with [observe](http://docs.meteor.com/#observe),
+but triggers simplify that and provide an alternative API in the PeerDB spirit.
 
 Why we are using a trigger here and not an auto-generated field? The main reason is that we want to enssure
 `updatedAt` really just increases, so a more complicated update query is needed. Additionally, reference
 fields and auto-generated fields should be without side-effects and should be allowed to be called at any
-time. This is to enssure that we can re-sync any broken references as needed. If you would use an
+time. This is to ensure that we can re-sync any broken references as needed. If you would use an
 auto-generated field, it could be called again at a later time, updating `updatedAt` to a later time
 without any content of a document really changing.
 
