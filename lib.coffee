@@ -277,9 +277,11 @@ class globals.Document
     constructor: (@meta) ->
 
     find: (args...) =>
+      # Keep in mind that find() (return all docs) behaves differently from find(undefined) (return 0 docs).
       @meta.collection.find args...
 
     findOne: (args...) =>
+      # Keep in mind that findOne() (return one doc) behaves differently from findOne(undefined) (return 0 docs).
       @meta.collection.findOne args...
 
     insert: (args...) =>
@@ -416,7 +418,8 @@ class globals.Document
       @meta.collection.remove args...
 
     exists: (query, options) =>
-      query ?= {}
+      # exists() (check all docs) behaves differently from exists(undefined) (check 0 docs).
+      query ?= {} unless arguments.length
       options ?= {}
 
       # We want only a top-level extend here.
