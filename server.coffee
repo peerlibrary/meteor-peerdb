@@ -146,9 +146,8 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
     return if _.isEmpty fields
 
     selector = {}
-    selector["#{ @sourcePath }._id"] = id
-
     update = {}
+
     if @inArray
       for field, value of fields
         path = "#{ @ancestorArray }.$#{ @arraySuffix }.#{ field }"
@@ -187,6 +186,8 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
         break unless @sourceCollection.update selector, update, multi: true
 
     else
+      selector["#{ @sourcePath }._id"] = id
+
       for field, value of fields
         path = "#{ @sourcePath }.#{ field }"
 
