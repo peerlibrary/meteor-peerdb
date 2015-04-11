@@ -2162,6 +2162,26 @@ if Meteor.isServer and Document.instances is 1
     Log._intercept 2 # Two to see if we catch more than expected
 
     postId = Post.documents.insert
+      subscribers: [
+        _id: 'nonexistent'
+      ]
+
+    # Wait so that observers have time to update documents
+    Meteor.call 'wait-for-database'
+
+    intercepted = Log._intercepted()
+
+    test.equal intercepted.length, 1, intercepted
+
+    test.isTrue _.isString(intercepted[0]), intercepted[0]
+    intercepted = EJSON.parse intercepted[0]
+
+    test.equal intercepted.message, "Document 'Post' '#{ postId }' field 'subscribers' is referencing a nonexistent document 'nonexistent'"
+    test.equal intercepted.level, 'error'
+
+    Log._intercept 2 # Two to see if we catch more than expected
+
+    postId = Post.documents.insert
       author: null
 
     # Wait so that observers have time to update documents

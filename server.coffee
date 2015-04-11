@@ -257,18 +257,18 @@ class globals.Document._ReferenceField extends globals.Document._ReferenceField
       Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' was updated with an invalid value: #{ util.inspect value }"
       return
 
-    # Only _id is requested, we do not have to do anything
+    referenceFields = fieldsToProjection @fields
+    target = @targetCollection.findOne value._id,
+      fields: referenceFields
+      transform: null
+
+    unless target
+      Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
+      # TODO: Should we call reference.removeSource here? And remove from reverse fields?
+      return
+
+    # Only _id is requested, we do not have to do anything, we just wanted to check for existence of the referenced document.
     unless _.isEmpty @fields
-      referenceFields = fieldsToProjection @fields
-      target = @targetCollection.findOne value._id,
-        fields: referenceFields
-        transform: null
-
-      unless target
-        Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
-        # TODO: Should we call reference.removeSource here? And remove from reverse fields?
-        return
-
       # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
       @updateSource target._id, _.omit target, '_id'
 
