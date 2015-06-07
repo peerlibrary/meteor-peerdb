@@ -317,7 +317,7 @@ class globals.Document
       if Meteor.isServer or alreadyInSimulation
         try
           # We first insert documents without any optional or in-array references set.
-          # This allows us to have all processors in the database before we start to
+          # This allows us to have all documents in the database before we start to
           # add references so that PeerDB does not complain or even remove documents
           # because of a missing referenced document.
           ids = for doc in docs
@@ -326,7 +326,7 @@ class globals.Document
 
             @insert doc
 
-          # And now add also the references between processors.
+          # And now add also the references between documents.
           for doc in docs when '_id' of doc
             @update doc._id,
               $set: referencesIncludeProjection doc
@@ -382,7 +382,7 @@ class globals.Document
             anyUpdate = false
             callbackClosure.counter = docs.length
 
-            # And now add also the references between processors.
+            # And now add also the references between documents.
             for doc in docs
               unless '_id' of doc
                 callbackClosure.counter--
