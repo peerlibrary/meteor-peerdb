@@ -308,8 +308,18 @@ class globals.Document
 
       fieldsWalker @meta.fields
 
-      referencesIncludeProjection = LocalCollection._compileProjection referencesInclude
       referencesExcludeProjection = LocalCollection._compileProjection referencesExclude
+      referencesIncludeModification = (document) ->
+        # We can't use _compileProjection here as this would cause top-level fields to
+        # be overwritten when updating subfields.
+        result = {}
+        for path, value of referencesInclude
+          continue if value isnt 1
+
+          value = _.reduce path.split('.'), ((doc, atom) -> doc[atom]), document
+          result[path] = value unless _.isUndefined value
+
+        result
 
       enclosing = DDP._CurrentInvocation.get()
       alreadyInSimulation = enclosing && enclosing.isSimulation
@@ -329,7 +339,7 @@ class globals.Document
           # And now add also the references between documents.
           for doc in docs when '_id' of doc
             @update doc._id,
-              $set: referencesIncludeProjection doc
+              $set: referencesIncludeModification doc
 
         catch error
           if callback
@@ -390,7 +400,7 @@ class globals.Document
                 anyUpdate = true
 
                 @update doc._id,
-                  $set: referencesIncludeProjection doc
+                  $set: referencesIncludeModification doc
                 ,
                   (error) =>
                     # We store only the first error.
