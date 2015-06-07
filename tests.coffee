@@ -216,6 +216,14 @@ class Post extends Post
     name: 'Post'
     replaceParent: true
 
+# To test handling of subfield references in bulk insert
+class SubfieldItem extends Document
+  @Meta
+    name: 'SubfieldItem'
+    fields: =>
+      toplevel:
+        subitem: @ReferenceField 'self', [], false
+
 Document.defineAll()
 
 # Just to make sure things are sane
@@ -233,6 +241,7 @@ if Meteor.isServer
   Recursive.documents.remove {}
   IdentityGenerator.documents.remove {}
   SpecialPost.documents.remove {}
+  SubfieldItem.documents.remove {}
 
   Meteor.publish null, ->
     Post.documents.find()
@@ -253,6 +262,8 @@ if Meteor.isServer
     IdentityGenerator.documents.find()
   Meteor.publish null, ->
     SpecialPost.documents.find()
+  Meteor.publish null, ->
+    SubfieldItem.documents.find()
 
   Future = Npm.require 'fibers/future'
 
@@ -287,7 +298,7 @@ waitForDatabase = (test, expect) ->
   Meteor.call 'wait-for-database', expect (error) ->
     test.isFalse error, error?.toString?() or error
 
-ALL = @ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink]
+ALL = @ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink, SubfieldItem]
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
@@ -20378,4 +20389,24 @@ testAsyncMulti 'peerdb - bulk insert', [
     ).fetch()
 
     testSetEqual test, @testContent, docs
+]
+
+testAsyncMulti 'peerdb - bulk insert with subfield references', [
+  (test, expect) ->
+    itemId = Random.id()
+    @item =
+      _id: itemId
+      hello: "world"
+      toplevel:
+        subitem:
+          _id: itemId
+        anotherA: "hello"
+        anotherB: "world"
+
+    SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
+      test.isFalse error, error?.toString?() or error
+,
+  (test, expect) ->
+    insertedItem = SubfieldItem.documents.findOne @item._id
+    test.equal insertedItem, @item
 ]
