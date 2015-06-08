@@ -110,9 +110,14 @@ Person.documents.findOne().email
 The functions and arguments available are the same as those available for Meteor collections, with the addition of:
 
 * `.documents.exists(query, options)` – efficient check if any document matches given `query`
-* `.documents.bulkInsert(arrayOfDocuments, callback)` – insert multiple documents in bulk, returning the list of IDs and
-calling an optional callback; it has a special handling of references to minimize issues of loading documents referencing
-documents which are yet to be inserted
+* `.documents.bulkInsert(arrayOfDocuments, [options], callback)` – insert multiple documents in bulk, returning the list
+of IDs and calling an optional callback
+
+`bulkInsert` has a special handling of references to minimize issues of loading documents referencing documents which
+are yet to be inserted. By default, first, all documents are inserted with all optional references delayed. This means,
+all optional references are first omitted, and then all documents are updated by the second query, setting values for
+all optional references. Reference fields inside arrays are always delayed. Optional `options` object accepts field:
+* `dontDelay` – a list of paths of optional reference fields which should not be delayed
 
 In a similar way we extend the cursor returned from `.documents.find(...)` with an `exists` method which operates
 similar to the `count` method, only that it is more efficient:

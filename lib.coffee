@@ -287,7 +287,14 @@ class globals.Document
     insert: (args...) =>
       @meta.collection.insert args...
 
-    bulkInsert: (docs, callback) =>
+    bulkInsert: (docs, options, callback) =>
+      if _.isFunction options
+        callback = options
+        options = {}
+
+      # A list of optional reference fields which should not be delayed. By default, all optional
+      # references are delayed. Reference fields inside arrays are always delayed.
+      options.dontDelay ?= []
       referencesInclude = {}
       referencesExclude = {}
 
@@ -295,8 +302,9 @@ class globals.Document
         for name, field of obj
           if field instanceof globals.Document._ReferenceField
             if not field.required or field.isArray
-              referencesInclude[field.sourcePath] = field
-              referencesExclude[field.sourcePath] = 0
+              unless field.sourcePath in options.dontDelay
+                referencesInclude[field.sourcePath] = field
+                referencesExclude[field.sourcePath] = 0
             else if field.inArray
               assert field.required
               referencesInclude[field.ancestorArray] = field

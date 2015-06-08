@@ -20411,6 +20411,7 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
 
     SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
       test.exception error if error
+      test.equal ids, [itemId]
 ,
   (test, expect) ->
     insertedItem = SubfieldItem.documents.findOne @item._id
@@ -20428,6 +20429,7 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
 
     SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
       test.exception error if error
+      test.equal ids, [itemId]
 ,
   (test, expect) ->
     insertedItem = SubfieldItem.documents.findOne @item._id
@@ -20459,6 +20461,7 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
 
     SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
       test.exception error if error
+      test.equal ids, [itemId]
 ,
   (test, expect) ->
     insertedItem = SubfieldItem.documents.findOne @item._id
@@ -20483,10 +20486,72 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
         _id: itemId
       ]
 
+    @changes = []
+
+    initializing = true
+
+    @handle = SubfieldItem.documents.find().observeChanges
+      added: (id, fields) =>
+        @changes.push {type: 'added', id, fields} unless initializing
+      changed: (id, fields) =>
+        @changes.push {type: 'changed', id, fields}
+
+    initializing = false
+
     SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
       test.exception error if error
+      test.equal ids, [itemId]
+
+    # Wait so that observers have time to update documents. It is not really necessary for PeerDB observes, but for
+    # our observe above. It seems findOne return already correct document, while changed callback above is not
+    # necessary already called and @changes does not contain all values.
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     insertedItem = SubfieldItem.documents.findOne @item._id
     test.equal insertedItem, @item
+
+    test.equal @changes, [
+      type: 'added'
+      id: @item._id
+      fields:
+        hello: "world"
+        toplevel:
+          anotherA: "hello"
+          anotherB: "world"
+    ,
+      type: 'changed'
+      id: @item._id
+      fields: _.pick @item, 'objectInArray', 'anArray', 'toplevel'
+    ]
+
+    @changes = []
+
+    itemId = Random.id()
+    @item._id = itemId
+
+    SubfieldItem.documents.bulkInsert [@item], {dontDelay: ['toplevel.subitem']}, expect (error, ids) =>
+      test.exception error if error
+      test.equal ids, [itemId]
+
+    # Wait so that observers have time to update documents. It is not really necessary for PeerDB observes, but for
+    # our observe above. It seems findOne return already correct document, while changed callback above is not
+    # necessary already called and @changes does not contain all values.
+    waitForDatabase test, expect
+,
+  (test, expect) ->
+    insertedItem = SubfieldItem.documents.findOne @item._id
+    test.equal insertedItem, @item
+
+    test.equal @changes, [
+      type: 'added'
+      id: @item._id
+      fields: _.pick @item, 'hello', 'toplevel'
+    ,
+      type: 'changed'
+      id: @item._id
+      fields: _.pick @item, 'objectInArray', 'anArray'
+    ]
+
+    @handle.stop()
 ]
