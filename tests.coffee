@@ -20422,6 +20422,26 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
       _id: itemId
       hello: "world"
       toplevel:
+        anotherA: "hello"
+        anotherB: "world"
+      # Do not set the array fields on purpose.
+
+    SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
+      test.exception error if error
+,
+  (test, expect) ->
+    insertedItem = SubfieldItem.documents.findOne @item._id
+    item = _.extend {objectInArray: [], anArray: []}, @item
+    # Missing references should be set to null.
+    item.toplevel.subitem = null
+    test.equal insertedItem, item
+,
+  (test, expect) ->
+    itemId = Random.id()
+    @item =
+      _id: itemId
+      hello: "world"
+      toplevel:
         subitem:
           _id: itemId
         anotherA: "hello"

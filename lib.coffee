@@ -328,7 +328,9 @@ class globals.Document
             assert not result[path]
 
           value = _.reduce path.split('.'), ((doc, atom) -> doc?[atom]), document
-          value = [] if _.isUndefined value and (field.isArray or field.inArray)
+          if _.isUndefined value
+            # Explicit null is needed on the client as otherwise the reference will be absent.
+            value = if field.isArray or field.inArray then [] else null
 
           result[path] = value
 
