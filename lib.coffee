@@ -288,36 +288,49 @@ class globals.Document
       @meta.collection.insert args...
 
     bulkInsert: (docs, callback) =>
-      # We exclude _id explicitly in referencesInclude so that we can use it directly with $set.
-      # You cannot use $set with _id, even if you are not changing the _id.
-      referencesInclude = {_id: 0}
+      referencesInclude = {}
       referencesExclude = {}
 
       fieldsWalker = (obj) ->
         for name, field of obj
           if field instanceof globals.Document._ReferenceField
             if not field.required or field.isArray
-              referencesInclude[field.sourcePath] = 1
+              referencesInclude[field.sourcePath] = field
               referencesExclude[field.sourcePath] = 0
             else if field.inArray
               assert field.required
-              referencesInclude[field.ancestorArray] = 1
+              referencesInclude[field.ancestorArray] = field
               referencesExclude[field.ancestorArray] = 0
           else if field not instanceof globals.Document._Field
             fieldsWalker field
 
       fieldsWalker @meta.fields
 
+      # Fix duplicate references in case of array fields. Keep only the shortest common prefix.
+      for path, value of referencesExclude
+        for comparedPath, value of referencesExclude
+          continue if path is comparedPath
+
+          if path.substr(0, comparedPath.length) is comparedPath
+            delete referencesExclude[path]
+            delete referencesInclude[path]
+            break
+
       referencesExcludeProjection = LocalCollection._compileProjection referencesExclude
       referencesIncludeModification = (document) ->
         # We can't use _compileProjection here as this would cause top-level fields to
         # be overwritten when updating subfields.
         result = {}
-        for path, value of referencesInclude
-          continue if value isnt 1
+        for path, field of referencesInclude
+          if field.inArray
+            # If the reference is in an array, we should update the parent.
+            path = field.ancestorArray
+            assert not result[path]
 
-          value = _.reduce path.split('.'), ((doc, atom) -> doc[atom]), document
-          result[path] = value unless _.isUndefined value
+          value = _.reduce path.split('.'), ((doc, atom) -> doc?[atom]), document
+          value = [] if _.isUndefined value and (field.isArray or field.inArray)
+
+          result[path] = value
 
         result
 

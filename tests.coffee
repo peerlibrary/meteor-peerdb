@@ -223,6 +223,11 @@ class SubfieldItem extends Document
     fields: =>
       toplevel:
         subitem: @ReferenceField 'self', [], false
+      objectInArray: [
+        subitem: @ReferenceField 'self', [], false
+        subitem2: @ReferenceField 'self', []
+      ]
+      anArray: [@ReferenceField 'self', []]
 
 Document.defineAll()
 
@@ -20402,9 +20407,64 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
           _id: itemId
         anotherA: "hello"
         anotherB: "world"
+      # Do not set the array fields on purpose.
 
     SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
-      test.isFalse error, error?.toString?() or error
+      test.exception error if error
+,
+  (test, expect) ->
+    insertedItem = SubfieldItem.documents.findOne @item._id
+    test.equal insertedItem, _.extend {objectInArray: [], anArray: []}, @item
+,
+  (test, expect) ->
+    itemId = Random.id()
+    @item =
+      _id: itemId
+      hello: "world"
+      toplevel:
+        subitem:
+          _id: itemId
+        anotherA: "hello"
+        anotherB: "world"
+      objectInArray: [
+        subitem:
+          _id: itemId
+        subitem2:
+          _id: itemId
+        otheritem: 42
+      ]
+      anArray: [
+        _id: itemId
+      ]
+
+    SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
+      test.exception error if error
+,
+  (test, expect) ->
+    insertedItem = SubfieldItem.documents.findOne @item._id
+    test.equal insertedItem, @item
+,
+  (test, expect) ->
+    itemId = Random.id()
+    @item =
+      _id: itemId
+      hello: "world"
+      toplevel:
+        subitem:
+          _id: itemId
+        anotherA: "hello"
+        anotherB: "world"
+      objectInArray: [
+        subitem2:
+          _id: itemId
+        otheritem: 42
+      ]
+      anArray: [
+        _id: itemId
+      ]
+
+    SubfieldItem.documents.bulkInsert [@item], expect (error, ids) =>
+      test.exception error if error
 ,
   (test, expect) ->
     insertedItem = SubfieldItem.documents.findOne @item._id
