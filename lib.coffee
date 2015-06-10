@@ -294,6 +294,7 @@ class globals.Document
 
       # A list of optional reference fields which should not be delayed. By default, all optional
       # references are delayed. Reference fields inside arrays are always delayed.
+      options ?= {}
       options.dontDelay ?= []
       referencesInclude = {}
       referencesExclude = {}

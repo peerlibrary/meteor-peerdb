@@ -20394,6 +20394,10 @@ testAsyncMulti 'peerdb - bulk insert', [
     ).fetch()
 
     testSetEqual test, @testContent, docs
+,
+  (test, expect) ->
+    # Test bulkInsert without any arguments.
+    Recursive.documents.bulkInsert []
 ]
 
 testAsyncMulti 'peerdb - bulk insert with subfield references', [
