@@ -1,32 +1,75 @@
 Package.describe({
+  name: 'peerlibrary:peerdb',
   summary: "Reactive database layer with references, generators, triggers, migrations, etc.",
   version: '0.19.1',
-  name: 'peerlibrary:peerdb',
   git: 'https://github.com/peerlibrary/meteor-peerdb.git'
 });
 
-Package.on_use(function (api) {
-  api.versionsFrom('METEOR@1.0');
-  api.use(['coffeescript', 'underscore', 'minimongo', 'mongo', 'ddp', 'peerlibrary:assert@0.2.5', 'peerlibrary:stacktrace@0.1.3'], ['client', 'server']);
-  api.use(['random'], 'server');
+Package.onUse(function (api) {
+  api.versionsFrom('METEOR@1.0.3.1');
+
+  // Core dependencies.
+  api.use([
+    'coffeescript',
+    'underscore',
+    'minimongo',
+    'mongo',
+    'ddp',
+    'logging'
+  ]);
+
+  api.use([
+    'random'
+  ], 'server');
+
+  // 3rd party dependencies.
+  api.use([
+    'peerlibrary:assert@0.2.5',
+    'peerlibrary:stacktrace@0.1.3'
+  ]);
+
+  api.use([
+    'peerlibrary:util@0.2.3',
+    'mrt:moment@2.8.1'
+  ], 'server');
 
   api.export('Document');
 
-  api.add_files([
+  api.addFiles([
     'lib.coffee'
-  ], ['client', 'server']);
+  ]);
 
-  api.use(['logging', 'peerlibrary:util@0.2.3', 'mrt:moment@2.8.1'], 'server');
-  api.add_files([
+  api.addFiles([
     'server.coffee'
   ], 'server');
 });
 
-Package.on_test(function (api) {
-  api.use(['peerlibrary:peerdb', 'tinytest', 'test-helpers', 'coffeescript', 'insecure', 'accounts-base', 'accounts-password', 'peerlibrary:assert@0.2.5', 'underscore', 'random'], ['client', 'server']);
+Package.onTest(function (api) {
+  api.use([
+    'tinytest',
+    'test-helpers',
+    'coffeescript',
+    'insecure',
+    'accounts-base',
+    'accounts-password',
+    'underscore',
+    'random',
+    'logging',
+    'ejson'
+  ]);
 
-  api.add_files([
+  // Internal dependencies.
+  api.use([
+    'peerlibrary:peerdb'
+  ]);
+
+  // 3rd party dependencies.
+  api.use([
+    'peerlibrary:assert@0.2.5'
+  ]);
+
+  api.addFiles([
     'tests_defined.js',
     'tests.coffee'
-  ], ['client', 'server']);
+  ]);
 });
