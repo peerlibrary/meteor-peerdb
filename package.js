@@ -25,7 +25,7 @@ Package.onUse(function (api) {
   // 3rd party dependencies.
   api.use([
     'peerlibrary:assert@0.2.5',
-    'peerlibrary:stacktrace@0.1.3'
+    'peerlibrary:stacktrace@0.2.0'
   ]);
 
   api.use([
