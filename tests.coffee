@@ -25,10 +25,11 @@ class Post extends Document
       author: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'posts', ['body', 'subdocument.body', 'nested.body']
       # Or an array of documents
       subscribers: [@ReferenceField Person]
-      # Fields can be arbitrary MongoDB projections
+      # Fields can be arbitrary MongoDB projections, as an array
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
-        person: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], false, 'subdocumentPosts', ['body', 'subdocument.body', 'nested.body']
+        # Fields can be arbitrary MongoDB projections, as an object
+        person: @ReferenceField Person, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocumentPosts', ['body', 'subdocument.body', 'nested.body']
         slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
           if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
             [fields._id, undefined]
@@ -387,7 +388,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.targetCollection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Post.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal Post.Meta.fields.subdocument.person.fields, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}
   test.equal Post.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
   test.equal Post.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf Post.Meta.fields.subdocument.persons, Post._ReferenceField
@@ -802,7 +803,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.person.targetCollection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
-  test.equal SpecialPost.Meta.fields.subdocument.person.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal SpecialPost.Meta.fields.subdocument.person.fields, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}
   test.equal SpecialPost.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf SpecialPost.Meta.fields.subdocument.persons, SpecialPost._ReferenceField

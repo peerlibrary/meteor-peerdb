@@ -55,11 +55,16 @@ globals.Document.Messages._ensureIndex
 fieldsToProjection = (fields) ->
   projection =
     _id: 1 # In the case we want only id, that is, detect deletions
-  for field in fields
-    if _.isString field
-      projection[field] = 1
-    else
-      _.extend projection, field
+  if _.isArray fields
+    for field in fields
+      if _.isString field
+        projection[field] = 1
+      else
+        _.extend projection, field
+  else if _.isObject fields
+    _.extend projection, fields
+  else
+    throw new Error "Invalid fields: #{ fields }"
   projection
 
 # TODO: Should we add retry?
