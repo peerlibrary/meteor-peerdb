@@ -440,7 +440,7 @@ removed or added, respectively. Triggers are useful when you want arbitrary code
 fields change. This could be implemented directly with [observe](http://docs.meteor.com/#observe),
 but triggers simplify that and provide an alternative API in the PeerDB spirit.
 
-Why we are using a trigger here and not an auto-generated field? The main reason is that we want to enssure
+Why we are using a trigger here and not an auto-generated field? The main reason is that we want to ensure
 `updatedAt` really just increases, so a more complicated update query is needed. Additionally, reference
 fields and auto-generated fields should be without side-effects and should be allowed to be called at any
 time. This is to ensure that we can re-sync any broken references as needed. If you would use an
