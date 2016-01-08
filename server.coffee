@@ -93,12 +93,12 @@ globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateA
   if not updateAll and @ instanceof globals.Document._ReferenceField
     index = {}
     index["#{ @sourcePath }._id"] = 1
-    @sourceCollection._ensureIndex index
+    @sourceCollection._ensureIndex index if @sourceCollection._connection is Meteor.server
 
     if @reverseName
       index = {}
       index["#{ @reverseName }._id"] = 1
-      @targetCollection._ensureIndex index
+      @targetCollection._ensureIndex index if @targetCollection._connection is Meteor.server
 
   initializing = true
 
@@ -501,7 +501,7 @@ class globals.Document extends globals.Document
 
     unless updateAll
       for index in indexes
-        @Meta.collection._ensureIndex index
+        @Meta.collection._ensureIndex index if @Meta.collection._connection is Meteor.server
 
     initializing = true
 
@@ -529,7 +529,7 @@ class globals.Document extends globals.Document
     return if globals.Document.instanceDisabled
 
     Log.info "Updating all references..."
-    setupObservers true
+    @_setupObservers true
     Log.info "Done"
 
   prepared = false
@@ -563,26 +563,42 @@ class globals.Document extends globals.Document
     start() for start in startList
     return
 
-# TODO: What happens if this is called multiple times? We should make sure that for each document observrs are made only once
-setupObservers = (updateAll) ->
-  setupTriggerObserves = (triggers) ->
-    for name, trigger of triggers
-      trigger._setupObservers()
+  @hasStarted: ->
+    started
 
-  setupTargetObservers = (fields) ->
-    for name, field of fields
-      # There are no arrays anymore here, just objects (for subdocuments) or fields
-      if field instanceof globals.Document._TargetedFieldsObservingField
-        field._setupTargetObservers updateAll
-      else if field not instanceof globals.Document._Field
-        setupTargetObservers field
+  @_setupObservers: (updateAll) ->
+    setupTriggerObserves = (triggers) =>
+      for name, trigger of triggers
+        trigger._setupObservers()
 
-  for document in globals.Document.list
-    # We setup triggers only when we are not updating all
-    setupTriggerObserves document.Meta.triggers unless updateAll
-    # For fields we pass updateAll on
-    setupTargetObservers document.Meta.fields
-    document._setupSourceObservers updateAll
+    setupTargetObservers = (fields) =>
+      for name, field of fields
+        # There are no arrays anymore here, just objects (for subdocuments) or fields
+        if field instanceof @_TargetedFieldsObservingField
+          field._setupTargetObservers updateAll
+        else if field not instanceof @_Field
+          setupTargetObservers field
+
+    # Setup observers only for local collections or server collection. Collections based
+    # on a connection to some other primary collections should not have observers because
+    # they should be setup at the location of primary collections, not here.
+    for document in @list when document.Meta.collection._connection in [null, Meteor.server]
+      if updateAll
+        # For fields we pass updateAll on.
+        setupTargetObservers document.Meta.fields
+        document._setupSourceObservers true
+
+      else
+        # For each document we should setup observers only once.
+        continue if document.Meta._observersSetup
+        document.Meta._observersSetup = true
+
+        # We setup triggers only when we are not updating all.
+        setupTriggerObserves document.Meta.triggers
+        setupTargetObservers document.Meta.fields
+        document._setupSourceObservers false
+
+    return
 
 sendMessage = (type, data) ->
   globals.Document.Messages.insert
@@ -628,7 +644,7 @@ Meteor.startup ->
       Log.info "Enabling observers..."
     else
       Log.info "Enabling observers, instance #{ INSTANCE }/#{ globals.Document.instances }, matching ID prefix: #{ PREFIX.join '' }"
-    setupObservers()
+    globals.Document._setupObservers()
     Log.info "Done"
 
   globals.Document.runStartup()

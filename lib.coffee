@@ -641,6 +641,9 @@ class globals.Document
 
       assert not document.Meta._replaced
 
+      # If a document is defined after PeerDB has started we have to setup observers for it.
+      globals.Document._setupObservers() if Meteor.isServer and globals.Document.hasStarted()
+
       processedCount++
 
     @_setDelayedCheck()
@@ -738,7 +741,7 @@ class globals.Document
         meta.migrations = []
 
     clonedParentMeta = -> parentMeta.apply @, arguments
-    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', 'parent', 'replaceParent', 'abstract'
+    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', '_observersSetup', 'parent', 'replaceParent', 'abstract'
     @Meta = _.extend clonedParentMeta, filteredParentMeta, meta
 
     if not meta.abstract

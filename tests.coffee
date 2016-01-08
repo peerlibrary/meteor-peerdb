@@ -483,6 +483,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
   test.isUndefined Post.Meta.fields.tags.reverseName
   test.isUndefined Post.Meta.fields.tags.reverseFields
+  test.isTrue (Meteor.isServer and Post.Meta._observersSetup) or Meteor.isClient
 
   test.equal User.Meta._name, 'User'
   test.isFalse User.Meta.parent
@@ -490,6 +491,7 @@ testDefinition = (test) ->
   test.equal User.Meta.collection._name, 'users'
   test.equal _.size(User.Meta.triggers), 0
   test.equal _.size(User.Meta.fields), 0
+  test.isTrue (Meteor.isServer and User.Meta._observersSetup) or Meteor.isClient
 
   test.equal UserLink.Meta._name, 'UserLink'
   test.isFalse UserLink.Meta.parent
@@ -509,6 +511,7 @@ testDefinition = (test) ->
   test.equal UserLink.Meta.fields.user.fields, ['username']
   test.isNull UserLink.Meta.fields.user.reverseName
   test.equal UserLink.Meta.fields.user.reverseFields, []
+  test.isTrue (Meteor.isServer and UserLink.Meta._observersSetup) or Meteor.isClient
 
   test.equal PostLink.Meta._name, 'PostLink'
   test.equal PostLink.Meta.parent, _TestPostLink.Meta
@@ -528,6 +531,7 @@ testDefinition = (test) ->
   test.equal PostLink.Meta.fields.post.fields, ['subdocument.person', 'subdocument.persons']
   test.isNull PostLink.Meta.fields.post.reverseName
   test.equal PostLink.Meta.fields.post.reverseFields, []
+  test.isTrue (Meteor.isServer and PostLink.Meta._observersSetup) or Meteor.isClient
 
   test.equal CircularFirst.Meta._name, 'CircularFirst'
   test.equal CircularFirst.Meta.parent, _TestCircularFirst.Meta
@@ -561,6 +565,7 @@ testDefinition = (test) ->
   test.equal CircularFirst.Meta.fields.reverseSeconds.fields, ['content']
   test.isNull CircularFirst.Meta.fields.reverseSeconds.reverseName
   test.equal CircularFirst.Meta.fields.reverseSeconds.reverseFields, []
+  test.isTrue (Meteor.isServer and CircularFirst.Meta._observersSetup) or Meteor.isClient
 
   test.equal CircularSecond.Meta._name, 'CircularSecond'
   test.isFalse CircularSecond.Meta.parent
@@ -594,6 +599,7 @@ testDefinition = (test) ->
   test.equal CircularSecond.Meta.fields.reverseFirsts.fields, ['content']
   test.isNull CircularSecond.Meta.fields.reverseFirsts.reverseName
   test.equal CircularSecond.Meta.fields.reverseFirsts.reverseFields, []
+  test.isTrue (Meteor.isServer and CircularSecond.Meta._observersSetup) or Meteor.isClient
 
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.parent, _TestPerson.Meta
@@ -667,6 +673,7 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields.subdocumentsPosts.fields, ['body', 'subdocument.body', 'nested.body']
   test.isNull Person.Meta.fields.subdocumentsPosts.reverseName
   test.equal Person.Meta.fields.subdocumentsPosts.reverseFields, []
+  test.isTrue (Meteor.isServer and Person.Meta._observersSetup) or Meteor.isClient
 
   test.equal SpecialPerson.Meta._name, 'SpecialPerson'
   test.equal SpecialPerson.Meta.parent, Person.Meta
@@ -675,6 +682,7 @@ testDefinition = (test) ->
   test.equal SpecialPerson.Meta.collection._name, 'SpecialPersons'
   test.equal _.size(SpecialPerson.Meta.triggers), 0
   test.equal _.size(SpecialPerson.Meta.fields), 0
+  test.isTrue (Meteor.isServer and SpecialPerson.Meta._observersSetup) or Meteor.isClient
 
   test.equal Recursive.Meta._name, 'Recursive'
   test.isFalse Recursive.Meta.parent
@@ -708,6 +716,7 @@ testDefinition = (test) ->
   test.equal Recursive.Meta.fields.reverse.fields, ['content']
   test.isNull Recursive.Meta.fields.reverse.reverseName
   test.equal Recursive.Meta.fields.reverse.reverseFields, []
+  test.isTrue (Meteor.isServer and Recursive.Meta._observersSetup) or Meteor.isClient
 
   test.equal IdentityGenerator.Meta._name, 'IdentityGenerator'
   test.isFalse IdentityGenerator.Meta.parent
@@ -741,6 +750,7 @@ testDefinition = (test) ->
   test.equal IdentityGenerator.Meta.fields.results.fields, ['source']
   test.isUndefined IdentityGenerator.Meta.fields.results.reverseName
   test.isUndefined IdentityGenerator.Meta.fields.results.reverseFields
+  test.isTrue (Meteor.isServer and IdentityGenerator.Meta._observersSetup) or Meteor.isClient
 
   test.equal SpecialPost.Meta._name, 'SpecialPost'
   test.equal SpecialPost.Meta.parent, _TestPost2.Meta
@@ -911,6 +921,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.special.fields, []
   test.isNull SpecialPost.Meta.fields.special.reverseName
   test.equal SpecialPost.Meta.fields.special.reverseFields, []
+  test.isTrue (Meteor.isServer and SpecialPost.Meta._observersSetup) or Meteor.isClient
 
   testDocumentList test, ALL
 
@@ -3570,27 +3581,91 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
 Tinytest.add 'peerdb - local collections', (test) ->
   list = _.clone Document.list
 
-  class Local extends Document
-    @Meta
-      name: 'Local'
-      collection: null
+  try
+    class Local extends Document
+      @Meta
+        name: 'Local'
+        collection: null
+        fields: =>
+          person: @ReferenceField Person
 
-  testDocumentList test, ALL.concat [Local]
-  test.equal Document._delayed.length, 0
+    testDocumentList test, ALL.concat [Local]
+    test.equal Document._delayed.length, 0
 
-  test.equal Local.Meta._name, 'Local'
-  test.isFalse Local.Meta.parent
-  test.equal Local.Meta.document, Local
-  test.equal Local.Meta.collection._name, null
-  test.equal _.size(Local.Meta.fields), 0
+    test.equal Local.Meta._name, 'Local'
+    test.isFalse Local.Meta.parent
+    test.equal Local.Meta.document, Local
+    test.equal Local.Meta.collection._name, null
+    test.equal _.size(Local.Meta.fields), 1
+    test.instanceOf Local.Meta.fields.person, Local._ReferenceField
+    test.isNull Local.Meta.fields.person.ancestorArray, Local.Meta.fields.person.ancestorArray
+    test.isTrue Local.Meta.fields.person.required
+    test.equal Local.Meta.fields.person.sourcePath, 'person'
+    test.equal Local.Meta.fields.person.sourceDocument, Local
+    test.equal Local.Meta.fields.person.targetDocument, Person
+    test.isFalse Local.Meta.fields.person.sourceCollection._name
+    test.equal Local.Meta.fields.person.targetCollection._name, 'Persons'
+    test.isFalse Local.Meta.fields.person.sourceDocument.Meta.collection._name
+    test.equal Local.Meta.fields.person.targetDocument.Meta.collection._name, 'Persons'
+    test.equal Local.Meta.fields.person.fields, []
+    test.isNull Local.Meta.fields.person.reverseName
+    test.equal Local.Meta.fields.person.reverseFields, []
 
-  # Restore
-  Document.list = list
-  Document._delayed = []
-  Document._clearDelayedCheck()
+    test.isTrue Local.Meta._observersSetup
 
-  # Verify we are back to normal
-  testDefinition test
+  finally
+    # Restore
+    Document.list = list
+    Document._delayed = []
+    Document._clearDelayedCheck()
+
+    # Verify we are back to normal
+    testDefinition test
+
+Tinytest.add 'peerdb - collections with connection', (test) ->
+  list = _.clone Document.list
+
+  try
+    class CollectionWithConnection extends Document
+      @Meta
+        name: 'CollectionWithConnection'
+        collection: new Mongo.Collection 'CollectionWithConnections',
+          connection: DDP.connect Meteor.absoluteUrl()
+        fields: =>
+          person: @ReferenceField Person
+
+    testDocumentList test, ALL.concat [CollectionWithConnection]
+    test.equal Document._delayed.length, 0
+
+    test.equal CollectionWithConnection.Meta._name, 'CollectionWithConnection'
+    test.isFalse CollectionWithConnection.Meta.parent
+    test.equal CollectionWithConnection.Meta.document, CollectionWithConnection
+    test.equal CollectionWithConnection.Meta.collection._name, 'CollectionWithConnections'
+    test.equal _.size(CollectionWithConnection.Meta.fields), 1
+    test.instanceOf CollectionWithConnection.Meta.fields.person, CollectionWithConnection._ReferenceField
+    test.isNull CollectionWithConnection.Meta.fields.person.ancestorArray, CollectionWithConnection.Meta.fields.person.ancestorArray
+    test.isTrue CollectionWithConnection.Meta.fields.person.required
+    test.equal CollectionWithConnection.Meta.fields.person.sourcePath, 'person'
+    test.equal CollectionWithConnection.Meta.fields.person.sourceDocument, CollectionWithConnection
+    test.equal CollectionWithConnection.Meta.fields.person.targetDocument, Person
+    test.equal CollectionWithConnection.Meta.fields.person.sourceCollection._name, 'CollectionWithConnections'
+    test.equal CollectionWithConnection.Meta.fields.person.targetCollection._name, 'Persons'
+    test.equal CollectionWithConnection.Meta.fields.person.sourceDocument.Meta.collection._name, 'CollectionWithConnections'
+    test.equal CollectionWithConnection.Meta.fields.person.targetDocument.Meta.collection._name, 'Persons'
+    test.equal CollectionWithConnection.Meta.fields.person.fields, []
+    test.isNull CollectionWithConnection.Meta.fields.person.reverseName
+    test.equal CollectionWithConnection.Meta.fields.person.reverseFields, []
+
+    test.isFalse CollectionWithConnection.Meta._observersSetup
+
+  finally
+    # Restore
+    Document.list = list
+    Document._delayed = []
+    Document._clearDelayedCheck()
+
+    # Verify we are back to normal
+    testDefinition test
 
 testAsyncMulti 'peerdb - errors for generated fields', [
   (test, expect) ->

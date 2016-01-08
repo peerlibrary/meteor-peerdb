@@ -55,7 +55,9 @@ Package.onTest(function (api) {
     'underscore',
     'random',
     'logging',
-    'ejson'
+    'ejson',
+    'mongo',
+    'ddp'
   ]);
 
   // Internal dependencies.
