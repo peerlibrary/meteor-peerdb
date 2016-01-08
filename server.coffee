@@ -68,14 +68,17 @@ fieldsToProjection = (fields) ->
   projection
 
 # TODO: Should we add retry?
-globals.Document._observerCallback = (f) ->
+globals.Document._observerCallback = (collection, f) ->
+  # We observe only collections without connection or server collections.
+  assert (Meteor.isClient and collection._connection is null) or (Meteor.isServer and collection._connection in [null, Meteor.server]), collection._connection
+
   return (obj, args...) ->
     try
       id = if _.isObject obj then obj._id else obj
-      # We call f only if the first character of id is in PREFIX.
-      # By that we allow each instance to operate only on a subset
-      # of documents, allowing simple coordination while scaling.
-      f obj, args... if id[0] in PREFIX
+      # We call f only if the first character of id is in PREFIX. By that we allow each instance to
+      # operate only on a subset of documents, allowing simple coordination while scaling.
+      # We call f always for collections without connection.
+      f obj, args... if collection._connection is null or id[0] in PREFIX
     catch e
       Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
       Log.error e.stack
@@ -93,24 +96,24 @@ globals.Document._TargetedFieldsObservingField::_setupTargetObservers = (updateA
   if not updateAll and @ instanceof globals.Document._ReferenceField
     index = {}
     index["#{ @sourcePath }._id"] = 1
-    @sourceCollection._ensureIndex index if @sourceCollection._connection is Meteor.server
+    @sourceCollection._ensureIndex index if Meteor.isServer and @sourceCollection._connection is Meteor.server
 
     if @reverseName
       index = {}
       index["#{ @reverseName }._id"] = 1
-      @targetCollection._ensureIndex index if @targetCollection._connection is Meteor.server
+      @targetCollection._ensureIndex index if Meteor.isServer and @targetCollection._connection is Meteor.server
 
   initializing = true
 
   observers =
-    added: globals.Document._observerCallback (id, fields) =>
+    added: globals.Document._observerCallback @targetCollection, (id, fields) =>
       @updateSource id, fields if updateAll or not initializing
 
   unless updateAll
-    observers.changed = globals.Document._observerCallback (id, fields) =>
+    observers.changed = globals.Document._observerCallback @targetCollection, (id, fields) =>
       @updateSource id, fields
 
-    observers.removed = globals.Document._observerCallback (id) =>
+    observers.removed = globals.Document._observerCallback @targetCollection, (id) =>
       @removeSource id
 
   referenceFields = fieldsToProjection @fields
@@ -130,13 +133,13 @@ globals.Document._Trigger::_setupObservers = ->
 
   queryFields = fieldsToProjection @fields
   @collection.find({}, fields: queryFields).observe
-    added: globals.Document._observerCallback (document) =>
+    added: globals.Document._observerCallback @collection, (document) =>
       @trigger document, null unless initializing
 
-    changed: globals.Document._observerCallback (newDocument, oldDocument) =>
+    changed: globals.Document._observerCallback @collection, (newDocument, oldDocument) =>
       @trigger newDocument, oldDocument
 
-    removed: globals.Document._observerCallback (oldDocument) =>
+    removed: globals.Document._observerCallback @collection, (oldDocument) =>
       @trigger null, oldDocument
 
   initializing = false
@@ -501,16 +504,16 @@ class globals.Document extends globals.Document
 
     unless updateAll
       for index in indexes
-        @Meta.collection._ensureIndex index if @Meta.collection._connection is Meteor.server
+        @Meta.collection._ensureIndex index if Meteor.isServer and @Meta.collection._connection is Meteor.server
 
     initializing = true
 
     observers =
-      added: globals.Document._observerCallback (id, fields) =>
+      added: globals.Document._observerCallback @Meta.collection, (id, fields) =>
         @_sourceUpdated id, fields if updateAll or not initializing
 
     unless updateAll
-      observers.changed = globals.Document._observerCallback (id, fields) =>
+      observers.changed = globals.Document._observerCallback @Meta.collection, (id, fields) =>
         @_sourceUpdated id, fields
 
     handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
@@ -582,7 +585,7 @@ class globals.Document extends globals.Document
     # Setup observers only for local collections or server collection. Collections based
     # on a connection to some other primary collections should not have observers because
     # they should be setup at the location of primary collections, not here.
-    for document in @list when document.Meta.collection._connection in [null, Meteor.server]
+    for document in @list when (Meteor.isClient and document.Meta.collection._connection is null) or (Meteor.isServer and document.Meta.collection._connection in [null, Meteor.server])
       if updateAll
         # For fields we pass updateAll on.
         setupTargetObservers document.Meta.fields
