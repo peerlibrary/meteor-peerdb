@@ -259,16 +259,6 @@ class globals.Document
       assert.equal @targetDocument.Meta.document.Meta, @targetDocument.Meta
 
     _setupTargetObservers: (updateAll) =>
-      if not updateAll and @ instanceof globals.Document._ReferenceField
-        index = {}
-        index["#{ @sourcePath }._id"] = 1
-        @sourceCollection._ensureIndex index if Meteor.isServer and @sourceCollection._connection is Meteor.server
-
-        if @reverseName
-          index = {}
-          index["#{ @reverseName }._id"] = 1
-          @targetCollection._ensureIndex index if Meteor.isServer and @targetCollection._connection is Meteor.server
-
       initializing = true
 
       observers =
@@ -334,6 +324,19 @@ class globals.Document
           doc.Meta._listIndex = i
 
         globals.Document._addDelayed @targetDocument
+
+    _setupTargetObservers: (updateAll) =>
+      if not updateAll
+        index = {}
+        index["#{ @sourcePath }._id"] = 1
+        @sourceCollection._ensureIndex index if Meteor.isServer and @sourceCollection._connection is Meteor.server
+
+        if @reverseName
+          index = {}
+          index["#{ @reverseName }._id"] = 1
+          @targetCollection._ensureIndex index if Meteor.isServer and @targetCollection._connection is Meteor.server
+
+      super
 
     updateSource: (id, fields) =>
       # Just to be sure
