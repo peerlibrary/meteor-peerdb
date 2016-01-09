@@ -178,9 +178,6 @@ class globals.Document
       assert.equal @document.Meta.document, @document
       assert.equal @document.Meta.document.Meta, @document.Meta
 
-    trigger: (newDocument, oldDocument) =>
-      @generator newDocument, oldDocument
-
     _setupObservers: =>
       initializing = true
 
