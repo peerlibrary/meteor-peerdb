@@ -21,11 +21,8 @@ Package.onUse(function (api) {
   // 3rd party dependencies.
   api.use([
     'peerlibrary:assert@0.2.5',
-    'peerlibrary:stacktrace@0.2.0'
-  ]);
-
-  api.use([
-    'peerlibrary:util@0.2.3'
+    'peerlibrary:stacktrace@0.2.0',
+    'peerlibrary:util@0.3.0'
   ]);
 
   api.export('Document');
