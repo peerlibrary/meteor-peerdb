@@ -47,7 +47,7 @@ class globals.Document extends globals.Document
 
 sendMessage = (type, data) ->
   globals.Document.Messages.insert
-    created: moment.utc().toDate()
+    created: new Date()
     type: type
     data: data
 

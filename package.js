@@ -18,10 +18,6 @@ Package.onUse(function (api) {
     'logging'
   ]);
 
-  api.use([
-    'random'
-  ], 'server');
-
   // 3rd party dependencies.
   api.use([
     'peerlibrary:assert@0.2.5',
@@ -29,9 +25,8 @@ Package.onUse(function (api) {
   ]);
 
   api.use([
-    'peerlibrary:util@0.2.3',
-    'mrt:moment@2.8.1'
-  ], 'server');
+    'peerlibrary:util@0.2.3'
+  ]);
 
   api.export('Document');
 
