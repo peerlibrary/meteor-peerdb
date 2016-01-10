@@ -1,4 +1,4 @@
-WAIT_FOR_DATABASE_TIMEOUT = 1000 # ms
+WAIT_FOR_DATABASE_TIMEOUT = 1500 # ms
 
 # The order of documents here tests delayed definitions
 
