@@ -103,6 +103,12 @@ extractValue = (obj, path) ->
     path = path[1..]
   obj
 
+isModifiableCollection = (collection) ->
+  if Meteor.isClient
+    collection._connection is null
+  else
+    collection._connection in [null, Meteor.server]
+
 # We augment the cursor so that it matches our extra method in documents manager.
 LocalCollection.Cursor::exists = ->
   # We just have to limit the query temporary. For limited and unsorted queries
@@ -157,8 +163,8 @@ class globals.Document
   @_Trigger: class
     # Arguments:
     #   fields
-    #   fields, trigger
-    constructor: (@fields, @trigger) ->
+    #   fields, trigger, triggerOnUnmodifiable
+    constructor: (@fields, @trigger, @triggerOnUnmodifiable) ->
       @fields ?= []
 
     contributeToClass: (@document, @name) =>
@@ -179,6 +185,8 @@ class globals.Document
       assert.equal @document.Meta.document.Meta, @document.Meta
 
     _setupObservers: =>
+      return unless isModifiableCollection(@collection) or @triggerOnUnmodifiable
+
       initializing = true
 
       queryFields = fieldsToProjection @fields
@@ -259,6 +267,8 @@ class globals.Document
       assert.equal @targetDocument.Meta.document.Meta, @targetDocument.Meta
 
     _setupTargetObservers: (updateAll) =>
+      return unless isModifiableCollection @sourceCollection
+
       initializing = true
 
       observers =
@@ -447,30 +457,34 @@ class globals.Document
         @sourceCollection.remove selector
 
     updatedWithValue: (id, value) =>
-      unless _.isObject(value) and _.isString(value._id)
-        # Optional field
-        return if _.isNull(value) and not @required
-
-        # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
-        Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' was updated with an invalid value: #{ util.inspect value }"
-        return
-
       referenceFields = fieldsToProjection @fields
-      target = @targetCollection.findOne value._id,
-        fields: referenceFields
-        transform: null
 
-      unless target
-        Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
-        # TODO: Should we call reference.removeSource here? And remove from reverse fields?
-        return
+      if isModifiableCollection @sourceCollection
+        unless _.isObject(value) and _.isString(value._id)
+          # Optional field
+          return if _.isNull(value) and not @required
 
-      # Only _id is requested, we do not have to do anything, we just wanted to check for existence of the referenced document.
-      unless _.isEmpty @fields
-        # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
-        @updateSource target._id, _.omit target, '_id'
+          # TODO: This is not triggered if required field simply do not exist or is set to undefined (does MongoDB support undefined value?)
+          Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' was updated with an invalid value: #{ util.inspect value }"
+          return
+
+        target = @targetCollection.findOne value._id,
+          fields: referenceFields
+          transform: null
+
+        unless target
+          Log.error "Document '#{ @sourceDocument.Meta._name }' '#{ id }' field '#{ @sourcePath }' is referencing a nonexistent document '#{ value._id }'"
+          # TODO: Should we call reference.removeSource here? And remove from reverse fields?
+          return
+
+        # Only _id is requested, we do not have to do anything, we just wanted to check for existence of the referenced document.
+        unless _.isEmpty @fields
+          # We omit _id because that field cannot be changed, or even $set to the same value, but is in target
+          @updateSource target._id, _.omit target, '_id'
 
       return unless @reverseName
+
+      return unless isModifiableCollection @targetCollection
 
       # TODO: Current code is run too many times, for any update of source collection reverse field is updated
 
@@ -1142,13 +1156,17 @@ class globals.Document
 
   # TODO: Should we add retry?
   @_observerCallback: (collection, f) ->
+    console.log "_observerCallback", collection
+
     return (obj, args...) ->
       try
-        id = if _.isObject obj then obj._id else obj
-        # We call f only if the first character of id is in share.PREFIX. By that we allow each instance to
-        # operate only on a subset of documents, allowing simple coordination while scaling.
-        # We call f always for collections without connection.
-        f obj, args... if collection._connection is null or id[0] in PREFIX
+        if Meteor.isServer and collection._connection is Meteor.server
+          # We call f only if the first character of id is in share.PREFIX. By that we allow each instance to
+          # operate only on a subset of documents, allowing simple coordination while scaling.
+          id = if _.isObject obj then obj._id else obj
+          f obj, args... if id[0] in PREFIX
+        else
+          f obj, args...
       catch e
         Log.error "PeerDB exception: #{ e }: #{ util.inspect args, depth: 10 }"
         Log.error e.stack
@@ -1178,7 +1196,7 @@ class globals.Document
   @_sourceFieldUpdated: (id, name, value, field, originalValue) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     if _.isUndefined value
-      if field?.reverseName
+      if field and field.reverseName and isModifiableCollection field.targetCollection
         @_sourceFieldProcessDeleted field, id, [], name.split('.')[1..], originalValue
       return
 
@@ -1200,7 +1218,7 @@ class globals.Document
       for v in value
         field.updatedWithValue id, v
 
-      if field.reverseName
+      if field.reverseName and isModifiableCollection field.targetCollection
         # In updatedWithValue we added possible new entry/ies to reverse fields, but here
         # we have also to remove those which were maybe removed from the value and are
         # not referencing anymore a document which got added the entry to its reverse
@@ -1237,21 +1255,29 @@ class globals.Document
     return if _.isEmpty @Meta.fields
 
     indexes = []
-    sourceFields =
-      _id: 1 # To make sure we do not pass empty set of fields
+    sourceFields = {}
 
     sourceFieldsWalker = (obj) ->
       for name, field of obj
         if field instanceof globals.Document._ObservingField
-          sourceFields[field.sourcePath] = 1
           if field instanceof globals.Document._ReferenceField
-            index = {}
-            index["#{ field.sourcePath }._id"] = 1
-            indexes.push index
+            # Optimization. So that we do not even setup observers for fields which deal with unmodifiable collections.
+            if isModifiableCollection(field.sourceCollection) or (field.reverseName and isModifiableCollection(field.targetCollection))
+              sourceFields[field.sourcePath] = 1
+
+              index = {}
+              index["#{ field.sourcePath }._id"] = 1
+              indexes.push index
+          else
+            if isModifiableCollection field.sourceCollection
+              sourceFields[field.sourcePath] = 1
         else if field not instanceof globals.Document._Field
           sourceFieldsWalker field
 
     sourceFieldsWalker @Meta.fields
+
+    # Source and target collections were not modifiable collections.
+    return if _.isEmpty sourceFields
 
     unless updateAll
       for index in indexes
@@ -1296,10 +1322,7 @@ class globals.Document
         else if field not instanceof @_Field
           setupTargetObservers field
 
-    # Setup observers only for local collections or server collection. Collections based
-    # on a connection to some other primary collections should not have observers because
-    # they should be setup at the location of primary collections, not here.
-    for document in @list when (Meteor.isClient and document.Meta.collection._connection is null) or (Meteor.isServer and document.Meta.collection._connection in [null, Meteor.server])
+    for document in @list
       if updateAll
         # For fields we pass updateAll on.
         setupTargetObservers document.Meta.fields
