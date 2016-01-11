@@ -230,6 +230,82 @@ class SubfieldItem extends Document
       ]
       anArray: [@ReferenceField 'self', []]
 
+class LocalPost extends Document
+  # Other fields:
+  #   body
+  #   subdocument
+  #     body
+  #   nested
+  #     body
+
+  @Meta
+    name: 'LocalPost'
+    collection: null
+    fields: =>
+      author: @ReferenceField LocalPerson, ['username', 'displayName', 'field1', 'field2'], true, 'posts', ['body', 'subdocument.body', 'nested.body']
+      subscribers: [@ReferenceField LocalPerson]
+      reviewers: [@ReferenceField LocalPerson, [username: 1]]
+      subdocument:
+        person: @ReferenceField LocalPerson, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocumentPosts', ['body', 'subdocument.body', 'nested.body']
+        persons: [@ReferenceField LocalPerson, ['username', 'displayName', 'field1', 'field2'], true, 'subdocumentsPosts', ['body', 'subdocument.body', 'nested.body']]
+        slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
+          if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
+            [fields._id, undefined]
+          else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+            [fields._id, null]
+          else
+            [fields._id, "subdocument-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
+      nested: [
+        required: @ReferenceField LocalPerson, ['username', 'displayName', 'field1', 'field2'], true, 'nestedPosts', ['body', 'subdocument.body', 'nested.body']
+        optional: @ReferenceField LocalPerson, ['username'], false
+        slug: @GeneratedField 'self', ['body', 'nested.body'], (fields) ->
+          for nested in fields.nested or []
+            if _.isUndefined(fields.body) or _.isUndefined(nested.body)
+              [fields._id, undefined]
+            else if _.isNull(fields.body) or _.isNull(nested.body)
+              [fields._id, null]
+            else
+              [fields._id, "nested-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"]
+      ]
+      slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
+        if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
+          [fields._id, undefined]
+        else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+          [fields._id, null]
+        else
+          [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
+      tags: [
+        @GeneratedField 'self', ['body', 'subdocument.body', 'nested.body'], (fields) ->
+          tags = []
+          if fields.body and fields.subdocument?.body
+            tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"
+          if fields.body and fields.nested and _.isArray fields.nested
+            for nested in fields.nested when nested.body
+              tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
+          [fields._id, tags]
+      ]
+    triggers: =>
+      testTrigger: @Trigger ['body'], (newDocument, oldDocument) ->
+        return unless newDocument?._id
+        globalTestTriggerCounters[newDocument._id] = (globalTestTriggerCounters[newDocument._id] or 0) + 1
+
+class LocalPerson extends Document
+  # Other fields:
+  #   username
+  #   displayName
+  #   field1
+  #   field2
+
+  @Meta
+    name: 'LocalPerson'
+    collection: null
+    fields: =>
+      count: @GeneratedField 'self', ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
+        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocumentPosts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
+
+  formatName: ->
+    "#{ @username }-#{ @displayName or "none" }"
+
 Document.defineAll()
 
 # Just to make sure things are sane
@@ -304,7 +380,7 @@ waitForDatabase = (test, expect) ->
   Meteor.call 'wait-for-database', expect (error) ->
     test.isFalse error, error?.toString?() or error
 
-ALL = @ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink, SubfieldItem]
+ALL = @ALL = [User, UserLink, CircularFirst, CircularSecond, SpecialPerson, Recursive, IdentityGenerator, SpecialPost, Post, Person, PostLink, SubfieldItem, LocalPost, LocalPerson]
 
 testDocumentList = (test, list) ->
   test.equal Document.list, list, "expected: #{ (d.Meta._name for d in list) } vs. actual: #{ (d.Meta._name for d in Document.list) }"
@@ -604,7 +680,6 @@ testDefinition = (test) ->
   test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.parent, _TestPerson.Meta
   test.equal Person.Meta.document, Person
-  test.equal Person.Meta._name, 'Person'
   test.equal Person.Meta.collection._name, 'Persons'
   test.equal _.size(Person.Meta.triggers), 0
   test.equal _.size(Person.Meta.fields), 5
@@ -923,6 +998,235 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.special.reverseFields, []
   test.isTrue SpecialPost.Meta._observersSetup
 
+  test.equal LocalPost.Meta._name, 'LocalPost'
+  test.equal LocalPost.Meta.document, LocalPost
+  test.isNull LocalPost.Meta.collection._name
+  test.equal _.size(LocalPost.Meta.triggers), 1
+  test.instanceOf LocalPost.Meta.triggers.testTrigger, LocalPost._Trigger
+  test.equal LocalPost.Meta.triggers.testTrigger.name, 'testTrigger'
+  test.equal LocalPost.Meta.triggers.testTrigger.document, LocalPost
+  test.isNull LocalPost.Meta.triggers.testTrigger.collection._name
+  test.equal LocalPost.Meta.triggers.testTrigger.fields, ['body']
+  test.equal _.size(LocalPost.Meta.fields), 7
+  test.instanceOf LocalPost.Meta.fields.author, LocalPost._ReferenceField
+  test.isNull LocalPost.Meta.fields.author.ancestorArray, LocalPost.Meta.fields.author.ancestorArray
+  test.isTrue LocalPost.Meta.fields.author.required
+  test.equal LocalPost.Meta.fields.author.sourcePath, 'author'
+  test.equal LocalPost.Meta.fields.author.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.author.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.author.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.author.targetCollection._name
+  test.isNull LocalPost.Meta.fields.author.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.author.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.author.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal LocalPost.Meta.fields.author.reverseName, 'posts'
+  test.equal LocalPost.Meta.fields.author.reverseFields, ['body', 'subdocument.body', 'nested.body']
+  test.instanceOf LocalPost.Meta.fields.subscribers, LocalPost._ReferenceField
+  test.equal LocalPost.Meta.fields.subscribers.ancestorArray, 'subscribers'
+  test.isTrue LocalPost.Meta.fields.subscribers.required
+  test.equal LocalPost.Meta.fields.subscribers.sourcePath, 'subscribers'
+  test.equal LocalPost.Meta.fields.subscribers.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.subscribers.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.subscribers.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.subscribers.targetCollection._name
+  test.isNull LocalPost.Meta.fields.subscribers.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.subscribers.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.subscribers.fields, []
+  test.isNull LocalPost.Meta.fields.subscribers.reverseName
+  test.equal LocalPost.Meta.fields.subscribers.reverseFields, []
+  test.instanceOf LocalPost.Meta.fields.reviewers, LocalPost._ReferenceField
+  test.equal LocalPost.Meta.fields.reviewers.ancestorArray, 'reviewers'
+  test.isTrue LocalPost.Meta.fields.reviewers.required
+  test.equal LocalPost.Meta.fields.reviewers.sourcePath, 'reviewers'
+  test.equal LocalPost.Meta.fields.reviewers.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.reviewers.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.reviewers.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.reviewers.targetCollection._name
+  test.isNull LocalPost.Meta.fields.reviewers.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.reviewers.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.reviewers.fields, [username: 1]
+  test.isNull LocalPost.Meta.fields.reviewers.reverseName
+  test.equal LocalPost.Meta.fields.reviewers.reverseFields, []
+  test.equal _.size(LocalPost.Meta.fields.subdocument), 3
+  test.instanceOf LocalPost.Meta.fields.subdocument.person, LocalPost._ReferenceField
+  test.isNull LocalPost.Meta.fields.subdocument.person.ancestorArray, LocalPost.Meta.fields.subdocument.person.ancestorArray
+  test.isFalse LocalPost.Meta.fields.subdocument.person.required
+  test.equal LocalPost.Meta.fields.subdocument.person.sourcePath, 'subdocument.person'
+  test.equal LocalPost.Meta.fields.subdocument.person.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.subdocument.person.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.subdocument.person.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.subdocument.person.targetCollection._name
+  test.isNull LocalPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.subdocument.person.fields, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}
+  test.equal LocalPost.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
+  test.equal LocalPost.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
+  test.instanceOf LocalPost.Meta.fields.subdocument.persons, LocalPost._ReferenceField
+  test.equal LocalPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
+  test.isTrue LocalPost.Meta.fields.subdocument.persons.required
+  test.equal LocalPost.Meta.fields.subdocument.persons.sourcePath, 'subdocument.persons'
+  test.equal LocalPost.Meta.fields.subdocument.persons.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.subdocument.persons.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.subdocument.persons.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.subdocument.persons.targetCollection._name
+  test.isNull LocalPost.Meta.fields.subdocument.persons.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.subdocument.persons.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal LocalPost.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
+  test.equal LocalPost.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
+  test.instanceOf LocalPost.Meta.fields.subdocument.slug, LocalPost._GeneratedField
+  test.isNull LocalPost.Meta.fields.subdocument.slug.ancestorArray, LocalPost.Meta.fields.subdocument.slug.ancestorArray
+  test.isTrue _.isFunction LocalPost.Meta.fields.subdocument.slug.generator
+  test.equal LocalPost.Meta.fields.subdocument.slug.sourcePath, 'subdocument.slug'
+  test.equal LocalPost.Meta.fields.subdocument.slug.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.subdocument.slug.targetDocument, LocalPost
+  test.isNull LocalPost.Meta.fields.subdocument.slug.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.subdocument.slug.targetCollection._name
+  test.isNull LocalPost.Meta.fields.subdocument.slug.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.subdocument.slug.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.subdocument.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined LocalPost.Meta.fields.subdocument.slug.reverseName
+  test.isUndefined LocalPost.Meta.fields.subdocument.slug.reverseFields
+  test.equal _.size(LocalPost.Meta.fields.nested), 3
+  test.instanceOf LocalPost.Meta.fields.nested.required, LocalPost._ReferenceField
+  test.equal LocalPost.Meta.fields.nested.required.ancestorArray, 'nested'
+  test.isTrue LocalPost.Meta.fields.nested.required.required
+  test.equal LocalPost.Meta.fields.nested.required.sourcePath, 'nested.required'
+  test.equal LocalPost.Meta.fields.nested.required.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.nested.required.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.nested.required.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.nested.required.targetCollection._name
+  test.isNull LocalPost.Meta.fields.nested.required.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.nested.required.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.nested.required.fields, ['username', 'displayName', 'field1', 'field2']
+  test.equal LocalPost.Meta.fields.nested.required.reverseName, 'nestedPosts'
+  test.equal LocalPost.Meta.fields.nested.required.reverseFields, ['body', 'subdocument.body', 'nested.body']
+  test.instanceOf LocalPost.Meta.fields.nested.optional, LocalPost._ReferenceField
+  test.equal LocalPost.Meta.fields.nested.optional.ancestorArray, 'nested'
+  test.isFalse LocalPost.Meta.fields.nested.optional.required
+  test.equal LocalPost.Meta.fields.nested.optional.sourcePath, 'nested.optional'
+  test.equal LocalPost.Meta.fields.nested.optional.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.nested.optional.targetDocument, LocalPerson
+  test.isNull LocalPost.Meta.fields.nested.optional.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.nested.optional.targetCollection._name
+  test.isNull LocalPost.Meta.fields.nested.optional.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.nested.optional.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.nested.optional.fields, ['username']
+  test.isNull LocalPost.Meta.fields.nested.optional.reverseName
+  test.equal LocalPost.Meta.fields.nested.optional.reverseFields, []
+  test.instanceOf LocalPost.Meta.fields.nested.slug, LocalPost._GeneratedField
+  test.equal LocalPost.Meta.fields.nested.slug.ancestorArray, 'nested'
+  test.isTrue _.isFunction LocalPost.Meta.fields.nested.slug.generator
+  test.equal LocalPost.Meta.fields.nested.slug.sourcePath, 'nested.slug'
+  test.equal LocalPost.Meta.fields.nested.slug.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.nested.slug.targetDocument, LocalPost
+  test.isNull LocalPost.Meta.fields.nested.slug.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.nested.slug.targetCollection._name
+  test.isNull LocalPost.Meta.fields.nested.slug.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.nested.slug.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.nested.slug.fields, ['body', 'nested.body']
+  test.isUndefined LocalPost.Meta.fields.nested.slug.reverseName
+  test.isUndefined LocalPost.Meta.fields.nested.slug.reverseFields
+  test.instanceOf LocalPost.Meta.fields.slug, LocalPost._GeneratedField
+  test.isNull LocalPost.Meta.fields.slug.ancestorArray, LocalPost.Meta.fields.slug.ancestorArray
+  test.isTrue _.isFunction LocalPost.Meta.fields.slug.generator
+  test.equal LocalPost.Meta.fields.slug.sourcePath, 'slug'
+  test.equal LocalPost.Meta.fields.slug.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.slug.targetDocument, LocalPost
+  test.isNull LocalPost.Meta.fields.slug.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.slug.targetCollection._name
+  test.isNull LocalPost.Meta.fields.slug.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.slug.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined LocalPost.Meta.fields.slug.reverseName
+  test.isUndefined LocalPost.Meta.fields.slug.reverseFields
+  test.instanceOf LocalPost.Meta.fields.tags, LocalPost._GeneratedField
+  test.equal LocalPost.Meta.fields.tags.ancestorArray, 'tags'
+  test.isTrue _.isFunction LocalPost.Meta.fields.tags.generator
+  test.equal LocalPost.Meta.fields.tags.sourcePath, 'tags'
+  test.equal LocalPost.Meta.fields.tags.sourceDocument, LocalPost
+  test.equal LocalPost.Meta.fields.tags.targetDocument, LocalPost
+  test.isNull LocalPost.Meta.fields.tags.sourceCollection._name
+  test.isNull LocalPost.Meta.fields.tags.targetCollection._name
+  test.isNull LocalPost.Meta.fields.tags.sourceDocument.Meta.collection._name
+  test.isNull LocalPost.Meta.fields.tags.targetDocument.Meta.collection._name
+  test.equal LocalPost.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isUndefined LocalPost.Meta.fields.tags.reverseName
+  test.isUndefined LocalPost.Meta.fields.tags.reverseFields
+  test.isTrue LocalPost.Meta._observersSetup
+
+  test.equal LocalPerson.Meta._name, 'LocalPerson'
+  test.equal LocalPerson.Meta.document, LocalPerson
+  test.isNull LocalPerson.Meta.collection._name
+  test.equal _.size(LocalPerson.Meta.triggers), 0
+  test.equal _.size(LocalPerson.Meta.fields), 5
+  test.instanceOf LocalPerson.Meta.fields.posts, LocalPerson._ReferenceField
+  test.equal LocalPerson.Meta.fields.posts.ancestorArray, 'posts'
+  test.isTrue LocalPerson.Meta.fields.posts.required
+  test.equal LocalPerson.Meta.fields.posts.sourcePath, 'posts'
+  test.equal LocalPerson.Meta.fields.posts.sourceDocument, LocalPerson
+  test.equal LocalPerson.Meta.fields.posts.targetDocument, LocalPost
+  test.isNull LocalPerson.Meta.fields.posts.sourceCollection._name
+  test.isNull LocalPerson.Meta.fields.posts.targetCollection._name
+  test.isNull LocalPerson.Meta.fields.posts.sourceDocument.Meta.collection._name
+  test.isNull LocalPerson.Meta.fields.posts.targetDocument.Meta.collection._name
+  test.equal LocalPerson.Meta.fields.posts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull LocalPerson.Meta.fields.posts.reverseName
+  test.equal LocalPerson.Meta.fields.posts.reverseFields, []
+  test.instanceOf LocalPerson.Meta.fields.nestedPosts, LocalPerson._ReferenceField
+  test.equal LocalPerson.Meta.fields.nestedPosts.ancestorArray, 'nestedPosts'
+  test.isTrue LocalPerson.Meta.fields.nestedPosts.required
+  test.equal LocalPerson.Meta.fields.nestedPosts.sourcePath, 'nestedPosts'
+  test.equal LocalPerson.Meta.fields.nestedPosts.sourceDocument, LocalPerson
+  test.equal LocalPerson.Meta.fields.nestedPosts.targetDocument, LocalPost
+  test.isNull LocalPerson.Meta.fields.nestedPosts.sourceCollection._name
+  test.isNull LocalPerson.Meta.fields.nestedPosts.targetCollection._name
+  test.isNull LocalPerson.Meta.fields.nestedPosts.sourceDocument.Meta.collection._name
+  test.isNull LocalPerson.Meta.fields.nestedPosts.targetDocument.Meta.collection._name
+  test.equal LocalPerson.Meta.fields.nestedPosts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull LocalPerson.Meta.fields.nestedPosts.reverseName
+  test.equal LocalPerson.Meta.fields.nestedPosts.reverseFields, []
+  test.instanceOf LocalPerson.Meta.fields.count, LocalPerson._GeneratedField
+  test.isNull LocalPerson.Meta.fields.count.ancestorArray, LocalPerson.Meta.fields.count.ancestorArray
+  test.isTrue _.isFunction LocalPerson.Meta.fields.count.generator
+  test.equal LocalPerson.Meta.fields.count.sourcePath, 'count'
+  test.equal LocalPerson.Meta.fields.count.sourceDocument, LocalPerson
+  test.equal LocalPerson.Meta.fields.count.targetDocument, LocalPerson
+  test.isNull LocalPerson.Meta.fields.count.sourceCollection._name
+  test.isNull LocalPerson.Meta.fields.count.targetCollection._name
+  test.isNull LocalPerson.Meta.fields.count.sourceDocument.Meta.collection._name
+  test.isNull LocalPerson.Meta.fields.count.targetDocument.Meta.collection._name
+  test.equal LocalPerson.Meta.fields.count.fields, ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts']
+  test.isUndefined LocalPerson.Meta.fields.count.reverseName
+  test.isUndefined LocalPerson.Meta.fields.count.reverseFields
+  test.instanceOf LocalPerson.Meta.fields.subdocumentPosts, LocalPerson._ReferenceField
+  test.equal LocalPerson.Meta.fields.subdocumentPosts.ancestorArray, 'subdocumentPosts'
+  test.isTrue LocalPerson.Meta.fields.subdocumentPosts.required
+  test.equal LocalPerson.Meta.fields.subdocumentPosts.sourcePath, 'subdocumentPosts'
+  test.equal LocalPerson.Meta.fields.subdocumentPosts.sourceDocument, LocalPerson
+  test.equal LocalPerson.Meta.fields.subdocumentPosts.targetDocument, LocalPost
+  test.isNull LocalPerson.Meta.fields.subdocumentPosts.sourceCollection._name
+  test.isNull LocalPerson.Meta.fields.subdocumentPosts.targetCollection._name
+  test.isNull LocalPerson.Meta.fields.subdocumentPosts.sourceDocument.Meta.collection._name
+  test.isNull LocalPerson.Meta.fields.subdocumentPosts.targetDocument.Meta.collection._name
+  test.equal LocalPerson.Meta.fields.subdocumentPosts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull LocalPerson.Meta.fields.subdocumentPosts.reverseName
+  test.equal LocalPerson.Meta.fields.subdocumentPosts.reverseFields, []
+  test.instanceOf LocalPerson.Meta.fields.subdocumentsPosts, LocalPerson._ReferenceField
+  test.equal LocalPerson.Meta.fields.subdocumentsPosts.ancestorArray, 'subdocumentsPosts'
+  test.isTrue LocalPerson.Meta.fields.subdocumentsPosts.required
+  test.equal LocalPerson.Meta.fields.subdocumentsPosts.sourcePath, 'subdocumentsPosts'
+  test.equal LocalPerson.Meta.fields.subdocumentsPosts.sourceDocument, LocalPerson
+  test.equal LocalPerson.Meta.fields.subdocumentsPosts.targetDocument, LocalPost
+  test.isNull LocalPerson.Meta.fields.subdocumentsPosts.sourceCollection._name
+  test.isNull LocalPerson.Meta.fields.subdocumentsPosts.targetCollection._name
+  test.isNull LocalPerson.Meta.fields.subdocumentsPosts.sourceDocument.Meta.collection._name
+  test.isNull LocalPerson.Meta.fields.subdocumentsPosts.targetDocument.Meta.collection._name
+  test.equal LocalPerson.Meta.fields.subdocumentsPosts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull LocalPerson.Meta.fields.subdocumentsPosts.reverseName
+  test.equal LocalPerson.Meta.fields.subdocumentsPosts.reverseFields, []
+  test.isTrue LocalPerson.Meta._observersSetup
+
   testDocumentList test, ALL
 
 plainObject = (obj) ->
@@ -935,527 +1239,529 @@ plainObject = (obj) ->
 
   _.object keys, values
 
-testAsyncMulti 'peerdb - references', [
-  (test, expect) ->
-    testDefinition test
+for name, documents of {server: {Person: Person, Post: Post}, local: {Person: LocalPerson, Post: LocalPost}}
+  do (documents) ->
+    testAsyncMulti "peerdb - references #{name}", [
+      (test, expect) ->
+        testDefinition test
 
-    # We should be able to call defineAll multiple times
-    Document.defineAll()
+        # We should be able to call defineAll multiple times
+        Document.defineAll()
 
-    testDefinition test
+        testDefinition test
 
-    Person.documents.insert
-      username: 'person1'
-      displayName: 'Person 1'
-      field1: 'Field 1 - 1'
-      field2: 'Field 1 - 2'
-    ,
-      expect (error, person1Id) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue person1Id
-        @person1Id = person1Id
-
-    Person.documents.insert
-      username: 'person2'
-      displayName: 'Person 2'
-      field1: 'Field 2 - 1'
-      field2: 'Field 2 - 2'
-    ,
-      expect (error, person2Id) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue person2Id
-        @person2Id = person2Id
-
-    Person.documents.insert
-      username: 'person3'
-      displayName: 'Person 3'
-      field1: 'Field 3 - 1'
-      field2: 'Field 3 - 2'
-    ,
-      expect (error, person3Id) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue person3Id
-        @person3Id = person3Id
-
-    # Wait so that observers have time to run (but no post is yet made, so nothing really happens).
-    # We want to wait here so that we catch possible errors in source observers, otherwise target
-    # observers can patch things up. For example, if we create a post first and target observers
-    # (triggered by person inserts, but pending) run afterwards, then they can patch things which
-    # should in fact be done by source observers (on post), like setting usernames in post's
-    # references to persons.
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    # Should work also with no argument (defaults to {}).
-    test.isTrue Person.documents.exists()
-    test.isTrue Person.documents.find().exists()
-
-    test.isTrue Person.documents.exists @person1Id
-    test.isTrue Person.documents.exists @person2Id
-    test.isTrue Person.documents.exists @person3Id
-
-    test.isTrue Person.documents.find(@person1Id).exists()
-    test.isTrue Person.documents.find(@person2Id).exists()
-    test.isTrue Person.documents.find(@person3Id).exists()
-
-    test.equal Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}).count(), 3
-
-    # Test without skip and limit.
-    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]})
-    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}).exists()
-
-    # With sorting. We are testing all this combinations because there are various code paths.
-    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {sort: [['username', 'asc']]})
-    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {sort: [['username', 'asc']]}).exists()
-
-    # Test with skip and limit.
-    # This behaves differently than .count() on the server because on the server
-    # applySkipLimit is not set. But exists do respect skip and limit.
-    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1})
-    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1}).exists()
-    test.isFalse Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1})
-    test.isFalse Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1}).exists()
-
-    test.isTrue Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1, sort: [['username', 'asc']]})
-    test.isTrue Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1, sort: [['username', 'asc']]}).exists()
-    test.isFalse Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1, sort: [['username', 'asc']]})
-    test.isFalse Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1, sort: [['username', 'asc']]}).exists()
-
-    @person1 = Person.documents.findOne @person1Id,
-      transform: null # So that we can use test.equal
-    @person2 = Person.documents.findOne @person2Id,
-      transform: null # So that we can use test.equal
-    @person3 = Person.documents.findOne @person3Id,
-      transform: null # So that we can use test.equal
-
-    test.equal @person1,
-      _id: @person1Id
-      username: 'person1'
-      displayName: 'Person 1'
-      field1: 'Field 1 - 1'
-      field2: 'Field 1 - 2'
-      count: 0
-    test.equal @person2,
-      _id: @person2Id
-      username: 'person2'
-      displayName: 'Person 2'
-      field1: 'Field 2 - 1'
-      field2: 'Field 2 - 2'
-      count: 0
-    test.equal @person3,
-      _id: @person3Id
-      username: 'person3'
-      displayName: 'Person 3'
-      field1: 'Field 3 - 1'
-      field2: 'Field 3 - 2'
-      count: 0
-
-    Post.documents.insert
-      author:
-        _id: @person1._id
-        # To test what happens if all fields are not up to date
-        username: 'wrong'
-        displayName: 'wrong'
-        field1: 'wrong'
-        field2: 'wrong'
-      subscribers: [
-        _id: @person2._id
-      ,
-        _id: @person3._id
-      ]
-      reviewers: [
-        _id: @person2._id
-        username: 'wrong'
-      ,
-        _id: @person3._id
-        username: 'wrong'
-      ]
-      subdocument:
-        person:
-          _id: @person2._id
-          username: 'wrong'
-        persons: [
-          _id: @person2._id
+        documents.Person.documents.insert
+          username: 'person1'
+          displayName: 'Person 1'
+          field1: 'Field 1 - 1'
+          field2: 'Field 1 - 2'
         ,
-          _id: @person3._id
-        ]
-        body: 'SubdocumentFooBar'
-      nested: [
-        required:
-          _id: @person2._id
-          username: 'wrong'
-          displayName: 'wrong'
-        optional:
-          _id: @person3._id
-          username: 'wrong'
-        body: 'NestedFooBar'
-      ]
-      body: 'FooBar'
-    ,
-      expect (error, postId) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue postId
-        @postId = postId
+          expect (error, person1Id) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue person1Id
+            @person1Id = person1Id
 
-    # Wait so that observers have time to update documents
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    @post = Post.documents.findOne @postId,
-      transform: null # So that we can use test.equal
-
-    # We inserted the document only with ids - subdocuments should be
-    # automatically populated with additional fields as defined in @ReferenceField
-    test.equal @post,
-      _id: @postId
-      author:
-        _id: @person1._id
-        username: @person1.username
-        displayName: @person1.displayName
-        field1: @person1.field1
-        field2: @person1.field2
-      # subscribers have only ids
-      subscribers: [
-        _id: @person2._id
-      ,
-        _id: @person3._id
-      ]
-      # But reviewers have usernames as well
-      reviewers: [
-        _id: @person2._id
-        username: @person2.username
-      ,
-        _id: @person3._id
-        username: @person3.username
-      ]
-      subdocument:
-        person:
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        persons: [
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
+        documents.Person.documents.insert
+          username: 'person2'
+          displayName: 'Person 2'
+          field1: 'Field 2 - 1'
+          field2: 'Field 2 - 2'
         ,
-          _id: @person3._id
-          username: @person3.username
-          displayName: @person3.displayName
-          field1: @person3.field1
-          field2: @person3.field2
-        ]
-        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
-        body: 'SubdocumentFooBar'
-      nested: [
-        required:
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        optional:
-          _id: @person3._id
-          username: @person3.username
-        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
-        body: 'NestedFooBar'
-      ]
-      body: 'FooBar'
-      slug: 'prefix-foobar-subdocumentfoobar-suffix'
-      tags: [
-        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
-        'tag-1-prefix-foobar-nestedfoobar-suffix'
-      ]
+          expect (error, person2Id) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue person2Id
+            @person2Id = person2Id
 
-    Person.documents.update @person1Id,
-      $set:
-        username: 'person1a'
-    ,
-      expect (error, res) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue res
-
-    Person.documents.update @person2Id,
-      $set:
-        username: 'person2a'
-    ,
-      expect (error, res) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue res
-
-    # Wait so that observers have time to update documents
-    # so that persons updates are not merged together to better
-    # test the code for multiple updates
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    Person.documents.update @person3Id,
-      $set:
-        username: 'person3a'
-    ,
-      expect (error, res) =>
-        test.isFalse error, error?.toString?() or error
-        test.isTrue res
-,
-  (test, expect) ->
-    @person1 = Person.documents.findOne @person1Id,
-      transform: null # So that we can use test.equal
-    @person2 = Person.documents.findOne @person2Id,
-      transform: null # So that we can use test.equal
-    @person3 = Person.documents.findOne @person3Id,
-      transform: null # So that we can use test.equal
-
-    test.equal @person1,
-      _id: @person1Id
-      username: 'person1a'
-      displayName: 'Person 1'
-      field1: 'Field 1 - 1'
-      field2: 'Field 1 - 2'
-      posts: [
-        _id: @postId
-        body: 'FooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ]
-        subdocument:
-          body: 'SubdocumentFooBar'
-      ]
-      count: 1
-    test.equal @person2,
-      _id: @person2Id
-      username: 'person2a'
-      displayName: 'Person 2'
-      field1: 'Field 2 - 1'
-      field2: 'Field 2 - 2'
-      subdocumentPosts: [
-        _id: @postId
-        body: 'FooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ]
-        subdocument:
-          body: 'SubdocumentFooBar'
-      ]
-      subdocumentsPosts: [
-        _id: @postId
-        body: 'FooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ]
-        subdocument:
-          body: 'SubdocumentFooBar'
-      ]
-      nestedPosts: [
-        _id: @postId
-        body: 'FooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ]
-        subdocument:
-          body: 'SubdocumentFooBar'
-      ]
-      count: 3
-    test.equal @person3,
-      _id: @person3Id
-      username: 'person3a'
-      displayName: 'Person 3'
-      field1: 'Field 3 - 1'
-      field2: 'Field 3 - 2'
-      subdocumentsPosts: [
-        _id: @postId
-        body: 'FooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ]
-        subdocument:
-          body: 'SubdocumentFooBar'
-      ]
-      count: 1
-
-    # Wait so that observers have time to update documents
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    @post = Post.documents.findOne @postId,
-      transform: null # So that we can use test.equal
-
-    # All persons had usernames changed, they should
-    # be updated in the post as well, automatically
-    test.equal @post,
-      _id: @postId
-      author:
-        _id: @person1._id
-        username: @person1.username
-        displayName: @person1.displayName
-        field1: @person1.field1
-        field2: @person1.field2
-      subscribers: [
-        _id: @person2._id
-      ,
-        _id: @person3._id
-      ]
-      reviewers: [
-        _id: @person2._id
-        username: @person2.username
-      ,
-        _id: @person3._id
-        username: @person3.username
-      ]
-      subdocument:
-        person:
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        persons: [
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
+        documents.Person.documents.insert
+          username: 'person3'
+          displayName: 'Person 3'
+          field1: 'Field 3 - 1'
+          field2: 'Field 3 - 2'
         ,
-          _id: @person3._id
-          username: @person3.username
-          displayName: @person3.displayName
-          field1: @person3.field1
-          field2: @person3.field2
-        ]
-        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
-        body: 'SubdocumentFooBar'
-      nested: [
-        required:
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        optional:
-          _id: @person3._id
-          username: @person3.username
-        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
-        body: 'NestedFooBar'
-      ]
-      body: 'FooBar'
-      slug: 'prefix-foobar-subdocumentfoobar-suffix'
-      tags: [
-        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
-        'tag-1-prefix-foobar-nestedfoobar-suffix'
-      ]
+          expect (error, person3Id) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue person3Id
+            @person3Id = person3Id
 
-    Person.documents.remove @person3Id,
-      expect (error) =>
-        test.isFalse error, error?.toString?() or error
+        # Wait so that observers have time to run (but no post is yet made, so nothing really happens).
+        # We want to wait here so that we catch possible errors in source observers, otherwise target
+        # observers can patch things up. For example, if we create a post first and target observers
+        # (triggered by person inserts, but pending) run afterwards, then they can patch things which
+        # should in fact be done by source observers (on post), like setting usernames in post's
+        # references to persons.
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        # Should work also with no argument (defaults to {}).
+        test.isTrue documents.Person.documents.exists()
+        test.isTrue documents.Person.documents.find().exists()
 
-    # Wait so that observers have time to update documents
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    @post = Post.documents.findOne @postId,
-      transform: null # So that we can use test.equal
+        test.isTrue documents.Person.documents.exists @person1Id
+        test.isTrue documents.Person.documents.exists @person2Id
+        test.isTrue documents.Person.documents.exists @person3Id
 
-    # person3 was removed, references should be removed as well, automatically
-    test.equal @post,
-      _id: @postId
-      author:
-        _id: @person1._id
-        username: @person1.username
-        displayName: @person1.displayName
-        field1: @person1.field1
-        field2: @person1.field2
-      subscribers: [
-        _id: @person2._id
-      ]
-      reviewers: [
-        _id: @person2._id
-        username: @person2.username
-      ]
-      subdocument:
-        person:
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        persons: [
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        ]
-        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
-        body: 'SubdocumentFooBar'
-      nested: [
-        required:
-          _id: @person2._id
-          username: @person2.username
-          displayName: @person2.displayName
-          field1: @person2.field1
-          field2: @person2.field2
-        optional: null
-        slug: 'nested-prefix-foobar-nestedfoobar-suffix'
-        body: 'NestedFooBar'
-      ]
-      body: 'FooBar'
-      slug: 'prefix-foobar-subdocumentfoobar-suffix'
-      tags: [
-        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
-        'tag-1-prefix-foobar-nestedfoobar-suffix'
-      ]
+        test.isTrue documents.Person.documents.find(@person1Id).exists()
+        test.isTrue documents.Person.documents.find(@person2Id).exists()
+        test.isTrue documents.Person.documents.find(@person3Id).exists()
 
-    Person.documents.remove @person2Id,
-      expect (error) =>
-        test.isFalse error, error?.toString?() or error
+        test.equal documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}).count(), 3
 
-    # Wait so that observers have time to update documents
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    @post = Post.documents.findOne @postId,
-      transform: null # So that we can use test.equal
+        # Test without skip and limit.
+        test.isTrue documents.Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]})
+        test.isTrue documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}).exists()
 
-    # person2 was removed, references should be removed as well, automatically,
-    # but lists should be kept as empty lists
-    test.equal @post,
-      _id: @postId
-      author:
-        _id: @person1._id
-        username: @person1.username
-        displayName: @person1.displayName
-        field1: @person1.field1
-        field2: @person1.field2
-      subscribers: []
-      reviewers: []
-      subdocument:
-        person: null
-        persons: []
-        slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
-        body: 'SubdocumentFooBar'
-      nested: []
-      body: 'FooBar'
-      slug: 'prefix-foobar-subdocumentfoobar-suffix'
-      tags: [
-        'tag-0-prefix-foobar-subdocumentfoobar-suffix'
-      ]
+        # With sorting. We are testing all this combinations because there are various code paths.
+        test.isTrue documents.Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {sort: [['username', 'asc']]})
+        test.isTrue documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {sort: [['username', 'asc']]}).exists()
 
-    Person.documents.remove @person1Id,
-      expect (error) =>
-        test.isFalse error, error?.toString?() or error
+        # Test with skip and limit.
+        # This behaves differently than .count() on the server because on the server
+        # applySkipLimit is not set. But exists do respect skip and limit.
+        test.isTrue documents.Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1})
+        test.isTrue documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1}).exists()
+        test.isFalse documents.Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1})
+        test.isFalse documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1}).exists()
 
-    # Wait so that observers have time to update documents
-    waitForDatabase test, expect
-,
-  (test, expect) ->
-    @post = Post.documents.findOne @postId,
-      transform: null # So that we can use test.equal
+        test.isTrue documents.Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1, sort: [['username', 'asc']]})
+        test.isTrue documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 2, limit: 1, sort: [['username', 'asc']]}).exists()
+        test.isFalse documents.Person.documents.exists({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1, sort: [['username', 'asc']]})
+        test.isFalse documents.Person.documents.find({_id: $in: [@person1Id, @person2Id, @person3Id]}, {skip: 3, limit: 1, sort: [['username', 'asc']]}).exists()
 
-    # If directly referenced document is removed, dependency is removed as well
-    test.isFalse @post, @post
-]
+        @person1 = documents.Person.documents.findOne @person1Id,
+          transform: null # So that we can use test.equal
+        @person2 = documents.Person.documents.findOne @person2Id,
+          transform: null # So that we can use test.equal
+        @person3 = documents.Person.documents.findOne @person3Id,
+          transform: null # So that we can use test.equal
+
+        test.equal @person1,
+          _id: @person1Id
+          username: 'person1'
+          displayName: 'Person 1'
+          field1: 'Field 1 - 1'
+          field2: 'Field 1 - 2'
+          count: 0
+        test.equal @person2,
+          _id: @person2Id
+          username: 'person2'
+          displayName: 'Person 2'
+          field1: 'Field 2 - 1'
+          field2: 'Field 2 - 2'
+          count: 0
+        test.equal @person3,
+          _id: @person3Id
+          username: 'person3'
+          displayName: 'Person 3'
+          field1: 'Field 3 - 1'
+          field2: 'Field 3 - 2'
+          count: 0
+
+        documents.Post.documents.insert
+          author:
+            _id: @person1._id
+            # To test what happens if all fields are not up to date
+            username: 'wrong'
+            displayName: 'wrong'
+            field1: 'wrong'
+            field2: 'wrong'
+          subscribers: [
+            _id: @person2._id
+          ,
+            _id: @person3._id
+          ]
+          reviewers: [
+            _id: @person2._id
+            username: 'wrong'
+          ,
+            _id: @person3._id
+            username: 'wrong'
+          ]
+          subdocument:
+            person:
+              _id: @person2._id
+              username: 'wrong'
+            persons: [
+              _id: @person2._id
+            ,
+              _id: @person3._id
+            ]
+            body: 'SubdocumentFooBar'
+          nested: [
+            required:
+              _id: @person2._id
+              username: 'wrong'
+              displayName: 'wrong'
+            optional:
+              _id: @person3._id
+              username: 'wrong'
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
+        ,
+          expect (error, postId) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue postId
+            @postId = postId
+
+        # Wait so that observers have time to update documents
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        @post = documents.Post.documents.findOne @postId,
+          transform: null # So that we can use test.equal
+
+        # We inserted the document only with ids - subdocuments should be
+        # automatically populated with additional fields as defined in @ReferenceField
+        test.equal @post,
+          _id: @postId
+          author:
+            _id: @person1._id
+            username: @person1.username
+            displayName: @person1.displayName
+            field1: @person1.field1
+            field2: @person1.field2
+          # subscribers have only ids
+          subscribers: [
+            _id: @person2._id
+          ,
+            _id: @person3._id
+          ]
+          # But reviewers have usernames as well
+          reviewers: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+          subdocument:
+            person:
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            persons: [
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            ,
+              _id: @person3._id
+              username: @person3.username
+              displayName: @person3.displayName
+              field1: @person3.field1
+              field2: @person3.field2
+            ]
+            slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+            body: 'SubdocumentFooBar'
+          nested: [
+            required:
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            optional:
+              _id: @person3._id
+              username: @person3.username
+            slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
+          slug: 'prefix-foobar-subdocumentfoobar-suffix'
+          tags: [
+            'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+            'tag-1-prefix-foobar-nestedfoobar-suffix'
+          ]
+
+        documents.Person.documents.update @person1Id,
+          $set:
+            username: 'person1a'
+        ,
+          expect (error, res) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue res
+
+        documents.Person.documents.update @person2Id,
+          $set:
+            username: 'person2a'
+        ,
+          expect (error, res) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue res
+
+        # Wait so that observers have time to update documents
+        # so that persons updates are not merged together to better
+        # test the code for multiple updates
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        documents.Person.documents.update @person3Id,
+          $set:
+            username: 'person3a'
+        ,
+          expect (error, res) =>
+            test.isFalse error, error?.toString?() or error
+            test.isTrue res
+    ,
+      (test, expect) ->
+        @person1 = documents.Person.documents.findOne @person1Id,
+          transform: null # So that we can use test.equal
+        @person2 = documents.Person.documents.findOne @person2Id,
+          transform: null # So that we can use test.equal
+        @person3 = documents.Person.documents.findOne @person3Id,
+          transform: null # So that we can use test.equal
+
+        test.equal @person1,
+          _id: @person1Id
+          username: 'person1a'
+          displayName: 'Person 1'
+          field1: 'Field 1 - 1'
+          field2: 'Field 1 - 2'
+          posts: [
+            _id: @postId
+            body: 'FooBar'
+            nested: [
+              body: 'NestedFooBar'
+            ]
+            subdocument:
+              body: 'SubdocumentFooBar'
+          ]
+          count: 1
+        test.equal @person2,
+          _id: @person2Id
+          username: 'person2a'
+          displayName: 'Person 2'
+          field1: 'Field 2 - 1'
+          field2: 'Field 2 - 2'
+          subdocumentPosts: [
+            _id: @postId
+            body: 'FooBar'
+            nested: [
+              body: 'NestedFooBar'
+            ]
+            subdocument:
+              body: 'SubdocumentFooBar'
+          ]
+          subdocumentsPosts: [
+            _id: @postId
+            body: 'FooBar'
+            nested: [
+              body: 'NestedFooBar'
+            ]
+            subdocument:
+              body: 'SubdocumentFooBar'
+          ]
+          nestedPosts: [
+            _id: @postId
+            body: 'FooBar'
+            nested: [
+              body: 'NestedFooBar'
+            ]
+            subdocument:
+              body: 'SubdocumentFooBar'
+          ]
+          count: 3
+        test.equal @person3,
+          _id: @person3Id
+          username: 'person3a'
+          displayName: 'Person 3'
+          field1: 'Field 3 - 1'
+          field2: 'Field 3 - 2'
+          subdocumentsPosts: [
+            _id: @postId
+            body: 'FooBar'
+            nested: [
+              body: 'NestedFooBar'
+            ]
+            subdocument:
+              body: 'SubdocumentFooBar'
+          ]
+          count: 1
+
+        # Wait so that observers have time to update documents
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        @post = documents.Post.documents.findOne @postId,
+          transform: null # So that we can use test.equal
+
+        # All persons had usernames changed, they should
+        # be updated in the post as well, automatically
+        test.equal @post,
+          _id: @postId
+          author:
+            _id: @person1._id
+            username: @person1.username
+            displayName: @person1.displayName
+            field1: @person1.field1
+            field2: @person1.field2
+          subscribers: [
+            _id: @person2._id
+          ,
+            _id: @person3._id
+          ]
+          reviewers: [
+            _id: @person2._id
+            username: @person2.username
+          ,
+            _id: @person3._id
+            username: @person3.username
+          ]
+          subdocument:
+            person:
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            persons: [
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            ,
+              _id: @person3._id
+              username: @person3.username
+              displayName: @person3.displayName
+              field1: @person3.field1
+              field2: @person3.field2
+            ]
+            slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+            body: 'SubdocumentFooBar'
+          nested: [
+            required:
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            optional:
+              _id: @person3._id
+              username: @person3.username
+            slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
+          slug: 'prefix-foobar-subdocumentfoobar-suffix'
+          tags: [
+            'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+            'tag-1-prefix-foobar-nestedfoobar-suffix'
+          ]
+
+        documents.Person.documents.remove @person3Id,
+          expect (error) =>
+            test.isFalse error, error?.toString?() or error
+
+        # Wait so that observers have time to update documents
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        @post = documents.Post.documents.findOne @postId,
+          transform: null # So that we can use test.equal
+
+        # person3 was removed, references should be removed as well, automatically
+        test.equal @post,
+          _id: @postId
+          author:
+            _id: @person1._id
+            username: @person1.username
+            displayName: @person1.displayName
+            field1: @person1.field1
+            field2: @person1.field2
+          subscribers: [
+            _id: @person2._id
+          ]
+          reviewers: [
+            _id: @person2._id
+            username: @person2.username
+          ]
+          subdocument:
+            person:
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            persons: [
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            ]
+            slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+            body: 'SubdocumentFooBar'
+          nested: [
+            required:
+              _id: @person2._id
+              username: @person2.username
+              displayName: @person2.displayName
+              field1: @person2.field1
+              field2: @person2.field2
+            optional: null
+            slug: 'nested-prefix-foobar-nestedfoobar-suffix'
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
+          slug: 'prefix-foobar-subdocumentfoobar-suffix'
+          tags: [
+            'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+            'tag-1-prefix-foobar-nestedfoobar-suffix'
+          ]
+
+        documents.Person.documents.remove @person2Id,
+          expect (error) =>
+            test.isFalse error, error?.toString?() or error
+
+        # Wait so that observers have time to update documents
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        @post = documents.Post.documents.findOne @postId,
+          transform: null # So that we can use test.equal
+
+        # person2 was removed, references should be removed as well, automatically,
+        # but lists should be kept as empty lists
+        test.equal @post,
+          _id: @postId
+          author:
+            _id: @person1._id
+            username: @person1.username
+            displayName: @person1.displayName
+            field1: @person1.field1
+            field2: @person1.field2
+          subscribers: []
+          reviewers: []
+          subdocument:
+            person: null
+            persons: []
+            slug: 'subdocument-prefix-foobar-subdocumentfoobar-suffix'
+            body: 'SubdocumentFooBar'
+          nested: []
+          body: 'FooBar'
+          slug: 'prefix-foobar-subdocumentfoobar-suffix'
+          tags: [
+            'tag-0-prefix-foobar-subdocumentfoobar-suffix'
+          ]
+
+        documents.Person.documents.remove @person1Id,
+          expect (error) =>
+            test.isFalse error, error?.toString?() or error
+
+        # Wait so that observers have time to update documents
+        waitForDatabase test, expect
+    ,
+      (test, expect) ->
+        @post = documents.Post.documents.findOne @postId,
+          transform: null # So that we can use test.equal
+
+        # If directly referenced document is removed, dependency is removed as well
+        test.isFalse @post, @post
+    ]
 
 Tinytest.add 'peerdb - invalid optional', (test) ->
   test.throws ->
