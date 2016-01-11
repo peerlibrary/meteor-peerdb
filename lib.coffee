@@ -1039,7 +1039,7 @@ class globals.Document
       throw new Error "Abstract document with a parent" if @Meta._name
     else
       throw new Error "Missing document name" unless meta.name
-      throw new Error "Document name does not match class name" if not CODE_MINIMIZED and @name and @name isnt meta.name
+      throw new Error "Document name '#{meta.name}' does not match class name '#{@name}'" if not CODE_MINIMIZED and @name isnt '_Class' and @name and @name isnt meta.name
       throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
 
     name = meta.name

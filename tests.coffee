@@ -1495,7 +1495,7 @@ unless CODE_MINIMIZED
       class BadPost3 extends Document
         @Meta
           name: 'Post'
-    , /Document name does not match class name/
+    , /Document name 'Post' does not match class name 'BadPost3'/
 
     # Invalid document should not be added to the list
     testDocumentList test, ALL
