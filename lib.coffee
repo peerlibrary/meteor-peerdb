@@ -1156,8 +1156,6 @@ class globals.Document
 
   # TODO: Should we add retry?
   @_observerCallback: (collection, f) ->
-    console.log "_observerCallback", collection
-
     return (obj, args...) ->
       try
         if Meteor.isServer and collection._connection is Meteor.server
