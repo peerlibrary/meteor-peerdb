@@ -109,6 +109,9 @@ isModifiableCollection = (collection) ->
   else
     collection._connection in [null, Meteor.server]
 
+isServerCollection = (collection) ->
+  Meteor.isServer and collection._connection is Meteor.server
+
 # We augment the cursor so that it matches our extra method in documents manager.
 LocalCollection.Cursor::exists = ->
   # We just have to limit the query temporary. For limited and unsorted queries
@@ -189,15 +192,17 @@ class globals.Document
 
       initializing = true
 
+      limitToPrefix = isServerCollection @collection
+
       queryFields = fieldsToProjection @fields
       @collection.find({}, fields: queryFields).observe
-        added: globals.Document._observerCallback @collection, (document) =>
+        added: globals.Document._observerCallback limitToPrefix, (document) =>
           @trigger document, null unless initializing
 
-        changed: globals.Document._observerCallback @collection, (newDocument, oldDocument) =>
+        changed: globals.Document._observerCallback limitToPrefix, (newDocument, oldDocument) =>
           @trigger newDocument, oldDocument
 
-        removed: globals.Document._observerCallback @collection, (oldDocument) =>
+        removed: globals.Document._observerCallback limitToPrefix, (oldDocument) =>
           @trigger null, oldDocument
 
       initializing = false
@@ -271,15 +276,21 @@ class globals.Document
 
       initializing = true
 
+      # Limit to PREFIX only when both collections are server side. Otherwise there is a collection
+      # which is local only to this instance and we want to process all documents for it. Alternatively,
+      # there is a collection through a connection, in which case we are conservative and also process
+      # all documents for it. We do not necessary know if connections are shared between instances.
+      limitToPrefix = isServerCollection(@targetCollection) and isServerCollection(@sourceCollection)
+
       observers =
-        added: globals.Document._observerCallback @targetCollection, (id, fields) =>
+        added: globals.Document._observerCallback limitToPrefix, (id, fields) =>
           @updateSource id, fields if updateAll or not initializing
 
       unless updateAll
-        observers.changed = globals.Document._observerCallback @targetCollection, (id, fields) =>
+        observers.changed = globals.Document._observerCallback limitToPrefix, (id, fields) =>
           @updateSource id, fields
 
-        observers.removed = globals.Document._observerCallback @targetCollection, (id) =>
+        observers.removed = globals.Document._observerCallback limitToPrefix, (id) =>
           @removeSource id
 
       referenceFields = fieldsToProjection @fields
@@ -1155,10 +1166,10 @@ class globals.Document
     started
 
   # TODO: Should we add retry?
-  @_observerCallback: (collection, f) ->
+  @_observerCallback: (limitToPrefix, f) ->
     return (obj, args...) ->
       try
-        if Meteor.isServer and collection._connection is Meteor.server
+        if limitToPrefix
           # We call f only if the first character of id is in share.PREFIX. By that we allow each instance to
           # operate only on a subset of documents, allowing simple coordination while scaling.
           id = if _.isObject obj then obj._id else obj
@@ -1254,48 +1265,88 @@ class globals.Document
 
     indexes = []
     sourceFields = {}
+    sourceFieldsLimitedToPrefix = {}
 
+    # We use isModifiableCollection to optimize so that we do not even setup observers
+    # for fields which deal with unmodifiable collections.
     sourceFieldsWalker = (obj) ->
       for name, field of obj
         if field instanceof globals.Document._ObservingField
           if field instanceof globals.Document._ReferenceField
-            # Optimization. So that we do not even setup observers for fields which deal with unmodifiable collections.
-            if isModifiableCollection(field.sourceCollection) or (field.reverseName and isModifiableCollection(field.targetCollection))
-              sourceFields[field.sourcePath] = 1
+            if field.reverseName
+              if isModifiableCollection(field.sourceCollection) or isModifiableCollection(field.targetCollection)
+                # Limit to PREFIX only when both collections are server side. Otherwise there is a collection
+                # which is local only to this instance and we want to process all documents for it. Alternatively,
+                # there is a collection through a connection, in which case we are conservative and also process
+                # all documents for it. We do not necessary know if connections are shared between instances.
+                if isServerCollection(field.sourceCollection) and isServerCollection(field.targetCollection)
+                  sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+                else
+                  sourceFields[field.sourcePath] = 1
 
-              index = {}
-              index["#{ field.sourcePath }._id"] = 1
-              indexes.push index
+                index = {}
+                index["#{ field.sourcePath }._id"] = 1
+                indexes.push index
+            else
+              if isModifiableCollection field.sourceCollection
+                if isServerCollection field.sourceCollection
+                  sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+                else
+                  sourceFields[field.sourcePath] = 1
+
+                index = {}
+                index["#{ field.sourcePath }._id"] = 1
+                indexes.push index
           else
             if isModifiableCollection field.sourceCollection
-              sourceFields[field.sourcePath] = 1
+              if isServerCollection field.sourceCollection
+                sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+              else
+                sourceFields[field.sourcePath] = 1
         else if field not instanceof globals.Document._Field
           sourceFieldsWalker field
 
     sourceFieldsWalker @Meta.fields
 
-    # Source and target collections were not modifiable collections.
-    return if _.isEmpty sourceFields
-
     unless updateAll
       for index in indexes
         @Meta.collection._ensureIndex index if Meteor.isServer and @Meta.collection._connection is Meteor.server
 
-    initializing = true
+    # Source or target collections are modifiable collections.
+    unless _.isEmpty sourceFields
+      initializing = true
 
-    observers =
-      added: globals.Document._observerCallback @Meta.collection, (id, fields) =>
-        @_sourceUpdated id, fields if updateAll or not initializing
+      observers =
+        added: globals.Document._observerCallback false, (id, fields) =>
+          @_sourceUpdated id, fields if updateAll or not initializing
 
-    unless updateAll
-      observers.changed = globals.Document._observerCallback @Meta.collection, (id, fields) =>
-        @_sourceUpdated id, fields
+      unless updateAll
+        observers.changed = globals.Document._observerCallback false, (id, fields) =>
+          @_sourceUpdated id, fields
 
-    handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
+      handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
 
-    initializing = false
+      initializing = false
 
-    handle.stop() if updateAll
+      handle.stop() if updateAll
+
+    # Source or target collections are modifiable collections.
+    unless _.isEmpty sourceFieldsLimitedToPrefix
+      initializingLimitedToPrefix = true
+
+      observers =
+        added: globals.Document._observerCallback true, (id, fields) =>
+          @_sourceUpdated id, fields if updateAll or not initializingLimitedToPrefix
+
+      unless updateAll
+        observers.changed = globals.Document._observerCallback true, (id, fields) =>
+          @_sourceUpdated id, fields
+
+      handle = @Meta.collection.find({}, fields: sourceFieldsLimitedToPrefix).observeChanges observers
+
+      initializingLimitedToPrefix = false
+
+      handle.stop() if updateAll
 
   @_updateAll: ->
     # It is only reasonable to run anything if this instance
