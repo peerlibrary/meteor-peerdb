@@ -313,17 +313,22 @@ assert.equal Document._delayed.length, 0
 
 if Meteor.isServer
   # Initialize the database
-  Post.documents.remove {}
-  User.documents.remove {}
-  UserLink.documents.remove {}
-  PostLink.documents.remove {}
-  CircularFirst.documents.remove {}
-  CircularSecond.documents.remove {}
-  Person.documents.remove {}
-  Recursive.documents.remove {}
-  IdentityGenerator.documents.remove {}
-  SpecialPost.documents.remove {}
-  SubfieldItem.documents.remove {}
+
+  try
+    Post.Meta.collection._dropCollection()
+    User.Meta.collection._dropCollection()
+    UserLink.Meta.collection._dropCollection()
+    PostLink.Meta.collection._dropCollection()
+    CircularFirst.Meta.collection._dropCollection()
+    CircularSecond.Meta.collection._dropCollection()
+    Person.Meta.collection._dropCollection()
+    SpecialPerson.Meta.collection._dropCollection()
+    Recursive.Meta.collection._dropCollection()
+    IdentityGenerator.Meta.collection._dropCollection()
+    SpecialPost.Meta.collection._dropCollection()
+    SubfieldItem.Meta.collection._dropCollection()
+  catch error
+    throw error unless /ns not found/.test "#{error}"
 
   Meteor.publish null, ->
     Post.documents.find()
@@ -3884,7 +3889,7 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
   # Verify we are back to normal
   testDefinition test
 
-Tinytest.add 'peerdb - local collections', (test) ->
+Tinytest.addAsync 'peerdb - local collections', (test, onComplete) ->
   list = _.clone Document.list
 
   try
@@ -3927,7 +3932,14 @@ Tinytest.add 'peerdb - local collections', (test) ->
     # Verify we are back to normal
     testDefinition test
 
-Tinytest.add 'peerdb - collections with connection', (test) ->
+    if Meteor.isServer
+      Post.Meta.collection.rawDatabase().collection 'Locals', {strict: true}, Meteor.bindEnvironment (error, collection) =>
+        test.isTrue error
+        onComplete()
+    else
+      onComplete()
+
+Tinytest.addAsync 'peerdb - collections with connection', (test, onComplete) ->
   list = _.clone Document.list
 
   try
@@ -3970,6 +3982,13 @@ Tinytest.add 'peerdb - collections with connection', (test) ->
 
     # Verify we are back to normal
     testDefinition test
+
+    if Meteor.isServer
+      Post.Meta.collection.rawDatabase().collection 'CollectionWithConnections', {strict: true}, Meteor.bindEnvironment (error, collection) =>
+        test.isTrue error
+        onComplete()
+    else
+      onComplete()
 
 testAsyncMulti 'peerdb - errors for generated fields', [
   (test, expect) ->
