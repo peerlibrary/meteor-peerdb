@@ -8962,7 +8962,7 @@ if Meteor.isServer and Document.instances is 1
         # Stack trace error message
         else if i.indexOf('Error: Test exception') isnt -1
           i = EJSON.parse i
-          test.isTrue i.message.indexOf('_Class.result') isnt -1, i.message
+          test.isTrue i.message.indexOf('_Class.generator') isnt -1, i.message
           test.equal i.level, 'error'
         # Invalid update error message
         else if i.indexOf('defined as an array with selector') isnt -1
