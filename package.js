@@ -22,7 +22,7 @@ Package.onUse(function (api) {
   api.use([
     'peerlibrary:assert@0.2.5',
     'peerlibrary:stacktrace@0.2.0',
-    'peerlibrary:util@0.3.0'
+    'peerlibrary:util@0.4.0'
   ]);
 
   api.export('Document');
