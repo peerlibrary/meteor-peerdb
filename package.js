@@ -41,6 +41,8 @@ Package.onUse(function (api) {
 });
 
 Package.onTest(function (api) {
+  api.versionsFrom('METEOR@1.4.0.1');
+
   api.use([
     'tinytest',
     'test-helpers',
