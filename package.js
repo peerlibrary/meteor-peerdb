@@ -15,7 +15,8 @@ Package.onUse(function (api) {
     'minimongo',
     'mongo',
     'ddp',
-    'logging'
+    'logging',
+    'promise'
   ]);
 
   // 3rd party dependencies.

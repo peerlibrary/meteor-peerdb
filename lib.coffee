@@ -1073,10 +1073,13 @@ class globals.Document
       if CODE_MINIMIZED
         meta._location = '<code_minimized>'
       else
-        meta._location = '<unknown>'
-        # We ignore potential errors and assign the location asynchronously.
-        StackTrace.getCaller().then (caller) =>
-          meta._location = caller?.toString() or '<unknown>'
+        if Meteor.isServer
+          meta._location = Promise.await(StackTrace.getCaller())?.toString() or '<unknown>'
+        else
+          meta._location = '<unknown>'
+          # We ignore potential errors and assign the location asynchronously.
+          StackTrace.getCaller().then (caller) =>
+            meta._location = caller?.toString() or '<unknown>'
       meta.document = @
 
       if meta.collection is null or meta.collection
