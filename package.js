@@ -6,7 +6,7 @@ Package.describe({
 });
 
 Package.onUse(function (api) {
-  api.versionsFrom('METEOR@1.0.3.1');
+  api.versionsFrom('METEOR@1.4.0.1');
 
   // Core dependencies.
   api.use([
@@ -21,8 +21,8 @@ Package.onUse(function (api) {
   // 3rd party dependencies.
   api.use([
     'peerlibrary:assert@0.2.5',
-    'peerlibrary:stacktrace@0.2.0',
-    'peerlibrary:util@0.4.0'
+    'peerlibrary:stacktrace@1.3.1_2',
+    'peerlibrary:util@0.5.0'
   ]);
 
   api.export('Document');
