@@ -20398,6 +20398,119 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar4a'
       ]
+
+    for id in [@postId1, @postId2, @postId3, @postId4, @postId5]
+      Post.documents.update
+        _id: id
+      ,
+        $set:
+          nested: []
+      ,
+        expect (error) =>
+          test.isFalse error, error?.toString?() or error
+
+    # Wait so that observers have time to update documents
+    waitForDatabase test, expect
+,
+  (test, expect) ->
+    @person1 = Person.documents.findOne @person1Id,
+      transform: null # So that we can use test.equal
+    @person2 = Person.documents.findOne @person2Id,
+      transform: null # So that we can use test.equal
+    @person3 = Person.documents.findOne @person3Id,
+      transform: null # So that we can use test.equal
+
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
+      _id: @person1Id
+      username: 'person1'
+      displayName: 'Person 1'
+      count: 6
+
+    testSetEqual test, @person1.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: []
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: []
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person1.subdocument?.posts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: []
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: []
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person1.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: []
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: []
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person1.nestedPosts, []
+
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
+      _id: @person2Id
+      username: 'person2'
+      displayName: 'Person 2'
+      count: 2
+
+    testSetEqual test, @person2.posts, []
+    testSetEqual test, @person2.subdocument?.posts, []
+    testSetEqual test, @person2.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: []
+        body: 'FooBar1a'
+      ,
+        _id: @postId4
+        subdocument:
+          body: 'SubdocumentFooBar4a'
+        nested: []
+        body: 'FooBar4a'
+      ]
+    testSetEqual test, @person2.nestedPosts, []
+
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
+      _id: @person3Id
+      username: 'person3'
+      displayName: 'Person 3'
+      count: 1
+
+    testSetEqual test, @person3.posts, []
+    testSetEqual test, @person3.subdocument?.posts, []
+    testSetEqual test, @person3.subdocumentsPosts,
+      [
+        _id: @postId1
+        subdocument:
+          body: 'SubdocumentFooBar1a'
+        nested: []
+        body: 'FooBar1a'
+      ]
+    testSetEqual test, @person3.nestedPosts, []
 ]
 
 if Meteor.isServer

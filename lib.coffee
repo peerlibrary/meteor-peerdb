@@ -1274,6 +1274,14 @@ class globals.Document
     else if field not instanceof globals.Document._Field
       value = [value] unless _.isArray value
 
+      # A trick to get reverse fields correctly cleaned up when the last element is removed from the
+      # array of reference fields which have a reverse field defined. If the array is empty, the loop
+      # below would not run, so we change it to an array with an empty object, which runs the loop
+      # for one iteration, but makes all values (v[n]) undefined, which means that the first condition
+      # of this method is met, and if field has reverseName defined, then _sourceFieldProcessDeleted
+      # is called, correctly cleaning up the reverse field.
+      value = [{}] unless value.length
+
       # If value is an array but it should not be, we cannot do much else.
       # Same goes if the value does not match structurally fields.
       for v in value
