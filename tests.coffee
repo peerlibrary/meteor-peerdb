@@ -1801,20 +1801,6 @@ Tinytest.add 'peerdb - invalid nested arrays', (test) ->
   # Should not try to define invalid document again
   Document.defineAll()
 
-unless CODE_MINIMIZED
-  Tinytest.add 'peerdb - invalid name', (test) ->
-    test.throws ->
-      class BadPost3 extends Document
-        @Meta
-          name: 'Post'
-    , /Document name 'Post' does not match class name 'BadPost3'/
-
-    # Invalid document should not be added to the list
-    testDocumentList test, ALL
-
-    # Should not try to define invalid document again
-    Document.defineAll()
-
 Tinytest.add 'peerdb - abstract with parent', (test) ->
   test.throws ->
     class BadPost4 extends Post
