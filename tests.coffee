@@ -29,7 +29,7 @@ class Post extends Document
       reviewers: [@ReferenceField Person, [username: 1]]
       subdocument:
         # Fields can be arbitrary MongoDB projections, as an object
-        person: @ReferenceField Person, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocumentPosts', ['body', 'subdocument.body', 'nested.body']
+        person: @ReferenceField Person, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocument.posts', ['body', 'subdocument.body', 'nested.body']
         slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
           if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
             [fields._id, undefined]
@@ -153,8 +153,8 @@ class Person extends Document
   @Meta
     name: 'Person'
     fields: =>
-      count: @GeneratedField 'self', ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
-        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocumentPosts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
+      count: @GeneratedField 'self', ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
+        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocument?.posts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
 
 # Store away for testing
 _TestPerson = Person
@@ -246,7 +246,7 @@ class LocalPost extends Document
       subscribers: [@ReferenceField LocalPerson]
       reviewers: [@ReferenceField LocalPerson, [username: 1]]
       subdocument:
-        person: @ReferenceField LocalPerson, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocumentPosts', ['body', 'subdocument.body', 'nested.body']
+        person: @ReferenceField LocalPerson, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocument.posts', ['body', 'subdocument.body', 'nested.body']
         persons: [@ReferenceField LocalPerson, ['username', 'displayName', 'field1', 'field2'], true, 'subdocumentsPosts', ['body', 'subdocument.body', 'nested.body']]
         slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
           if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
@@ -300,8 +300,8 @@ class LocalPerson extends Document
     name: 'LocalPerson'
     collection: null
     fields: =>
-      count: @GeneratedField 'self', ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
-        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocumentPosts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
+      count: @GeneratedField 'self', ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
+        [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocument?.posts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
 
   formatName: ->
     "#{ @username }-#{ @displayName or "none" }"
@@ -470,7 +470,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'Posts'
   test.equal Post.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
   test.equal Post.Meta.fields.subdocument.person.fields, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}
-  test.equal Post.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
+  test.equal Post.Meta.fields.subdocument.person.reverseName, 'subdocument.posts'
   test.equal Post.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf Post.Meta.fields.subdocument.persons, Post._ReferenceField
   test.equal Post.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
@@ -724,22 +724,22 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields.count.targetCollection._name, 'Persons'
   test.equal Person.Meta.fields.count.sourceDocument.Meta.collection._name, 'Persons'
   test.equal Person.Meta.fields.count.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.fields.count.fields, ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts']
+  test.equal Person.Meta.fields.count.fields, ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts']
   test.isUndefined Person.Meta.fields.count.reverseName
   test.isUndefined Person.Meta.fields.count.reverseFields
-  test.instanceOf Person.Meta.fields.subdocumentPosts, Person._ReferenceField
-  test.equal Person.Meta.fields.subdocumentPosts.ancestorArray, 'subdocumentPosts'
-  test.isTrue Person.Meta.fields.subdocumentPosts.required
-  test.equal Person.Meta.fields.subdocumentPosts.sourcePath, 'subdocumentPosts'
-  test.equal Person.Meta.fields.subdocumentPosts.sourceDocument, Person
-  test.equal Person.Meta.fields.subdocumentPosts.targetDocument, Post
-  test.equal Person.Meta.fields.subdocumentPosts.sourceCollection._name, 'Persons'
-  test.equal Person.Meta.fields.subdocumentPosts.targetCollection._name, 'Posts'
-  test.equal Person.Meta.fields.subdocumentPosts.sourceDocument.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.fields.subdocumentPosts.targetDocument.Meta.collection._name, 'Posts'
-  test.equal Person.Meta.fields.subdocumentPosts.fields, ['body', 'subdocument.body', 'nested.body']
-  test.isNull Person.Meta.fields.subdocumentPosts.reverseName
-  test.equal Person.Meta.fields.subdocumentPosts.reverseFields, []
+  test.instanceOf Person.Meta.fields.subdocument.posts, Person._ReferenceField
+  test.equal Person.Meta.fields.subdocument.posts.ancestorArray, 'subdocument.posts'
+  test.isTrue Person.Meta.fields.subdocument.posts.required
+  test.equal Person.Meta.fields.subdocument.posts.sourcePath, 'subdocument.posts'
+  test.equal Person.Meta.fields.subdocument.posts.sourceDocument, Person
+  test.equal Person.Meta.fields.subdocument.posts.targetDocument, Post
+  test.equal Person.Meta.fields.subdocument.posts.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.fields.subdocument.posts.targetCollection._name, 'Posts'
+  test.equal Person.Meta.fields.subdocument.posts.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.fields.subdocument.posts.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Person.Meta.fields.subdocument.posts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull Person.Meta.fields.subdocument.posts.reverseName
+  test.equal Person.Meta.fields.subdocument.posts.reverseFields, []
   test.instanceOf Person.Meta.fields.subdocumentsPosts, Person._ReferenceField
   test.equal Person.Meta.fields.subdocumentsPosts.ancestorArray, 'subdocumentsPosts'
   test.isTrue Person.Meta.fields.subdocumentsPosts.required
@@ -894,7 +894,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name, 'Persons'
   test.equal SpecialPost.Meta.fields.subdocument.person.fields, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}
-  test.equal SpecialPost.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
+  test.equal SpecialPost.Meta.fields.subdocument.person.reverseName, 'subdocument.posts'
   test.equal SpecialPost.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf SpecialPost.Meta.fields.subdocument.persons, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
@@ -1064,7 +1064,7 @@ testDefinition = (test) ->
   test.isNull LocalPost.Meta.fields.subdocument.person.sourceDocument.Meta.collection._name
   test.isNull LocalPost.Meta.fields.subdocument.person.targetDocument.Meta.collection._name
   test.equal LocalPost.Meta.fields.subdocument.person.fields, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}
-  test.equal LocalPost.Meta.fields.subdocument.person.reverseName, 'subdocumentPosts'
+  test.equal LocalPost.Meta.fields.subdocument.person.reverseName, 'subdocument.posts'
   test.equal LocalPost.Meta.fields.subdocument.person.reverseFields, ['body', 'subdocument.body', 'nested.body']
   test.instanceOf LocalPost.Meta.fields.subdocument.persons, LocalPost._ReferenceField
   test.equal LocalPost.Meta.fields.subdocument.persons.ancestorArray, 'subdocument.persons'
@@ -1201,22 +1201,22 @@ testDefinition = (test) ->
   test.isNull LocalPerson.Meta.fields.count.targetCollection._name
   test.isNull LocalPerson.Meta.fields.count.sourceDocument.Meta.collection._name
   test.isNull LocalPerson.Meta.fields.count.targetDocument.Meta.collection._name
-  test.equal LocalPerson.Meta.fields.count.fields, ['posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts']
+  test.equal LocalPerson.Meta.fields.count.fields, ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts']
   test.isUndefined LocalPerson.Meta.fields.count.reverseName
   test.isUndefined LocalPerson.Meta.fields.count.reverseFields
-  test.instanceOf LocalPerson.Meta.fields.subdocumentPosts, LocalPerson._ReferenceField
-  test.equal LocalPerson.Meta.fields.subdocumentPosts.ancestorArray, 'subdocumentPosts'
-  test.isTrue LocalPerson.Meta.fields.subdocumentPosts.required
-  test.equal LocalPerson.Meta.fields.subdocumentPosts.sourcePath, 'subdocumentPosts'
-  test.equal LocalPerson.Meta.fields.subdocumentPosts.sourceDocument, LocalPerson
-  test.equal LocalPerson.Meta.fields.subdocumentPosts.targetDocument, LocalPost
-  test.isNull LocalPerson.Meta.fields.subdocumentPosts.sourceCollection._name
-  test.isNull LocalPerson.Meta.fields.subdocumentPosts.targetCollection._name
-  test.isNull LocalPerson.Meta.fields.subdocumentPosts.sourceDocument.Meta.collection._name
-  test.isNull LocalPerson.Meta.fields.subdocumentPosts.targetDocument.Meta.collection._name
-  test.equal LocalPerson.Meta.fields.subdocumentPosts.fields, ['body', 'subdocument.body', 'nested.body']
-  test.isNull LocalPerson.Meta.fields.subdocumentPosts.reverseName
-  test.equal LocalPerson.Meta.fields.subdocumentPosts.reverseFields, []
+  test.instanceOf LocalPerson.Meta.fields.subdocument.posts, LocalPerson._ReferenceField
+  test.equal LocalPerson.Meta.fields.subdocument.posts.ancestorArray, 'subdocument.posts'
+  test.isTrue LocalPerson.Meta.fields.subdocument.posts.required
+  test.equal LocalPerson.Meta.fields.subdocument.posts.sourcePath, 'subdocument.posts'
+  test.equal LocalPerson.Meta.fields.subdocument.posts.sourceDocument, LocalPerson
+  test.equal LocalPerson.Meta.fields.subdocument.posts.targetDocument, LocalPost
+  test.isNull LocalPerson.Meta.fields.subdocument.posts.sourceCollection._name
+  test.isNull LocalPerson.Meta.fields.subdocument.posts.targetCollection._name
+  test.isNull LocalPerson.Meta.fields.subdocument.posts.sourceDocument.Meta.collection._name
+  test.isNull LocalPerson.Meta.fields.subdocument.posts.targetDocument.Meta.collection._name
+  test.equal LocalPerson.Meta.fields.subdocument.posts.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isNull LocalPerson.Meta.fields.subdocument.posts.reverseName
+  test.equal LocalPerson.Meta.fields.subdocument.posts.reverseFields, []
   test.instanceOf LocalPerson.Meta.fields.subdocumentsPosts, LocalPerson._ReferenceField
   test.equal LocalPerson.Meta.fields.subdocumentsPosts.ancestorArray, 'subdocumentsPosts'
   test.isTrue LocalPerson.Meta.fields.subdocumentsPosts.required
@@ -1541,15 +1541,16 @@ for name, documents of {server: {Person: Person, Post: Post}, local: {Person: Lo
           displayName: 'Person 2'
           field1: 'Field 2 - 1'
           field2: 'Field 2 - 2'
-          subdocumentPosts: [
-            _id: @postId
-            body: 'FooBar'
-            nested: [
-              body: 'NestedFooBar'
+          subdocument:
+            posts: [
+              _id: @postId
+              body: 'FooBar'
+              nested: [
+                body: 'NestedFooBar'
+              ]
+              subdocument:
+                body: 'SubdocumentFooBar'
             ]
-            subdocument:
-              body: 'SubdocumentFooBar'
-          ]
           subdocumentsPosts: [
             _id: @postId
             body: 'FooBar'
@@ -2820,15 +2821,16 @@ testAsyncMulti 'peerdb - subdocument fields', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
-      subdocumentPosts: [
-        _id: @postId
-        body: 'FooBar'
-        nested: [
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          body: 'FooBar'
+          nested: [
+            body: 'NestedFooBar'
+          ]
+          subdocument:
+            body: 'SubdocumentFooBar'
         ]
-        subdocument:
-          body: 'SubdocumentFooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         body: 'FooBar'
@@ -4517,25 +4519,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBar'
+          nested: [
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -5171,25 +5174,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBar'
+          nested: [
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -5742,25 +5746,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1'
       field2: 'Field 2 - 2'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBar'
+          nested: [
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -6168,25 +6173,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       _id: @person2Id
       username: 'person2b'
       displayName: 'Person 2'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBar'
+          nested: [
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -6386,25 +6392,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBar'
-        nested: [
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBar'
+          nested: [
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -6643,25 +6650,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -6964,25 +6972,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBarZ'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBarZ'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -7247,25 +7256,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBarZ'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBarA'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBarZ'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBarA'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -7549,25 +7559,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBarZ'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: null
-        ,
-          body: 'NestedFooBarA'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBarZ'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: null
+          ,
+            body: 'NestedFooBarA'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -7869,25 +7880,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
         ]
         body: 'FooBar'
       ]
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBarZ'
-        ,
-          body: 'NestedFooBar'
-        ,
-          {}
-        ,
-          body: null
-        ,
-          body: 'NestedFooBarA'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBarZ'
+          ,
+            body: 'NestedFooBar'
+          ,
+            {}
+          ,
+            body: null
+          ,
+            body: 'NestedFooBarA'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBar'
         ]
-        body: 'FooBar'
-      ]
       nestedPosts: [
         _id: @postId
         subdocument:
@@ -8148,25 +8160,26 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBarZ'
-        ,
-          body: 'NestedFooBar'
-        ,
-          {}
-        ,
-          body: null
-        ,
-          body: 'NestedFooBarA'
-        ,
-          body: 'NestedFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBarZ'
+          ,
+            body: 'NestedFooBar'
+          ,
+            {}
+          ,
+            body: null
+          ,
+            body: 'NestedFooBarA'
+          ,
+            body: 'NestedFooBar'
+          ]
+          body: 'FooBarZ'
         ]
-        body: 'FooBarZ'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -8453,27 +8466,28 @@ testAsyncMulti 'peerdb - duplicate values in lists', [
       displayName: 'Person 2'
       field1: 'Field 2 - 1b'
       field2: 'Field 2 - 2b'
-      subdocumentPosts: [
-        _id: @postId
-        subdocument:
-          body: 'SubdocumentFooBarZ'
-        nested: [
-          body: 'NestedFooBarZ'
-        ,
-          body: 'NestedFooBar'
-        ,
-          {}
-        ,
-          body: null
-        ,
-          body: 'NestedFooBarA'
-        ,
-          body: 'NestedFooBar'
-        ,
-          body: 'NewFooBar'
+      subdocument:
+        posts: [
+          _id: @postId
+          subdocument:
+            body: 'SubdocumentFooBarZ'
+          nested: [
+            body: 'NestedFooBarZ'
+          ,
+            body: 'NestedFooBar'
+          ,
+            {}
+          ,
+            body: null
+          ,
+            body: 'NestedFooBarA'
+          ,
+            body: 'NestedFooBar'
+          ,
+            body: 'NewFooBar'
+          ]
+          body: 'FooBarZ'
         ]
-        body: 'FooBarZ'
-      ]
       subdocumentsPosts: [
         _id: @postId
         subdocument:
@@ -9962,7 +9976,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -9994,7 +10008,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar3'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -10040,14 +10054,14 @@ testAsyncMulti 'peerdb - reverse posts', [
       ]
     testSetEqual test, @person1.nestedPosts, []
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 5
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -10094,14 +10108,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar1'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 5
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -10258,7 +10272,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -10324,7 +10338,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -10437,14 +10451,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -10547,14 +10561,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -10721,7 +10735,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -10787,7 +10801,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -10900,14 +10914,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -11010,14 +11024,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -11208,7 +11222,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -11276,7 +11290,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -11391,14 +11405,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 9
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -11515,14 +11529,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar2a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -11706,7 +11720,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -11772,7 +11786,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -11885,14 +11899,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -11995,14 +12009,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -12194,7 +12208,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -12262,7 +12276,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -12377,14 +12391,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -12491,14 +12505,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -12682,7 +12696,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -12748,7 +12762,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -12861,14 +12875,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -12971,14 +12985,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -13174,7 +13188,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -13240,7 +13254,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -13353,14 +13367,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 9
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -13475,14 +13489,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar5a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -13678,7 +13692,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -13744,7 +13758,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -13857,14 +13871,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -13967,14 +13981,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -14175,7 +14189,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -14241,7 +14255,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -14366,14 +14380,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -14476,14 +14490,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -14679,7 +14693,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -14745,7 +14759,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -14858,14 +14872,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -14968,14 +14982,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -15177,7 +15191,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -15243,7 +15257,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -15356,14 +15370,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -15466,14 +15480,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -15669,7 +15683,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -15735,7 +15749,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -15848,14 +15862,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -15958,14 +15972,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -16161,7 +16175,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -16227,7 +16241,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -16352,14 +16366,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -16462,14 +16476,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -16666,7 +16680,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -16732,7 +16746,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -16845,14 +16859,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -16955,14 +16969,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -17155,7 +17169,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -17221,7 +17235,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -17334,14 +17348,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -17444,14 +17458,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 8
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -17635,7 +17649,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -17701,7 +17715,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -17814,14 +17828,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -17924,14 +17938,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 9
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts,
+    testSetEqual test, @person3.subdocument?.posts,
       [
         _id: @postId5
         subdocument:
@@ -18128,7 +18142,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -18194,7 +18208,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -18319,14 +18333,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -18429,14 +18443,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 8
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -18615,7 +18629,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -18681,7 +18695,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -18794,14 +18808,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 8
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -18904,14 +18918,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 8
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -19091,7 +19105,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -19145,7 +19159,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar4a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -19258,7 +19272,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
@@ -19278,7 +19292,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar5a'
       ]
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -19381,14 +19395,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 8
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -19495,7 +19509,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -19549,7 +19563,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar4a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -19662,14 +19676,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 7
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts,
+    testSetEqual test, @person2.subdocument?.posts,
       [
         _id: @postId2
         subdocument:
@@ -19760,14 +19774,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 6
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -19850,7 +19864,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -19896,7 +19910,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar4a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -20001,14 +20015,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 5
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts, []
+    testSetEqual test, @person2.subdocument?.posts, []
     testSetEqual test, @person2.subdocumentsPosts,
       [
         _id: @postId1
@@ -20082,14 +20096,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 4
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1
@@ -20156,7 +20170,7 @@ testAsyncMulti 'peerdb - reverse posts', [
     @person3 = Person.documents.findOne @person3Id,
       transform: null # So that we can use test.equal
 
-    test.equal _.omit(@person1, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person1, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person1Id
       username: 'person1'
       displayName: 'Person 1'
@@ -20194,7 +20208,7 @@ testAsyncMulti 'peerdb - reverse posts', [
         ]
         body: 'FooBar4a'
       ]
-    testSetEqual test, @person1.subdocumentPosts,
+    testSetEqual test, @person1.subdocument?.posts,
       [
         _id: @postId1
         subdocument:
@@ -20283,14 +20297,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person2, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person2, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person2Id
       username: 'person2'
       displayName: 'Person 2'
       count: 4
 
     testSetEqual test, @person2.posts, []
-    testSetEqual test, @person2.subdocumentPosts, []
+    testSetEqual test, @person2.subdocument?.posts, []
     testSetEqual test, @person2.subdocumentsPosts,
       [
         _id: @postId1
@@ -20356,14 +20370,14 @@ testAsyncMulti 'peerdb - reverse posts', [
         body: 'FooBar4a'
       ]
 
-    test.equal _.omit(@person3, 'posts', 'subdocumentPosts', 'subdocumentsPosts', 'nestedPosts'),
+    test.equal _.omit(@person3, 'posts', 'subdocument', 'subdocumentsPosts', 'nestedPosts'),
       _id: @person3Id
       username: 'person3'
       displayName: 'Person 3'
       count: 2
 
     testSetEqual test, @person3.posts, []
-    testSetEqual test, @person3.subdocumentPosts, []
+    testSetEqual test, @person3.subdocument?.posts, []
     testSetEqual test, @person3.subdocumentsPosts,
       [
         _id: @postId1

@@ -33,6 +33,23 @@ deepExtend = (obj, args...) ->
         obj[key] = value
   obj
 
+setPath = (object, path, value) ->
+  outputObject = object
+
+  segments = path.split '.'
+  for segment, i in segments
+    if _.isObject object
+      if i is segments.length - 1
+        object[segment] = value
+        break
+      else if segment not of object
+        object[segment] = {}
+      object = object[segment]
+    else
+      throw new Error "Path '#{path}' crosses a non-object."
+
+  outputObject
+
 removeUndefined = (obj) ->
   assert isPlainObject obj
 
@@ -952,10 +969,10 @@ class globals.Document
 
           reverseFields = {}
           for reverse in document.Meta._reverseFields
-            reverseFields[reverse.reverseName] = [globals.Document.ReferenceField reverse.sourceDocument, reverse.reverseFields]
+            setPath reverseFields, reverse.reverseName, [globals.Document.ReferenceField reverse.sourceDocument, reverse.reverseFields]
 
           # And now we run _processFields for real on all fields
-          document.Meta.fields = document._processFields _.extend fields, reverseFields
+          document.Meta.fields = document._processFields deepExtend fields, reverseFields
       catch e
         if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
           @_addDelayed document
