@@ -954,7 +954,7 @@ class globals.Document
           for reverse in document.Meta._reverseFields
             reverseFields[reverse.reverseName] = [globals.Document.ReferenceField reverse.sourceDocument, reverse.reverseFields]
 
-          # And now we run _reverseFields for real on all fields
+          # And now we run _processFields for real on all fields
           document.Meta.fields = document._processFields _.extend fields, reverseFields
       catch e
         if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
