@@ -865,39 +865,54 @@ class globals.Document
 
     triggers
 
-  @_processFields: (fields, parent, ancestorArray) ->
+  @_processFieldsOrGenerators: (isGenerator, fields, parent, ancestorArray) ->
     assert fields
     assert isPlainObject fields
 
     ancestorArray = ancestorArray or null
 
+    if isGenerator
+      resourceName = "Generator"
+      lowerCaseResourceName = "generator"
+    else
+      resourceName = "Field"
+      lowerCaseResourceName = "field"
+
     res = {}
     for name, field of fields
-      throw new Error "Field names cannot contain '.' (for #{ name } from #{ @Meta._location })" if name.indexOf('.') isnt -1
+      throw new Error "#{ resourceName } names cannot contain '.' (for #{ name } from #{ @Meta._location })" if name.indexOf('.') isnt -1
 
       path = if parent then "#{ parent }.#{ name }" else name
       array = ancestorArray
 
       if _.isArray field
-        throw new Error "Array field has to contain exactly one element, not #{ field.length } (for #{ path } from #{ @Meta._location })" if field.length isnt 1
+        throw new Error "Array #{ lowerCaseResourceName } has to contain exactly one element, not #{ field.length } (for #{ path } from #{ @Meta._location })" if field.length isnt 1
         field = field[0]
 
         if array
           # TODO: Support nested arrays
           # See: https://jira.mongodb.org/browse/SERVER-831
-          throw new Error "Field cannot be in a nested array (for #{ path } from #{ @Meta._location })"
+          throw new Error "#{ resourceName } cannot be in a nested array (for #{ path } from #{ @Meta._location })"
 
         array = path
 
       if field instanceof globals.Document._Field
+        throw new Error "Not a generated field among generators (for #{ name } from #{ @Meta._location })" if isGenerator and not field instanceof globals.Document._GeneratedField
+
         field.contributeToClass @, path, array
         res[name] = field
       else if _.isObject field
-        res[name] = @_processFields field, path, array
+        res[name] = @_processFieldsOrGenerators isGenerator, field, path, array
       else
-        throw new Error "Invalid value for field (for #{ path } from #{ @Meta._location })"
+        throw new Error "Invalid value for #{ lowerCaseResourceName } (for #{ path } from #{ @Meta._location })"
 
     res
+
+  @_processFields: (fields, parent, ancestorArray) ->
+    @_processFieldsOrGenerators false, fields, parent, ancestorArray
+
+  @_processGenerators: (generators, parent, ancestorArray) ->
+    @_processFieldsOrGenerators true, generators, parent, ancestorArray
 
   @_fieldsUseDocument: (fields, document) ->
     assert fields
@@ -921,6 +936,10 @@ class globals.Document
 
     for doc in documents
       if @_fieldsUseDocument doc.Meta.fields, document
+        delete doc.Meta._replaced
+        delete doc.Meta._listIndex
+        @_addDelayed doc
+      else if @_fieldsUseDocument doc.Meta.generators, document
         delete doc.Meta._replaced
         delete doc.Meta._listIndex
         @_addDelayed doc
@@ -960,6 +979,20 @@ class globals.Document
 
       throw new Error "No triggers returned (from #{ document.Meta._location })" unless triggers
       throw new Error "Returned triggers should be a plain object (from #{ document.Meta._location })" unless isPlainObject triggers
+
+      try
+        generators = document.Meta._generators.call document, {}
+        if generators and isPlainObject generators
+          document.Meta.generators = document._processGenerators generators
+      catch e
+        if not throwErrors and (e.message is INVALID_TARGET or e instanceof ReferenceError)
+          @_addDelayed document
+          continue
+        else
+          throw new Error "Invalid generators (from #{ document.Meta._location }): #{ e.stringOf?() or e }\n---#{ if e.stack then "#{ e.stack }\n---" else '' }"
+
+      throw new Error "No generators returned (from #{ document.Meta._location })" unless generators
+      throw new Error "Returned generators should be a plain object (from #{ document.Meta._location })" unless isPlainObject generators
 
       try
         fields = document.Meta._fields.call document, {}
@@ -1039,12 +1072,12 @@ class globals.Document
       else
         throw new Error "Invalid trigger (for #{ name } trigger from #{ document.Meta._location })"
 
-  @_validateFields: (obj) ->
+  @_validateFieldsOrGenerators: (obj) ->
     for name, field of obj
       if field instanceof globals.Document._Field
         field.validate()
       else
-        @_validateFields field
+        @_validateFieldsOrGenerators field
 
   @Meta: (meta) ->
     for field in RESERVED_FIELDS or startsWith field, '_'
@@ -1060,8 +1093,9 @@ class globals.Document
 
     name = meta.name
     currentTriggers = meta.triggers or (ts) -> ts
+    currentGenerators = meta.generators or (gs) -> gs
     currentFields = meta.fields or (fs) -> fs
-    meta = _.omit meta, 'name', 'triggers', 'fields'
+    meta = _.omit meta, 'name', 'triggers', 'generators', 'fields'
 
     parentMeta = @Meta
 
@@ -1073,6 +1107,15 @@ class globals.Document
       triggers = currentTriggers
 
     meta._triggers = triggers # Triggers function
+
+    if parentMeta._generators
+      generators = (gs) ->
+        newGs = parentMeta._generators gs
+        removeUndefined deepExtend gs, newGs, currentGenerators newGs
+    else
+      generators = currentGenerators
+
+    meta._generators = generators # Generators function
 
     if parentMeta._fields
       fields = (fs) ->
@@ -1140,7 +1183,8 @@ class globals.Document
     for document in globals.Document.list
       throw new Error "Missing fields (from #{ document.Meta._location })" unless document.Meta.fields
       @_validateTriggers document
-      @_validateFields document.Meta.fields
+      @_validateFieldsOrGenerators document.Meta.generators
+      @_validateFieldsOrGenerators document.Meta.fields
 
   @defineAll: (dontThrowDelayedErrors) ->
     for i in [0..MAX_RETRIES]
@@ -1227,16 +1271,19 @@ class globals.Document
 
       field.targetCollection.update query, {$pull: update}, multi: true
 
-  @_sourceFieldUpdated: (id, name, value, field, originalValue) ->
+  @_sourceFieldUpdated: (isGenerator, id, name, value, field, originalValue) ->
     # TODO: Should we check if field still exists but just value is undefined, so that it is the same as null? Or can this happen only when removing the field?
     if _.isUndefined value
       if field and field.reverseName and isModifiableCollection field.targetCollection
         @_sourceFieldProcessDeleted field, id, [], name.split('.')[1..], originalValue
       return
 
-    field = field or @Meta.fields[name]
+    if isGenerator
+      field = field or @Meta.generators[name]
+    else
+      field = field or @Meta.fields[name]
 
-    # We should be subscribed only to those updates which are defined in @Meta.fields
+    # We should be subscribed only to those updates which are defined in @Meta.generators or @Meta.fields
     assert field
 
     originalValue = originalValue or value
@@ -1287,99 +1334,101 @@ class globals.Document
       for v in value
         for n, f of field
           # TODO: Should we skip calling @_sourceFieldUpdated if we already called it with exactly the same parameters this run?
-          @_sourceFieldUpdated id, "#{ name }.#{ n }", v[n], f, originalValue
+          @_sourceFieldUpdated isGenerator, id, "#{ name }.#{ n }", v[n], f, originalValue
 
-  @_sourceUpdated: (id, fields) ->
+  @_sourceUpdated: (isGenerator, id, fields) ->
     for name, value of fields
-      @_sourceFieldUpdated id, name, value
+      @_sourceFieldUpdated isGenerator, id, name, value
 
   @_setupSourceObservers: (updateAll) ->
-    return if _.isEmpty @Meta.fields
+    for [fields, isGenerator] in [[@Meta.fields, false], [@Meta.generators, true]]
+      do (fields, isGenerator) =>
+        return if _.isEmpty fields
 
-    indexes = []
-    sourceFields = {}
-    sourceFieldsLimitedToPrefix = {}
+        indexes = []
+        sourceFields = {}
+        sourceFieldsLimitedToPrefix = {}
 
-    # We use isModifiableCollection to optimize so that we do not even setup observers
-    # for fields which deal with unmodifiable collections.
-    sourceFieldsWalker = (obj) ->
-      for name, field of obj
-        if field instanceof globals.Document._ObservingField
-          if field instanceof globals.Document._ReferenceField
-            if field.reverseName
-              if isModifiableCollection(field.sourceCollection) or isModifiableCollection(field.targetCollection)
-                # Limit to PREFIX only when both collections are server side. Otherwise there is a collection
-                # which is local only to this instance and we want to process all documents for it. Alternatively,
-                # there is a collection through a connection, in which case we are conservative and also process
-                # all documents for it. We do not necessary know if connections are shared between instances.
-                if isServerCollection(field.sourceCollection) and isServerCollection(field.targetCollection)
-                  sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+        # We use isModifiableCollection to optimize so that we do not even setup observers
+        # for fields which deal with unmodifiable collections.
+        sourceFieldsWalker = (obj) ->
+          for name, field of obj
+            if field instanceof globals.Document._ObservingField
+              if field instanceof globals.Document._ReferenceField
+                if field.reverseName
+                  if isModifiableCollection(field.sourceCollection) or isModifiableCollection(field.targetCollection)
+                    # Limit to PREFIX only when both collections are server side. Otherwise there is a collection
+                    # which is local only to this instance and we want to process all documents for it. Alternatively,
+                    # there is a collection through a connection, in which case we are conservative and also process
+                    # all documents for it. We do not necessary know if connections are shared between instances.
+                    if isServerCollection(field.sourceCollection) and isServerCollection(field.targetCollection)
+                      sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+                    else
+                      sourceFields[field.sourcePath] = 1
+
+                    index = {}
+                    index["#{ field.sourcePath }._id"] = 1
+                    indexes.push index
                 else
-                  sourceFields[field.sourcePath] = 1
+                  if isModifiableCollection field.sourceCollection
+                    if isServerCollection field.sourceCollection
+                      sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+                    else
+                      sourceFields[field.sourcePath] = 1
 
-                index = {}
-                index["#{ field.sourcePath }._id"] = 1
-                indexes.push index
-            else
-              if isModifiableCollection field.sourceCollection
-                if isServerCollection field.sourceCollection
-                  sourceFieldsLimitedToPrefix[field.sourcePath] = 1
-                else
-                  sourceFields[field.sourcePath] = 1
-
-                index = {}
-                index["#{ field.sourcePath }._id"] = 1
-                indexes.push index
-          else
-            if isModifiableCollection field.sourceCollection
-              if isServerCollection field.sourceCollection
-                sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+                    index = {}
+                    index["#{ field.sourcePath }._id"] = 1
+                    indexes.push index
               else
-                sourceFields[field.sourcePath] = 1
-        else if field not instanceof globals.Document._Field
-          sourceFieldsWalker field
+                if isModifiableCollection field.sourceCollection
+                  if isServerCollection field.sourceCollection
+                    sourceFieldsLimitedToPrefix[field.sourcePath] = 1
+                  else
+                    sourceFields[field.sourcePath] = 1
+            else if field not instanceof globals.Document._Field
+              sourceFieldsWalker field
 
-    sourceFieldsWalker @Meta.fields
+        sourceFieldsWalker fields
 
-    unless updateAll
-      for index in indexes
-        @Meta.collection._ensureIndex index if Meteor.isServer and @Meta.collection._connection is Meteor.server
+        unless updateAll
+          for index in indexes
+            @Meta.collection._ensureIndex index if Meteor.isServer and @Meta.collection._connection is Meteor.server
 
-    # Source or target collections are modifiable collections.
-    unless _.isEmpty sourceFields
-      initializing = true
+        # Source or target collections are modifiable collections.
+        unless _.isEmpty sourceFields
+          initializing = true
 
-      observers =
-        added: globals.Document._observerCallback false, (id, fields) =>
-          @_sourceUpdated id, fields if updateAll or not initializing
+          observers =
+            added: globals.Document._observerCallback false, (id, fields) =>
+              @_sourceUpdated isGenerator, id, fields if updateAll or not initializing
 
-      unless updateAll
-        observers.changed = globals.Document._observerCallback false, (id, fields) =>
-          @_sourceUpdated id, fields
+          unless updateAll
+            observers.changed = globals.Document._observerCallback false, (id, fields) =>
+              @_sourceUpdated isGenerator, id, fields
 
-      handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
+          handle = @Meta.collection.find({}, fields: sourceFields).observeChanges observers
 
-      initializing = false
+          initializing = false
 
-      handle.stop() if updateAll
+          handle.stop() if updateAll
 
-    # Source or target collections are modifiable collections.
-    unless _.isEmpty sourceFieldsLimitedToPrefix
-      initializingLimitedToPrefix = true
+        # Source or target collections are modifiable collections.
+        unless _.isEmpty sourceFieldsLimitedToPrefix
+          initializingLimitedToPrefix = true
 
-      observers =
-        added: globals.Document._observerCallback true, (id, fields) =>
-          @_sourceUpdated id, fields if updateAll or not initializingLimitedToPrefix
+          observers =
+            added: globals.Document._observerCallback true, (id, fields) =>
+              @_sourceUpdated isGenerator, id, fields if updateAll or not initializingLimitedToPrefix
 
-      unless updateAll
-        observers.changed = globals.Document._observerCallback true, (id, fields) =>
-          @_sourceUpdated id, fields
+          unless updateAll
+            observers.changed = globals.Document._observerCallback true, (id, fields) =>
+              @_sourceUpdated isGenerator, id, fields
 
-      handle = @Meta.collection.find({}, fields: sourceFieldsLimitedToPrefix).observeChanges observers
+          handle = @Meta.collection.find({}, fields: sourceFieldsLimitedToPrefix).observeChanges observers
 
-      initializingLimitedToPrefix = false
+          initializingLimitedToPrefix = false
 
-      handle.stop() if updateAll
+          handle.stop() if updateAll
 
   @_updateAll: ->
     # It is only reasonable to run anything if this instance
@@ -1408,6 +1457,7 @@ class globals.Document
       if updateAll
         # For fields we pass updateAll on.
         setupTargetObservers document.Meta.fields
+        setupTargetObservers document.Meta.generators
         document._setupSourceObservers true
 
       else
@@ -1418,6 +1468,7 @@ class globals.Document
         # We setup triggers only when we are not updating all.
         setupTriggerObserves document.Meta.triggers
         setupTargetObservers document.Meta.fields
+        setupTargetObservers document.Meta.generators
         document._setupSourceObservers false
 
     return

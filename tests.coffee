@@ -30,13 +30,6 @@ class Post extends Document
       subdocument:
         # Fields can be arbitrary MongoDB projections, as an object
         person: @ReferenceField Person, {'username': 1, 'displayName': 1, 'field1': 1, 'field2': 1}, false, 'subdocument.posts', ['body', 'subdocument.body', 'nested.body']
-        slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
-          if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
-            [fields._id, undefined]
-          else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
-            [fields._id, null]
-          else
-            [fields._id, "subdocument-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
       nested: [
         required: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'nestedPosts', ['body', 'subdocument.body', 'nested.body']
         optional: @ReferenceField Person, ['username'], false
@@ -56,6 +49,15 @@ class Post extends Document
           [fields._id, null]
         else
           [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
+    generators: =>
+      subdocument:
+        slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
+          if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
+            [fields._id, undefined]
+          else if _.isNull(fields.body) or _.isNull(fields.subdocument.body)
+            [fields._id, null]
+          else
+            [fields._id, "subdocument-prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
       tags: [
         @GeneratedField 'self', ['body', 'subdocument.body', 'nested.body'], (fields) ->
           tags = []
@@ -152,7 +154,7 @@ class Person extends Document
 
   @Meta
     name: 'Person'
-    fields: =>
+    generators: =>
       count: @GeneratedField 'self', ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
         [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocument?.posts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
 
@@ -195,7 +197,7 @@ class IdentityGenerator extends Document
 
   @Meta
     name: 'IdentityGenerator'
-    fields: =>
+    generators: =>
       result: @GeneratedField 'self', ['source'], (fields) ->
         throw new Error "Test exception" if fields.source is 'exception'
         return [fields._id, fields.source]
@@ -418,7 +420,35 @@ testDefinition = (test) ->
   test.equal Post.Meta.triggers.testTrigger.document, Post
   test.equal Post.Meta.triggers.testTrigger.collection._name, 'Posts'
   test.equal Post.Meta.triggers.testTrigger.fields, ['body']
-  test.equal _.size(Post.Meta.fields), 7
+  test.equal _.size(Post.Meta.generators), 2
+  test.equal _.size(Post.Meta.generators.subdocument), 1
+  test.instanceOf Post.Meta.generators.subdocument.slug, Post._GeneratedField
+  test.isNull Post.Meta.generators.subdocument.slug.ancestorArray, Post.Meta.generators.subdocument.slug.ancestorArray
+  test.isTrue _.isFunction Post.Meta.generators.subdocument.slug.generator
+  test.equal Post.Meta.generators.subdocument.slug.sourcePath, 'subdocument.slug'
+  test.equal Post.Meta.generators.subdocument.slug.sourceDocument, Post
+  test.equal Post.Meta.generators.subdocument.slug.targetDocument, Post
+  test.equal Post.Meta.generators.subdocument.slug.sourceCollection._name, 'Posts'
+  test.equal Post.Meta.generators.subdocument.slug.targetCollection._name, 'Posts'
+  test.equal Post.Meta.generators.subdocument.slug.sourceDocument.Meta.collection._name, 'Posts'
+  test.equal Post.Meta.generators.subdocument.slug.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Post.Meta.generators.subdocument.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined Post.Meta.generators.subdocument.slug.reverseName
+  test.isUndefined Post.Meta.generators.subdocument.slug.reverseFields
+  test.instanceOf Post.Meta.generators.tags, Post._GeneratedField
+  test.equal Post.Meta.generators.tags.ancestorArray, 'tags'
+  test.isTrue _.isFunction Post.Meta.generators.tags.generator
+  test.equal Post.Meta.generators.tags.sourcePath, 'tags'
+  test.equal Post.Meta.generators.tags.sourceDocument, Post
+  test.equal Post.Meta.generators.tags.targetDocument, Post
+  test.equal Post.Meta.generators.tags.sourceCollection._name, 'Posts'
+  test.equal Post.Meta.generators.tags.targetCollection._name, 'Posts'
+  test.equal Post.Meta.generators.tags.sourceDocument.Meta.collection._name, 'Posts'
+  test.equal Post.Meta.generators.tags.targetDocument.Meta.collection._name, 'Posts'
+  test.equal Post.Meta.generators.tags.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isUndefined Post.Meta.generators.tags.reverseName
+  test.isUndefined Post.Meta.generators.tags.reverseFields
+  test.equal _.size(Post.Meta.fields), 6
   test.instanceOf Post.Meta.fields.author, Post._ReferenceField
   test.isNull Post.Meta.fields.author.ancestorArray, Post.Meta.fields.author.ancestorArray
   test.isTrue Post.Meta.fields.author.required
@@ -458,7 +488,7 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.reviewers.fields, [username: 1]
   test.isNull Post.Meta.fields.reviewers.reverseName
   test.equal Post.Meta.fields.reviewers.reverseFields, []
-  test.equal _.size(Post.Meta.fields.subdocument), 3
+  test.equal _.size(Post.Meta.fields.subdocument), 2
   test.instanceOf Post.Meta.fields.subdocument.person, Post._ReferenceField
   test.isNull Post.Meta.fields.subdocument.person.ancestorArray, Post.Meta.fields.subdocument.person.ancestorArray
   test.isFalse Post.Meta.fields.subdocument.person.required
@@ -485,19 +515,6 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal Post.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
   test.equal Post.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf Post.Meta.fields.subdocument.slug, Post._GeneratedField
-  test.isNull Post.Meta.fields.subdocument.slug.ancestorArray, Post.Meta.fields.subdocument.slug.ancestorArray
-  test.isTrue _.isFunction Post.Meta.fields.subdocument.slug.generator
-  test.equal Post.Meta.fields.subdocument.slug.sourcePath, 'subdocument.slug'
-  test.equal Post.Meta.fields.subdocument.slug.sourceDocument, Post
-  test.equal Post.Meta.fields.subdocument.slug.targetDocument, Post
-  test.equal Post.Meta.fields.subdocument.slug.sourceCollection._name, 'Posts'
-  test.equal Post.Meta.fields.subdocument.slug.targetCollection._name, 'Posts'
-  test.equal Post.Meta.fields.subdocument.slug.sourceDocument.Meta.collection._name, 'Posts'
-  test.equal Post.Meta.fields.subdocument.slug.targetDocument.Meta.collection._name, 'Posts'
-  test.equal Post.Meta.fields.subdocument.slug.fields, ['body', 'subdocument.body']
-  test.isUndefined Post.Meta.fields.subdocument.slug.reverseName
-  test.isUndefined Post.Meta.fields.subdocument.slug.reverseFields
   test.equal _.size(Post.Meta.fields.nested), 3
   test.instanceOf Post.Meta.fields.nested.required, Post._ReferenceField
   test.equal Post.Meta.fields.nested.required.ancestorArray, 'nested'
@@ -551,19 +568,6 @@ testDefinition = (test) ->
   test.equal Post.Meta.fields.slug.fields, ['body', 'subdocument.body']
   test.isUndefined Post.Meta.fields.slug.reverseName
   test.isUndefined Post.Meta.fields.slug.reverseFields
-  test.instanceOf Post.Meta.fields.tags, Post._GeneratedField
-  test.equal Post.Meta.fields.tags.ancestorArray, 'tags'
-  test.isTrue _.isFunction Post.Meta.fields.tags.generator
-  test.equal Post.Meta.fields.tags.sourcePath, 'tags'
-  test.equal Post.Meta.fields.tags.sourceDocument, Post
-  test.equal Post.Meta.fields.tags.targetDocument, Post
-  test.equal Post.Meta.fields.tags.sourceCollection._name, 'Posts'
-  test.equal Post.Meta.fields.tags.targetCollection._name, 'Posts'
-  test.equal Post.Meta.fields.tags.sourceDocument.Meta.collection._name, 'Posts'
-  test.equal Post.Meta.fields.tags.targetDocument.Meta.collection._name, 'Posts'
-  test.equal Post.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
-  test.isUndefined Post.Meta.fields.tags.reverseName
-  test.isUndefined Post.Meta.fields.tags.reverseFields
   test.isTrue Post.Meta._observersSetup
 
   test.equal User.Meta._name, 'User'
@@ -687,7 +691,21 @@ testDefinition = (test) ->
   test.equal Person.Meta.document, Person
   test.equal Person.Meta.collection._name, 'Persons'
   test.equal _.size(Person.Meta.triggers), 0
-  test.equal _.size(Person.Meta.fields), 5
+  test.equal _.size(Person.Meta.generators), 1
+  test.instanceOf Person.Meta.generators.count, Person._GeneratedField
+  test.isNull Person.Meta.generators.count.ancestorArray, Person.Meta.generators.count.ancestorArray
+  test.isTrue _.isFunction Person.Meta.generators.count.generator
+  test.equal Person.Meta.generators.count.sourcePath, 'count'
+  test.equal Person.Meta.generators.count.sourceDocument, Person
+  test.equal Person.Meta.generators.count.targetDocument, Person
+  test.equal Person.Meta.generators.count.sourceCollection._name, 'Persons'
+  test.equal Person.Meta.generators.count.targetCollection._name, 'Persons'
+  test.equal Person.Meta.generators.count.sourceDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.generators.count.targetDocument.Meta.collection._name, 'Persons'
+  test.equal Person.Meta.generators.count.fields, ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts']
+  test.isUndefined Person.Meta.generators.count.reverseName
+  test.isUndefined Person.Meta.generators.count.reverseFields
+  test.equal _.size(Person.Meta.fields), 4
   test.instanceOf Person.Meta.fields.posts, Person._ReferenceField
   test.equal Person.Meta.fields.posts.ancestorArray, 'posts'
   test.isTrue Person.Meta.fields.posts.required
@@ -714,19 +732,6 @@ testDefinition = (test) ->
   test.equal Person.Meta.fields.nestedPosts.fields, ['body', 'subdocument.body', 'nested.body']
   test.isNull Person.Meta.fields.nestedPosts.reverseName
   test.equal Person.Meta.fields.nestedPosts.reverseFields, []
-  test.instanceOf Person.Meta.fields.count, Person._GeneratedField
-  test.isNull Person.Meta.fields.count.ancestorArray, Person.Meta.fields.count.ancestorArray
-  test.isTrue _.isFunction Person.Meta.fields.count.generator
-  test.equal Person.Meta.fields.count.sourcePath, 'count'
-  test.equal Person.Meta.fields.count.sourceDocument, Person
-  test.equal Person.Meta.fields.count.targetDocument, Person
-  test.equal Person.Meta.fields.count.sourceCollection._name, 'Persons'
-  test.equal Person.Meta.fields.count.targetCollection._name, 'Persons'
-  test.equal Person.Meta.fields.count.sourceDocument.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.fields.count.targetDocument.Meta.collection._name, 'Persons'
-  test.equal Person.Meta.fields.count.fields, ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts']
-  test.isUndefined Person.Meta.fields.count.reverseName
-  test.isUndefined Person.Meta.fields.count.reverseFields
   test.instanceOf Person.Meta.fields.subdocument.posts, Person._ReferenceField
   test.equal Person.Meta.fields.subdocument.posts.ancestorArray, 'subdocument.posts'
   test.isTrue Person.Meta.fields.subdocument.posts.required
@@ -803,33 +808,34 @@ testDefinition = (test) ->
   test.equal IdentityGenerator.Meta.document, IdentityGenerator
   test.equal IdentityGenerator.Meta.collection._name, 'IdentityGenerators'
   test.equal _.size(IdentityGenerator.Meta.triggers), 0
-  test.equal _.size(IdentityGenerator.Meta.fields), 2
-  test.instanceOf IdentityGenerator.Meta.fields.result, IdentityGenerator._GeneratedField
-  test.isNull IdentityGenerator.Meta.fields.result.ancestorArray, IdentityGenerator.Meta.fields.result.ancestorArray
-  test.isTrue _.isFunction IdentityGenerator.Meta.fields.result.generator
-  test.equal IdentityGenerator.Meta.fields.result.sourcePath, 'result'
-  test.equal IdentityGenerator.Meta.fields.result.sourceDocument, IdentityGenerator
-  test.equal IdentityGenerator.Meta.fields.result.targetDocument, IdentityGenerator
-  test.equal IdentityGenerator.Meta.fields.result.sourceCollection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.result.targetCollection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.result.sourceDocument.Meta.collection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.result.targetDocument.Meta.collection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.result.fields, ['source']
-  test.isUndefined IdentityGenerator.Meta.fields.result.reverseName
-  test.isUndefined IdentityGenerator.Meta.fields.result.reverseFields
-  test.instanceOf IdentityGenerator.Meta.fields.results, IdentityGenerator._GeneratedField
-  test.equal IdentityGenerator.Meta.fields.results.ancestorArray, 'results'
-  test.isTrue _.isFunction IdentityGenerator.Meta.fields.results.generator
-  test.equal IdentityGenerator.Meta.fields.results.sourcePath, 'results'
-  test.equal IdentityGenerator.Meta.fields.results.sourceDocument, IdentityGenerator
-  test.equal IdentityGenerator.Meta.fields.results.targetDocument, IdentityGenerator
-  test.equal IdentityGenerator.Meta.fields.results.sourceCollection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.results.targetCollection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.results.sourceDocument.Meta.collection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.results.targetDocument.Meta.collection._name, 'IdentityGenerators'
-  test.equal IdentityGenerator.Meta.fields.results.fields, ['source']
-  test.isUndefined IdentityGenerator.Meta.fields.results.reverseName
-  test.isUndefined IdentityGenerator.Meta.fields.results.reverseFields
+  test.equal _.size(IdentityGenerator.Meta.generators), 2
+  test.instanceOf IdentityGenerator.Meta.generators.result, IdentityGenerator._GeneratedField
+  test.isNull IdentityGenerator.Meta.generators.result.ancestorArray, IdentityGenerator.Meta.generators.result.ancestorArray
+  test.isTrue _.isFunction IdentityGenerator.Meta.generators.result.generator
+  test.equal IdentityGenerator.Meta.generators.result.sourcePath, 'result'
+  test.equal IdentityGenerator.Meta.generators.result.sourceDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.generators.result.targetDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.generators.result.sourceCollection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.result.targetCollection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.result.sourceDocument.Meta.collection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.result.targetDocument.Meta.collection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.result.fields, ['source']
+  test.isUndefined IdentityGenerator.Meta.generators.result.reverseName
+  test.isUndefined IdentityGenerator.Meta.generators.result.reverseFields
+  test.instanceOf IdentityGenerator.Meta.generators.results, IdentityGenerator._GeneratedField
+  test.equal IdentityGenerator.Meta.generators.results.ancestorArray, 'results'
+  test.isTrue _.isFunction IdentityGenerator.Meta.generators.results.generator
+  test.equal IdentityGenerator.Meta.generators.results.sourcePath, 'results'
+  test.equal IdentityGenerator.Meta.generators.results.sourceDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.generators.results.targetDocument, IdentityGenerator
+  test.equal IdentityGenerator.Meta.generators.results.sourceCollection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.results.targetCollection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.results.sourceDocument.Meta.collection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.results.targetDocument.Meta.collection._name, 'IdentityGenerators'
+  test.equal IdentityGenerator.Meta.generators.results.fields, ['source']
+  test.isUndefined IdentityGenerator.Meta.generators.results.reverseName
+  test.isUndefined IdentityGenerator.Meta.generators.results.reverseFields
+  test.equal _.size(IdentityGenerator.Meta.fields), 0
   test.isTrue IdentityGenerator.Meta._observersSetup
 
   test.equal SpecialPost.Meta._name, 'SpecialPost'
@@ -842,7 +848,35 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.triggers.testTrigger.document, SpecialPost
   test.equal SpecialPost.Meta.triggers.testTrigger.collection._name, 'SpecialPosts'
   test.equal SpecialPost.Meta.triggers.testTrigger.fields, ['body']
-  test.equal _.size(SpecialPost.Meta.fields), 8
+  test.equal _.size(SpecialPost.Meta.generators), 2
+  test.equal _.size(SpecialPost.Meta.generators.subdocument), 1
+  test.instanceOf SpecialPost.Meta.generators.subdocument.slug, SpecialPost._GeneratedField
+  test.isNull SpecialPost.Meta.generators.subdocument.slug.ancestorArray, SpecialPost.Meta.generators.subdocument.slug.ancestorArray
+  test.isTrue _.isFunction SpecialPost.Meta.generators.subdocument.slug.generator
+  test.equal SpecialPost.Meta.generators.subdocument.slug.sourcePath, 'subdocument.slug'
+  test.equal SpecialPost.Meta.generators.subdocument.slug.sourceDocument, SpecialPost
+  test.equal SpecialPost.Meta.generators.subdocument.slug.targetDocument, SpecialPost
+  test.equal SpecialPost.Meta.generators.subdocument.slug.sourceCollection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.subdocument.slug.targetCollection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.subdocument.slug.sourceDocument.Meta.collection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.subdocument.slug.targetDocument.Meta.collection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.subdocument.slug.fields, ['body', 'subdocument.body']
+  test.isUndefined SpecialPost.Meta.generators.subdocument.slug.reverseName
+  test.isUndefined SpecialPost.Meta.generators.subdocument.slug.reverseFields
+  test.instanceOf SpecialPost.Meta.generators.tags, SpecialPost._GeneratedField
+  test.equal SpecialPost.Meta.generators.tags.ancestorArray, 'tags'
+  test.isTrue _.isFunction SpecialPost.Meta.generators.tags.generator
+  test.equal SpecialPost.Meta.generators.tags.sourcePath, 'tags'
+  test.equal SpecialPost.Meta.generators.tags.sourceDocument, SpecialPost
+  test.equal SpecialPost.Meta.generators.tags.targetDocument, SpecialPost
+  test.equal SpecialPost.Meta.generators.tags.sourceCollection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.tags.targetCollection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.tags.sourceDocument.Meta.collection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.tags.targetDocument.Meta.collection._name, 'SpecialPosts'
+  test.equal SpecialPost.Meta.generators.tags.fields, ['body', 'subdocument.body', 'nested.body']
+  test.isUndefined SpecialPost.Meta.generators.tags.reverseName
+  test.isUndefined SpecialPost.Meta.generators.tags.reverseFields
+  test.equal _.size(SpecialPost.Meta.fields), 7
   test.instanceOf SpecialPost.Meta.fields.author, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.author.ancestorArray, SpecialPost.Meta.fields.author.ancestorArray
   test.isTrue SpecialPost.Meta.fields.author.required
@@ -882,7 +916,7 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.reviewers.fields, [username: 1]
   test.isNull SpecialPost.Meta.fields.reviewers.reverseName
   test.equal SpecialPost.Meta.fields.reviewers.reverseFields, []
-  test.equal _.size(SpecialPost.Meta.fields.subdocument), 3
+  test.equal _.size(SpecialPost.Meta.fields.subdocument), 2
   test.instanceOf SpecialPost.Meta.fields.subdocument.person, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.subdocument.person.ancestorArray, SpecialPost.Meta.fields.subdocument.person.ancestorArray
   test.isFalse SpecialPost.Meta.fields.subdocument.person.required
@@ -909,19 +943,6 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.subdocument.persons.fields, ['username', 'displayName', 'field1', 'field2']
   test.equal SpecialPost.Meta.fields.subdocument.persons.reverseName, 'subdocumentsPosts'
   test.equal SpecialPost.Meta.fields.subdocument.persons.reverseFields, ['body', 'subdocument.body', 'nested.body']
-  test.instanceOf SpecialPost.Meta.fields.subdocument.slug, SpecialPost._GeneratedField
-  test.isNull SpecialPost.Meta.fields.subdocument.slug.ancestorArray, SpecialPost.Meta.fields.subdocument.slug.ancestorArray
-  test.isTrue _.isFunction SpecialPost.Meta.fields.subdocument.slug.generator
-  test.equal SpecialPost.Meta.fields.subdocument.slug.sourcePath, 'subdocument.slug'
-  test.equal SpecialPost.Meta.fields.subdocument.slug.sourceDocument, SpecialPost
-  test.equal SpecialPost.Meta.fields.subdocument.slug.targetDocument, SpecialPost
-  test.equal SpecialPost.Meta.fields.subdocument.slug.sourceCollection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.subdocument.slug.targetCollection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.subdocument.slug.sourceDocument.Meta.collection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.subdocument.slug.targetDocument.Meta.collection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.subdocument.slug.fields, ['body', 'subdocument.body']
-  test.isUndefined SpecialPost.Meta.fields.subdocument.slug.reverseName
-  test.isUndefined SpecialPost.Meta.fields.subdocument.slug.reverseFields
   test.equal _.size(SpecialPost.Meta.fields.nested), 3
   test.instanceOf SpecialPost.Meta.fields.nested.required, SpecialPost._ReferenceField
   test.equal SpecialPost.Meta.fields.nested.required.ancestorArray, 'nested'
@@ -975,19 +996,6 @@ testDefinition = (test) ->
   test.equal SpecialPost.Meta.fields.slug.fields, ['body', 'subdocument.body']
   test.isUndefined SpecialPost.Meta.fields.slug.reverseName
   test.isUndefined SpecialPost.Meta.fields.slug.reverseFields
-  test.instanceOf SpecialPost.Meta.fields.tags, SpecialPost._GeneratedField
-  test.equal SpecialPost.Meta.fields.tags.ancestorArray, 'tags'
-  test.isTrue _.isFunction SpecialPost.Meta.fields.tags.generator
-  test.equal SpecialPost.Meta.fields.tags.sourcePath, 'tags'
-  test.equal SpecialPost.Meta.fields.tags.sourceDocument, SpecialPost
-  test.equal SpecialPost.Meta.fields.tags.targetDocument, SpecialPost
-  test.equal SpecialPost.Meta.fields.tags.sourceCollection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.tags.targetCollection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.tags.sourceDocument.Meta.collection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.tags.targetDocument.Meta.collection._name, 'SpecialPosts'
-  test.equal SpecialPost.Meta.fields.tags.fields, ['body', 'subdocument.body', 'nested.body']
-  test.isUndefined SpecialPost.Meta.fields.tags.reverseName
-  test.isUndefined SpecialPost.Meta.fields.tags.reverseFields
   test.instanceOf SpecialPost.Meta.fields.special, SpecialPost._ReferenceField
   test.isNull SpecialPost.Meta.fields.special.ancestorArray, SpecialPost.Meta.fields.special.ancestorArray
   test.isTrue SpecialPost.Meta.fields.special.required

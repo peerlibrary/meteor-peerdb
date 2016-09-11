@@ -378,13 +378,13 @@ class Post extends Post
   @Meta
     name: 'Post'
     replaceParent: true
-    fields: (fields) =>
-      fields.slug = @GeneratedField 'self', ['title'], (fields) ->
+    generators: (generators) =>
+      generators.slug = @GeneratedField 'self', ['title'], (fields) ->
         unless fields.title
           [fields._id, undefined]
         else
           [fields._id, "prefix-#{ fields.title.toLowerCase() }-suffix"]
-      fields
+      generators
 ```
 
 The last argument of `GeneratedField` is a function which receives an object populated with values based on the list of
@@ -401,10 +401,10 @@ class Person extends Person
   @Meta
     name: 'Person'
     replaceParent: true
-    fields: (fields) =>
-      fields.postsCount = @GeneratedField 'self', ['posts'], (fields) ->
+    generators: (generators) =>
+      generators.postsCount = @GeneratedField 'self', ['posts'], (fields) ->
         [fields._id, fields.posts?.length or 0]
-      fields
+      generators
 ```
 
 Triggers
