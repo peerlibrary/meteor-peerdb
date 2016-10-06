@@ -1496,7 +1496,7 @@ Meteor.startup ->
     if globals.Document.instances is 1
       Log.info "Enabling observers..."
     else
-      Log.info "Enabling observers, instance #{ INSTANCE }/#{ globals.Document.instances }, matching ID prefix: #{ PREFIX.join '' }"
+      Log.info "Enabling observers, instance #{ globals.Document.instance }/#{ globals.Document.instances }, matching ID prefix: #{ PREFIX.join '' }"
     globals.Document._setupObservers()
     Log.info "Done"
 
