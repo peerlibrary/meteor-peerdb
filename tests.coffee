@@ -21079,3 +21079,14 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
 
     @handle.stop()
 ]
+
+Tinytest.add 'peerdb - local documents', (test) ->
+  testDefinition test
+
+  class ReallyLocalPost extends Post
+    @Meta
+      name: 'ReallyLocalPost'
+      collection: null
+      local: true
+
+  testDefinition test

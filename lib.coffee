@@ -337,6 +337,8 @@ class globals.Document
 
       return unless @reverseName
 
+      return if @sourceDocument.Meta.local
+
       # We return now because contributeToClass will be retried sooner or later with replaced document again
       return if @targetDocument.Meta._replaced
 
@@ -1016,6 +1018,7 @@ class globals.Document
       throw new Error "No fields returned (from #{ document.Meta._location })" unless fields
       throw new Error "Returned fields should be a plain object (from #{ document.Meta._location })" unless isPlainObject fields
 
+      # Local documents cannot have replaceParent set.
       if document.Meta.replaceParent and not document.Meta.parent?._replaced
         throw new Error "Replace parent set, but no parent known (from #{ document.Meta._location })" unless document.Meta.parent
 
@@ -1039,14 +1042,17 @@ class globals.Document
 
         @_retryAllUsing document.Meta.parent.document
 
-      globals.Document.list.push document
-      document.Meta._listIndex = globals.Document.list.length - 1
+      unless document.Meta.local
+        globals.Document.list.push document
+        document.Meta._listIndex = globals.Document.list.length - 1
+
       delete document.Meta._delayIndex
 
       assert not document.Meta._replaced
 
-      # If a document is defined after PeerDB has started we have to setup observers for it.
-      globals.Document._setupObservers() if globals.Document.hasStarted()
+      unless document.Meta.local
+        # If a document is defined after PeerDB has started we have to setup observers for it.
+        globals.Document._setupObservers() if globals.Document.hasStarted()
 
       processedCount++
 
@@ -1090,6 +1096,9 @@ class globals.Document
     else
       throw new Error "Missing document name" unless meta.name
       throw new Error "replaceParent set without a parent" if meta.replaceParent and not @Meta._name
+
+    if meta.local
+      throw new Error "replaceParent cannot be set when local is set" if meta.replaceParent
 
     name = meta.name
     currentTriggers = meta.triggers or (ts) -> ts
@@ -1163,7 +1172,7 @@ class globals.Document
         meta.migrations = []
 
     clonedParentMeta = -> parentMeta.apply @, arguments
-    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', '_observersSetup', 'parent', 'replaceParent', 'abstract'
+    filteredParentMeta = _.omit parentMeta, '_listIndex', '_delayIndex', '_replaced', '_observersSetup', 'parent', 'replaceParent', 'abstract', 'local'
     @Meta = _.extend clonedParentMeta, filteredParentMeta, meta
 
     if not meta.abstract
