@@ -368,7 +368,7 @@ Auto-generated fields
 ---------------------
 
 Sometimes you need fields in a document which are based on other fields. PeerDB allows you an easy way to define
-such auto-generated fields:
+such auto-generated fields (if you don't know coffee script, wrap pure js with backticks for generator function):
 
 ```coffee
 class Post extends Post
