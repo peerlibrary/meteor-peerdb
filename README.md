@@ -410,7 +410,7 @@ class Person extends Person
 Triggers
 --------
 
-You can define triggers which are run every time any of the specified fields changes:
+You can define triggers which are run every time any of the specified fields changes (backticks wrap allows for pure js in CS):
 
 ```coffee
 class Post extends Post
