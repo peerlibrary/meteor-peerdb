@@ -157,10 +157,9 @@ multiple documents at the same time.
 
 Luckily, in many cases we can observe that we are mostly interested only in few fields of a related document, again
 and again. Instead of recomputing joins every time we read, we could use MongoDB's sub-documents feature to embed
-those fields along with the reference. Instead of just storing the `_id` of a related document, we could store also
-those few often used fields. For example, if you are displaying blog posts, you want to display the author's name together
+those fields along with the reference, otherwise "denormalizing" them even though peerDB is all about keeping all instances of fields synced or normalized after original. For example, if you are displaying blog posts, you want to display the author's name together
 with the blog post. You won't really need only the blog post without the author name. An example blog post document
-could then look like:
+could then look like, as denormalization goes:
 
 ```json
 {
