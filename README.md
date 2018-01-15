@@ -389,8 +389,8 @@ class Post extends Post
 
 The last argument of `GeneratedField` is a function which receives an object populated with values based on the list of
 fields you are interested in. In the example above, this is one field named `title` from the `Posts` collection. The `_id`
-field is always available in `fields`. Generator function receives or just `_id` (when document containing fields is being
-removed) or all fields requested. Generator function should return two values, a selector (often just the ID of a document)
+field is always available in `fields`. Generator function receives just `_id` when document containing fields is being
+removed. Otherwise it receives all fields requested. Generator function should return two values, a selector (often just the ID of a document)
 and a new value. If the value is undefined, the auto-generated field is removed. If the selector is undefined, nothing is done.
 
 You can define auto-generated fields across documents. Furthermore, you can combine reactivity. Maybe you want to also
