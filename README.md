@@ -72,7 +72,7 @@ class Person extends Document
     "#{ @verboseName() }s"
 
   # Instance method
-  getDisplayName: =>
+  getDisplayName: ->
     @displayName or @username
 ```
 
@@ -221,7 +221,7 @@ class Post extends Document
 
   @Meta
     name: 'Post'
-    fields: =>
+    fields: ->
       # We can reference other document
       author: @ReferenceField Person, ['username', 'displayName']
       # Or an array of documents
@@ -259,7 +259,7 @@ class CircularFirst extends Document
 
   @Meta
     name: 'CircularFirst'
-    fields: =>
+    fields: ->
       # We can reference circular documents
       second: @ReferenceField CircularSecond, ['content']
 
@@ -269,7 +269,7 @@ class CircularSecond extends Document
 
   @Meta
     name: 'CircularSecond'
-    fields: =>
+    fields: ->
       # But of course one should not be required so that we can insert without warnings
       first: @ReferenceField CircularFirst, ['content'], false
 ```
@@ -283,7 +283,7 @@ class Recursive extends Document
 
   @Meta
     name: 'Recursive'
-    fields: =>
+    fields: ->
       other: @ReferenceField 'self', ['content'], false
 ```
 
@@ -298,7 +298,7 @@ One more example to show use of nested objects:
 class ACLDocument extends Document
   @Meta
     name: 'ACLDocument'
-    fields: =>
+    fields: ->
       permissions:
         admins: [@ReferenceField User]
         editors: [@ReferenceField User]
@@ -313,7 +313,7 @@ class ACLDocument extends Document
 
   @Meta
     name: 'ACLDocument'
-    fields: =>
+    fields: ->
       permissions: [
         user: @ReferenceField User
         grantor: @ReferenceField User, [], false
@@ -341,7 +341,7 @@ class Post extends Post
   @Meta
     name: 'Post'
     replaceParent: true
-    fields: (fields) =>
+    fields: (fields) ->
       fields.author = @ReferenceField Person, ['username', 'displayName'], true, 'posts'
       fields
 ```
@@ -378,7 +378,7 @@ class Post extends Post
   @Meta
     name: 'Post'
     replaceParent: true
-    generators: (generators) =>
+    generators: (generators) ->
       generators.slug = @GeneratedField 'self', ['title'], (fields) ->
         unless fields.title
           [fields._id, undefined]
@@ -401,7 +401,7 @@ class Person extends Person
   @Meta
     name: 'Person'
     replaceParent: true
-    generators: (generators) =>
+    generators: (generators) ->
       generators.postsCount = @GeneratedField 'self', ['posts'], (fields) ->
         [fields._id, fields.posts?.length or 0]
       generators
@@ -420,7 +420,7 @@ class Post extends Post
   @Meta
     name: 'Post'
     replaceParent: true
-    triggers: =>
+    triggers: ->
       updateUpdatedAt: @Trigger ['title', 'body'], (newDocument, oldDocument) ->
         # Don't do anything when document is removed
         return unless newDocument?._id

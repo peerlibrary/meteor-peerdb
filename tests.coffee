@@ -20,7 +20,7 @@ class Post extends Document
 
   @Meta
     name: 'Post'
-    fields: =>
+    fields: ->
       # We can reference other document
       author: @ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'posts', ['body', 'subdocument.body', 'nested.body']
       # Or an array of documents
@@ -49,7 +49,7 @@ class Post extends Document
           [fields._id, null]
         else
           [fields._id, "prefix-#{ fields.body.toLowerCase() }-#{ fields.subdocument.body.toLowerCase() }-suffix"]
-    generators: =>
+    generators: ->
       subdocument:
         slug: @GeneratedField 'self', ['body', 'subdocument.body'], (fields) ->
           if _.isUndefined(fields.body) or _.isUndefined(fields.subdocument?.body)
@@ -68,7 +68,7 @@ class Post extends Document
               tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
           [fields._id, tags]
       ]
-    triggers: =>
+    triggers: ->
       testTrigger: @Trigger ['body'], (newDocument, oldDocument) ->
         return unless newDocument?._id
         globalTestTriggerCounters[newDocument._id] = (globalTestTriggerCounters[newDocument._id] or 0) + 1
@@ -81,7 +81,7 @@ class Post extends Post
   @Meta
     name: 'Post'
     replaceParent: true
-    fields: (fields) =>
+    fields: (fields) ->
       fields.subdocument.persons = [@ReferenceField Person, ['username', 'displayName', 'field1', 'field2'], true, 'subdocumentsPosts', ['body', 'subdocument.body', 'nested.body']]
       fields
 
@@ -97,7 +97,7 @@ class User extends Document
 class UserLink extends Document
   @Meta
     name: 'UserLink'
-    fields: =>
+    fields: ->
       user: @ReferenceField User, ['username'], false
 
 class PostLink extends Document
@@ -112,7 +112,7 @@ class PostLink extends PostLink
   @Meta
     name: 'PostLink'
     replaceParent: true
-    fields: =>
+    fields: ->
       post: @ReferenceField Post, ['subdocument.person', 'subdocument.persons']
 
 class CircularFirst extends Document
@@ -130,7 +130,7 @@ class CircularFirst extends CircularFirst
   @Meta
     name: 'CircularFirst'
     replaceParent:  true
-    fields: (fields) =>
+    fields: (fields) ->
       # We can reference circular documents
       fields.second = @ReferenceField CircularSecond, ['content'], true, 'reverseFirsts', ['content']
       fields
@@ -141,7 +141,7 @@ class CircularSecond extends Document
 
   @Meta
     name: 'CircularSecond'
-    fields: =>
+    fields: ->
       # But of course one should not be required so that we can insert without warnings
       first: @ReferenceField CircularFirst, ['content'], false, 'reverseSeconds', ['content']
 
@@ -154,7 +154,7 @@ class Person extends Document
 
   @Meta
     name: 'Person'
-    generators: =>
+    generators: ->
       count: @GeneratedField 'self', ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
         [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocument?.posts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
 
@@ -174,14 +174,14 @@ class Person extends Person
 class SpecialPerson extends Person
   @Meta
     name: 'SpecialPerson'
-    fields: =>
+    fields: ->
       # posts and nestedPosts don't exist, so we remove count field as well
       count: undefined
 
 class RecursiveBase extends Document
   @Meta
     abstract: true
-    fields: =>
+    fields: ->
       other: @ReferenceField 'self', ['content'], false, 'reverse', ['content']
 
 class Recursive extends RecursiveBase
@@ -197,7 +197,7 @@ class IdentityGenerator extends Document
 
   @Meta
     name: 'IdentityGenerator'
-    generators: =>
+    generators: ->
       result: @GeneratedField 'self', ['source'], (fields) ->
         throw new Error "Test exception" if fields.source is 'exception'
         return [fields._id, fields.source]
@@ -210,7 +210,7 @@ class IdentityGenerator extends Document
 class SpecialPost extends Post
   @Meta
     name: 'SpecialPost'
-    fields: =>
+    fields: ->
       special: @ReferenceField Person
 
 # To test redefinig after fields already have a reference to an old document
@@ -223,7 +223,7 @@ class Post extends Post
 class SubfieldItem extends Document
   @Meta
     name: 'SubfieldItem'
-    fields: =>
+    fields: ->
       toplevel:
         subitem: @ReferenceField 'self', [], false
       objectInArray: [
@@ -243,7 +243,7 @@ class LocalPost extends Document
   @Meta
     name: 'LocalPost'
     collection: null
-    fields: =>
+    fields: ->
       author: @ReferenceField LocalPerson, ['username', 'displayName', 'field1', 'field2'], true, 'posts', ['body', 'subdocument.body', 'nested.body']
       subscribers: [@ReferenceField LocalPerson]
       reviewers: [@ReferenceField LocalPerson, [username: 1]]
@@ -286,7 +286,7 @@ class LocalPost extends Document
               tags.push "tag-#{ tags.length }-prefix-#{ fields.body.toLowerCase() }-#{ nested.body.toLowerCase() }-suffix"
           [fields._id, tags]
       ]
-    triggers: =>
+    triggers: ->
       testTrigger: @Trigger ['body'], (newDocument, oldDocument) ->
         return unless newDocument?._id
         globalTestTriggerCounters[newDocument._id] = (globalTestTriggerCounters[newDocument._id] or 0) + 1
@@ -301,7 +301,7 @@ class LocalPerson extends Document
   @Meta
     name: 'LocalPerson'
     collection: null
-    fields: =>
+    fields: ->
       count: @GeneratedField 'self', ['posts', 'subdocument.posts', 'subdocumentsPosts', 'nestedPosts'], (fields) ->
         [fields._id, (fields.posts?.length or 0) + (fields.nestedPosts?.length or 0) + (fields.subdocument?.posts?.length or 0) + (fields.subdocumentsPosts?.length or 0)]
 
@@ -1782,7 +1782,7 @@ Tinytest.add 'peerdb - invalid optional', (test) ->
     class BadPost1 extends Document
       @Meta
         name: 'BadPost1'
-        fields: =>
+        fields: ->
           reviewers: [@ReferenceField Person, ['username'], false]
   , /Reference field directly in an array cannot be optional/
 
@@ -1797,7 +1797,7 @@ Tinytest.add 'peerdb - invalid nested arrays', (test) ->
     class BadPost2 extends Document
       @Meta
         name: 'BadPost2'
-        fields: =>
+        fields: ->
           nested: [
             many: [@ReferenceField Person, ['username']]
           ]
@@ -2549,7 +2549,7 @@ testAsyncMulti 'peerdb - delayed defintion', [
     class BadPost5 extends Document
       @Meta
         name: 'BadPost5'
-        fields: =>
+        fields: ->
           author: @ReferenceField undefined, ['username']
 
     Log._intercept 2 # Two to see if we catch more than expected
@@ -3412,20 +3412,20 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
   class First extends Document
     @Meta
       name: 'First'
-      fields: =>
+      fields: ->
         first: @ReferenceField firstReferenceA
 
   class Second extends First
     @Meta
       name: 'Second'
-      fields: (fields) =>
+      fields: (fields) ->
         fields.second = @ReferenceField Post # Not undefined, but overall meta will still be delayed
         fields
 
   class Third extends Second
     @Meta
       name: 'Third'
-      fields: (fields) =>
+      fields: (fields) ->
         fields.third = @ReferenceField secondReferenceA
         fields
 
@@ -3441,7 +3441,7 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
     @Meta
       name: 'First'
       replaceParent: true
-      fields: (fields) =>
+      fields: (fields) ->
         fields.first = @ReferenceField firstReferenceB
         fields
 
@@ -3451,7 +3451,7 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
     @Meta
       name: 'Second'
       replaceParent: true
-      fields: (fields) =>
+      fields: (fields) ->
         fields.second = @ReferenceField Person # Not undefined, but overall meta will still be delayed
         fields
 
@@ -3461,7 +3461,7 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
     @Meta
       name: 'Third'
       replaceParent: true
-      fields: (fields) =>
+      fields: (fields) ->
         fields.third = @ReferenceField secondReferenceB
         fields
 
@@ -3480,7 +3480,7 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
     @Meta
       name: 'Third'
       replaceParent: true
-      fields: (fields) =>
+      fields: (fields) ->
         fields.third = @ReferenceField Person
         fields
 
@@ -3500,7 +3500,7 @@ Tinytest.add 'peerdb - chain of extended classes', (test) ->
     @Meta
       name: 'First'
       replaceParent: true
-      fields: (fields) =>
+      fields: (fields) ->
         fields.first = @ReferenceField Person
         fields
 
@@ -3893,7 +3893,7 @@ Tinytest.addAsync 'peerdb - local collections', (test, onComplete) ->
       @Meta
         name: 'Local'
         collection: null
-        fields: =>
+        fields: ->
           person: @ReferenceField Person
 
     testDocumentList test, ALL.concat [Local]
@@ -3944,7 +3944,7 @@ Tinytest.addAsync 'peerdb - collections with connection', (test, onComplete) ->
         name: 'CollectionWithConnection'
         collection: new Mongo.Collection 'CollectionWithConnections',
           connection: DDP.connect Meteor.absoluteUrl()
-        fields: =>
+        fields: ->
           person: @ReferenceField Person
 
     testDocumentList test, ALL.concat [CollectionWithConnection]
@@ -4072,7 +4072,7 @@ Tinytest.add 'peerdb - tricky references', (test) ->
   class First1 extends Document
     @Meta
       name: 'First1'
-      fields: =>
+      fields: ->
         first: @ReferenceField First1
 
   Document.defineAll()
@@ -4102,13 +4102,13 @@ Tinytest.add 'peerdb - tricky references', (test) ->
   class First2 extends Document
     @Meta
       name: 'First2'
-      fields: =>
+      fields: ->
         first: @ReferenceField undefined # To force delayed
 
   class Second2 extends Document
     @Meta
       name: 'Second2'
-      fields: =>
+      fields: ->
         first: @ReferenceField First2
 
   test.throws ->
@@ -8970,7 +8970,7 @@ if Meteor.isServer and Document.instances is 1
         # Stack trace error message
         else if i.indexOf('Error: Test exception') isnt -1
           i = EJSON.parse i
-          test.isTrue i.message.indexOf('_Class.generator') isnt -1, i.message
+          test.isTrue i.message.indexOf('_GeneratedField.generator') isnt -1, i.message
           test.equal i.level, 'error'
         # Invalid update error message
         else if i.indexOf('defined as an array with selector') isnt -1

@@ -1,16 +1,17 @@
 Package.describe({
   name: 'peerlibrary:peerdb',
   summary: "Reactive database layer with references, generators, triggers, migrations, etc.",
-  version: '0.24.0',
+  version: '0.25.0',
   git: 'https://github.com/peerlibrary/meteor-peerdb.git'
 });
 
 Package.onUse(function (api) {
-  api.versionsFrom('METEOR@1.4.1');
+  api.versionsFrom('METEOR@1.4.4.5');
 
   // Core dependencies.
   api.use([
-    'coffeescript',
+    'coffeescript@2.0.3_3',
+    'ecmascript',
     'underscore',
     'minimongo',
     'mongo',
@@ -42,12 +43,13 @@ Package.onUse(function (api) {
 });
 
 Package.onTest(function (api) {
-  api.versionsFrom('METEOR@1.4.1');
+  api.versionsFrom('METEOR@1.4.4.5');
 
   api.use([
+    'coffeescript@2.0.3_3',
+    'ecmascript',
     'tinytest',
     'test-helpers',
-    'coffeescript',
     'insecure',
     'accounts-base',
     'accounts-password',
