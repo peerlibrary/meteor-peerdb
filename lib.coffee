@@ -146,11 +146,6 @@ LocalCollection.Cursor::exists = ->
   finally
     @limit = originalLimit
 
-prepared = false
-prepareList = []
-started = false
-startList = []
-
 class globals.Document
   # TODO: When we will require all fields to be specified and have validator support to validate new objects, we can also run validation here and check all data, reference fields and others
   @objectify: (parent, ancestorArray, obj, fields) ->
@@ -558,6 +553,11 @@ class globals.Document
     globals.Document.validateAll()
 
     assert dontThrowDelayedErrors or globals.Document._delayed.length is 0
+
+  prepared = false
+  prepareList = []
+  started = false
+  startList = []
 
   @prepare: (f) ->
     if prepared
