@@ -836,6 +836,26 @@ class globals.Document
   @GeneratedField: (args...) ->
     new @_GeneratedField args...
 
+  @usedBy: ->
+    fields = []
+
+    fieldsWalker = (document, obj) =>
+      for name, field of obj
+        if field instanceof globals.Document._ReferenceField
+          if field.targetDocument is @
+            assert field.sourceDocument is document
+            fields.push
+              field: field
+              document: field.sourceDocument
+              path: field.sourcePath
+        else if field not instanceof globals.Document._Field
+          fieldsWalker document, field
+
+    for document in @list
+      fieldsWalker document, document.Meta.fields
+
+    return fields
+
 class globals.Document._Trigger
   # Arguments:
   #   fields
