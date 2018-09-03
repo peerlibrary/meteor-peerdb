@@ -7,8 +7,7 @@ assert.equal Document._delayed.length, 0
 assert _.isEqual Document.list, []
 assert _.isEqual Document._collections, {}
 
-if Meteor.isServer
-  globalTestTriggerCounters = {}
+globalTestTriggerCounters = {}
 
 class Post extends Document
   # Other fields:
@@ -370,15 +369,13 @@ if Meteor.isServer
       handles = []
       for document in Document.list
         do (document) ->
-          initializing = true
           handles.push document.documents.find({}).observeChanges
             added: (id, fields) ->
-              newTimeout() unless initializing
+              newTimeout()
             changed: (id, fields) ->
               newTimeout()
             removed: (id) ->
               newTimeout()
-          initializing = false
       future.wait()
       for handle in handles
         handle.stop()
@@ -20904,6 +20901,10 @@ testAsyncMulti 'peerdb - bulk insert', [
 
     # Wait so that observers have time to update documents
     waitForDatabase test, expect
+,
+  (test, expect) ->
+    # We sleep a bit so that all changes get to the client, when rnning on the client.
+    Meteor.setTimeout expect(), 200
 ,
   (test, expect) ->
     docs = Recursive.documents.find(
