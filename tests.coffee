@@ -20990,6 +20990,9 @@ testAsyncMulti 'peerdb - bulk insert with subfield references', [
   (test, expect) ->
     insertedItem = SubfieldItem.documents.findOne @item._id
     test.equal insertedItem, @item
+
+    # To make sure there are no residual observes going into @changes.
+    waitForDatabase test, expect
 ,
   (test, expect) ->
     itemId = Random.id()
