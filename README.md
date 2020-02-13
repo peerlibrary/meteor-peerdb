@@ -510,14 +510,15 @@ real-world definitions.
 Related projects
 ----------------
 
-* [meteor-collection-hooks](https://github.com/matb33/meteor-collection-hooks) – provides an alternative way to
+* [matb33:collection-hooks](https://github.com/matb33/meteor-collection-hooks) – provides an alternative way to
 attach additional program logic on changes to your data, but it hooks into collection API methods so if a change comes
 from the outside, hooks are not called; additionally, collection API methods are delayed for the time of all hooks to
 be executed while in PeerDB hooks run in parallel in or even in a separate process (or processes), allowing your code to
 return quickly while PeerDB assures that data will be eventually consistent (this has a downside of course as well,
-so if you do not want that API calls return before all hooks run, `meteor-collection-hooks` might be more suitable for
+so if you do not want that API calls return before all hooks run, `matb33:collection-hooks` might be more suitable for
 you)
-* [meteor-related](https://github.com/peerlibrary/meteor-related) – while PeerDB provides an easy way to embed referenced
+* [peerlibrary:meteor-related](https://github.com/peerlibrary/meteor-related) – while PeerDB provides an easy way to embed referenced
 documents as subdocuments, it requires that those relations are the same for all users; if you want dynamic relations
 between documents, `meteor-related` provides an easy way to fetch related documents reactively on the server side, so
 when dependencies change, your published documents will be updated accordingly
+* [herteby:denormalize](https://github.com/Herteby/denormalize) – it does similar denormalization, but uses `matb33:collection-hooks` hooks instead reactivity to maintained denormalization, moreover, it looks like `herteby:denormalize` is much more limited in features than this package, which provides, e.g., also wrapping of documents into JavaScript objects with methods, generators, and reverse fields
